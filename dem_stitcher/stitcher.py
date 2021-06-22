@@ -45,7 +45,7 @@ def download_tiles(df_tiles: gpd.GeoDataFrame,
                    ) -> tuple:
 
     if max_workers > 5:
-        warnings.warn('Max workers greater than 5 could cause TimeOut Errors')
+        warnings.warn('Max workers greater than 5 could cause Timeout Errors')
 
     urls = df_tiles.url.tolist()
     tile_ids = df_tiles.tile_id.tolist()
