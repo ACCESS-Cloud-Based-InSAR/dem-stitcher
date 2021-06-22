@@ -4,7 +4,7 @@ The purpose of this repo is to download Digital Elevation Model (DEM) tiles and 
 
 This is the joint work of Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard.
 
-Please look at the demonstration [here](notebooks/Demo.ipynb)
+Please look at the demonstration [here](notebooks/Demo.ipynb).
 
 # Installation
 
@@ -14,7 +14,7 @@ Tested with 3.8.5 Anaconda Python.
 2. `conda -c conda-forge install gdal` (gdal only for building the VRT)
 3. Install the package either:
       + `pip install .` (or to make editable `pip install -e .`)
-      + `pip install from github as [here](https://stackoverflow.com/a/8256424)
+      + `pip install ...` from github as [here](https://stackoverflow.com/a/8256424)
 
 We will consolidate dependencies into `conda` at some point - I still prefer pip as its faster.
 
@@ -37,7 +37,7 @@ Look at this [readme](notebooks_tile_data/README.md) and this [notebook](noteboo
 3. (optional; default `True`) Pixel centered referenced raster ensuring (a) half-pixel shift in the north-west direction if the original raster tiles are centered around the UL corner point and (b) tagging the data with `{'AREA_OR_POINT: 'Point'}`.
    + SRTM v3 and TDX are [pixel centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904)
    + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects)
-4. (optional; default `True`) - Ellipsoidal height correction
+4. (optional; default `True`) - transform vertical heights to WGS84 Ellipsoidal height.
 
 # Testing
 
