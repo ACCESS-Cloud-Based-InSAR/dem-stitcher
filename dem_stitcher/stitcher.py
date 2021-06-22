@@ -1,5 +1,4 @@
 from pathlib import Path
-from itertools import starmap
 from tqdm import tqdm
 import geopandas as gpd
 import rasterio
@@ -12,6 +11,7 @@ from osgeo import gdal
 from typing import Union
 import warnings
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor
 
 from .dem_readers import read_dem, read_ned1, read_tdx, read_srtm
 from .rio_tools import (translate_profile,
@@ -41,7 +41,11 @@ DEM2GEOID = {'ned1': 'geoid_18',
 
 def download_tiles(df_tiles: gpd.GeoDataFrame,
                    dest_dir: Path,
+                   max_workers: int = 5
                    ) -> tuple:
+
+    if max_workers > 5:
+        warnings.warn('Max workers greater than 5 could cause TimeOut Errors')
 
     urls = df_tiles.url.tolist()
     tile_ids = df_tiles.tile_id.tolist()
@@ -64,10 +68,15 @@ def download_tiles(df_tiles: gpd.GeoDataFrame,
             ds.write(dem_arr, 1)
         return dem_profile
 
-    profiles = list(starmap(download_and_write_one,
-                    zip(tqdm(urls,
-                             desc=f'Downloading {dem_name} tiles'),
-                        dest_paths)))
+    def download_and_write_one_z(data):
+        return download_and_write_one(*data)
+
+    data_list = zip(urls, dest_paths)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        results = list(tqdm(executor.map(download_and_write_one_z, data_list),
+                            total=len(urls),
+                            desc=f'Downloading {dem_name} tiles'))
+    profiles = results
 
     n = len(dest_paths)
     dest_paths_f = [dest_paths[k] for k in range(n) if profiles[k] is not None]
@@ -101,6 +110,7 @@ def download_dem(bounds: list,
                  ellipsoidal_height: bool = False,
                  save_raw_tiles: bool = False,
                  dst_area_or_point: str = 'Point',
+                 max_workers: int = 5
                  ) -> str:
     if isinstance(dest_dir, str):
         dest_dir = Path(dest_dir)
@@ -120,7 +130,7 @@ def download_dem(bounds: list,
     df_tiles = df_tiles.reset_index(drop=True)
 
     # Download tiles and merge
-    tile_paths, _ = download_tiles(df_tiles, dest_dir)
+    tile_paths, _ = download_tiles(df_tiles, dest_dir, max_workers=max_workers)
     dem_arr, dem_profile = merge_tiles(tile_paths)
     if not save_raw_tiles:
         list(map(lambda path: path.unlink(), tile_paths))
