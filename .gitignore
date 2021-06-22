@@ -1,0 +1,85 @@
+# Deprecated Folder
+_deprecated/
+
+# OS Files
+**/.DS_Store
+**/.DS_Store?
+
+# vscode
+.vscode
+
+# env file
+.env
+
+# Vim files
+*.sw[mnop]
+
+# Data Files
+*.zip
+*.tar.gz
+*.dat
+# Include the tile vector data
+!dem_stitcher/data/*.geojson.zip
+
+# .pyenv files
+.python-version
+
+# pytest files
+.pytest_cache/
+
+# Jupyter files
+*.ipynb_checkpoints
+
+# Python build files
+build/
+
+# Rope Files
+.ropeproject/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Setuptools distribution folder.
+/dist/
+
+# Python egg metadata, regenerated from source files by setuptools.
+/*.egg-info
+
+# Environments
+.env
+.envrc
+
+# Gdal and other image formats
+*.tif
+*.xml
+*.shp
+*.sbx
+*.sbn
+*.shx
+*.prj
+*.qpj
+*.dbf
+*.cpg
+*.msk
+*.kmz
+*.jpg
+*.wld
+*.geojson
+
+# VRT
+*.vrt
+*.wgs84
+
+# Allow tif datacube to be added
+!dem_stitcher/data/geoid_18.tif
+
+# Log files
+*.log
+
+# Pickle Data
+*.pkl
+
+# Ignore pdf Files
+*.pdf
