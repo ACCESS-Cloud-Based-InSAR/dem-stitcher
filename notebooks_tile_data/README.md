@@ -1,4 +1,6 @@
-# Sources
+# DEM Tile Sources
+
+The best reference is the [notebook](Format_Data.ipynb) in this directory.
 
 # 3dep
 
@@ -6,7 +8,7 @@ We used the s3 bucket `prd-tnm` using the appropriate prefix (see the link below
 
 ## Tiles
 
-We were originally using these tiles as reference, but the links have become outdated. Find it is best to use s3 bucket directly.
+We were originally using these tiles as reference, but the links have become outdated as the USGS and others have updated tiles. Found it is best to use s3 bucket directly.
 
 3dep kml: https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1
 
@@ -16,15 +18,13 @@ To translate to geojson:
 ogr2ogr -nlt POLYGON -explodecollections -skipfailures -f GeoJSON 3dep.geojson 3dep.kml 'sb:childrenBoundingBox'
 ```
 
-
-
 # Ned1
 
 We used the s3 bucket `prd-tnm` using the appropriate prefix (see the link below).
 
 ## Tiles
 
-We were originally using these tiles as reference, but the links have become outdated. Find it is best to use s3 bucket directly.
+We were originally using these tiles as reference, but again the links have become outdated. Found it is best to use s3 bucket directly.
 
 Ned1 geojson: https://cugir.library.cornell.edu/catalog/cugir-009096
 
@@ -48,6 +48,6 @@ All of the data is [here](https://registry.opendata.aws/copernicus-dem/)
 
 Tiles are [here](https://copernicus-dem-30m.s3.amazonaws.com/grid.zip).
 
-And the s3 bucket is open.
+The s3 bucket is open.
 
 

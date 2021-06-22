@@ -1,8 +1,10 @@
 # Dem Stitcher
 
-The purpose of this repo is to download Digital Elevation Model (DEM) tiles and do some basic transformations so that they can be ingested into ISCE2 for the ARIA pipeline. We could see this being used in different applications.
+The purpose of this repo is to download Digital Elevation Model (DEM) tiles and do some basic transformations so that they can be ingested into ISCE2 for the ARIA pipeline. We could see this being used in different applications. Meant to be "plugged-in" to other python routines.
 
 This is the joint work of Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard.
+
+Please look at the demonstration [here](notebooks/Demo.ipynb)
 
 # Installation
 
@@ -14,7 +16,7 @@ Tested with 3.8.5 Anaconda Python.
       + `pip install .` (or to make editable `pip install -e .`)
       + `pip install from github as [here](https://stackoverflow.com/a/8256424)
 
-We will consolidate dependencies into `conda` at some point - I still just prefer pip as its faster.
+We will consolidate dependencies into `conda` at some point - I still prefer pip as its faster.
 
 # DEMs
 
@@ -26,7 +28,7 @@ The DEMs we have are:
 2. SRTM v3 [[link](https://dwtkns.com/srtm30m/)]
 3. Tandem-X 30 meter (GLO-30) [[link](https://registry.opendata.aws/copernicus-dem/)]
 
-Look at this [readme](notebooks_tile_data/README.md) and this [notebook](notebooks_tile_data/Format%20Data.ipynb) for some more information.
+Look at this [readme](notebooks_tile_data/README.md) and this [notebook](notebooks_tile_data/Format_Data.ipynb) for some more information.
 
 # Transformations
 
@@ -37,3 +39,17 @@ Look at this [readme](notebooks_tile_data/README.md) and this [notebook](noteboo
    + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects)
 4. (optional; default `True`) - Ellipsoidal height correction
 
+# Testing
+
+Take a look at the [demo](notebooks/Demo.ipynb) and replace the bounds. Look at the downloaded tiles, etc.
+
+## Contributing
+
+1. Create an GitHub issue ticket desrcribing what changes you need (e.g. issue-1)
+2. Fork this repo
+3. Make your modifications in your own fork
+4. Make a pull-request in this repo with the code in your fork and tag the repo owner / largest contributor as a reviewer
+
+## Support
+
+Create an issue ticket.
