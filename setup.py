@@ -13,15 +13,14 @@ except ImportError:
     with open(path.join(file_dir, 'README.md'), encoding='utf-8') as f:
         long_description = f.read()
 
-desc = '''A python library for generating a connected channel network from a
-water mask'''
+desc = '''Download and merge DEM tiles for processing interferograms with ISCE2.'''
 
 setup(name='dem_stitcher',
       version='0.1dev',
 
       description=desc,
       long_description=long_description,
-      url='https://github.com/aria-jpl/dem-stitcher',
+      url='https://github.com/aria-jpl/dem_stitcher',
 
       author='''Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard''',
       author_email='charlie.z.marshak@jpl.nasa.gov',
