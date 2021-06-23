@@ -1,5 +1,4 @@
 import rasterio
-from functools import lru_cache
 import numpy as np
 from rasterio.crs import CRS
 from .rio_tools import reproject_arr_to_match_profile, translate_profile
@@ -11,7 +10,6 @@ GEOID_PATHS = {'geoid_18': DATA_PATH/'geoid_18.tif',
                'egm_96': 'http://download.agisoft.com/geoids/egm96-15.tif'}
 
 
-@lru_cache
 def read_geoid(geoid_name: str, extent: tuple = None) -> tuple:
 
     geoid_path = GEOID_PATHS[geoid_name]
