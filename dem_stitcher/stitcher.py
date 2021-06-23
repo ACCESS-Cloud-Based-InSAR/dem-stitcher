@@ -115,6 +115,7 @@ def download_dem(bounds: list,
                  ellipsoidal_height: bool = False,
                  save_raw_tiles: bool = False,
                  dst_area_or_point: str = 'Point',
+                 dest_driver: str = 'ISCE',
                  max_workers: int = 5
                  ) -> str:
     if isinstance(dest_dir, str):
@@ -179,16 +180,10 @@ def download_dem(bounds: list,
                                extent=bounds,
                                dem_area_or_point=dst_area_or_point)
 
-    tif_name = f'{dem_name}_merged.tif'
-    vrt_name = f'{dem_name}.dem.wgs84'
-
-    tif_path = dest_dir/tif_name
-    vrt_path = dest_dir/vrt_name
-
-    with rasterio.open(tif_path, 'w', **dem_profile) as ds:
+    out_path = dest_dir/f'{dem_name}.dem.wgs84'
+    dem_profile['driver'] = dest_driver
+    with rasterio.open(out_path, 'w', **dem_profile) as ds:
         ds.write(dem_arr, 1)
         ds.update_tags(AREA_OR_POINT=dst_area_or_point)
 
-    gdal.BuildVRT(str(vrt_path), str(tif_path))
-
-    return vrt_path
+    return out_path
