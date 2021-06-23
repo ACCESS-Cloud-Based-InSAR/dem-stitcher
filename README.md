@@ -1,4 +1,4 @@
-# Dem Stitcher
+# dem_stitcher
 
 The purpose of this repo is to download Digital Elevation Model (DEM) tiles and do some basic transformations so that they can be ingested into ISCE2 for the ARIA pipeline. We could see this being used in different applications. Meant to be "plugged-in" to other python routines.
 
@@ -18,6 +18,17 @@ Tested with 3.8.5 Anaconda Python.
 
 We will consolidate dependencies into `conda` at some point - I still prefer pip as its faster.
 
+## Credentials
+
+The virtual reading of Nasadem and SRTM require earthdata login credentials to be put into the `~/.netrc` file. If these are not present, the tiler will
+fail with `BadZipFile Error` as the request is made behind the secnes with `rasterio`/`gdal`.
+
+```
+machine urs.earthdata.nasa.gov
+    login <username>
+    password <password>
+```
+
 # DEMs
 
 The DEMs we have are:
@@ -26,7 +37,8 @@ The DEMs we have are:
    - Ned 1 arc-second (deprecated) [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
    - 3Dep 1 arc-second[[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)]
 2. SRTM v3 [[link](https://dwtkns.com/srtm30m/)]
-3. Tandem-X 30 meter (GLO-30) [[link](https://registry.opendata.aws/copernicus-dem/)]
+3. Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
+4. Tandem-X 30 meter (GLO-30) [[link](https://registry.opendata.aws/copernicus-dem/)]
 
 Look at this [readme](notebooks_tile_data/README.md) and this [notebook](notebooks_tile_data/Format_Data.ipynb) for some more information.
 

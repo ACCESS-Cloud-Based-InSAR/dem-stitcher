@@ -58,11 +58,18 @@ def read_ned1(url: str):
     return dem_arr, dem_profile
 
 
-def read_srtm(url: str):
+def read_srtm(url: str, version='srtm') -> tuple:
     img_bytes = read_dem_bytes(url, suffix='.hgt')
-    # The driver hgt depends on filename convention
+    # The gdal driver hgt depends on filename convention
     filename = url.split('/')[-1]
-    filename = filename.replace('.zip', '')
+    if version == 'srtm':
+        filename = filename.replace('.zip', '')
+    elif version == 'nasadem':
+        filename = filename.replace('.zip', '.hgt')
+        filename = filename.replace('NASADEM_HGT_', '')
+    else:
+        raise ValueError('version must be either nasadem or srtm')
+
     with MemoryFile(img_bytes, filename=filename) as memfile:
         with memfile.open() as dataset:
             dem_arr = dataset.read(1).astype(np.float32)
@@ -75,3 +82,7 @@ def read_srtm(url: str):
     dem_profile['dtype'] = 'float32'
 
     return dem_arr, dem_profile
+
+
+def read_nasadem(url: str) -> tuple:
+    return read_srtm(url, version='nasadem')

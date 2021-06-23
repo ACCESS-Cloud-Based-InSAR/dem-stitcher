@@ -13,11 +13,11 @@ import warnings
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 
-from .dem_readers import read_dem, read_ned1, read_tdx, read_srtm
+from .dem_readers import read_dem, read_ned1, read_tdx, read_srtm, read_nasadem
 from .rio_tools import (translate_profile,
                         crop_profile_from_coord_bounds,
                         reproject_arr_to_new_crs,
-                        reproject_arr_to_match_profile
+                        reproject_arr_to_match_profile,
                         )
 from .geoid import remove_geoid
 from .datasets import get_dem_tile_extents
@@ -26,17 +26,20 @@ gdal.UseExceptions()
 RASTER_READERS = {'ned1': read_ned1,
                   '3dep': read_dem,
                   'tdx_30': read_tdx,
-                  'srtm_v3': read_srtm}
+                  'srtm_v3': read_srtm,
+                  'nasadem': read_nasadem}
 
 PIXEL_AS_AREA = {'ned1': True,
                  '3dep': True,
                  'tdx_30': False,
-                 'srtm_v3': False}
+                 'srtm_v3': False,
+                 'nasadem': False}
 
 DEM2GEOID = {'ned1': 'geoid_18',
              '3dep': 'geoid_18',
              'tdx_30': 'egm_08',
-             'srtm_v3': 'egm_96'}
+             'srtm_v3': 'egm_96',
+             'nasadem': 'egm_96'}
 
 
 def download_tiles(df_tiles: gpd.GeoDataFrame,
