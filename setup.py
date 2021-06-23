@@ -27,8 +27,8 @@ setup(name='dem_stitcher',
 
       keywords='dem',
 
-      packages=['dem_stitcher'],  # setuptools.find_packages(exclude=['doc']),
-
+      packages=['dem_stitcher'],
+      package_data={"dem_stitcher": ["data/*.geojson.zip", "data/*.tif"]},
       # Required Packages
       # We assume an environment specified by requirements.txt is provided We
       # could take this approach:
