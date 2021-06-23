@@ -4,7 +4,7 @@ import geopandas as gpd
 import rasterio
 from rasterio.merge import merge
 from rasterio import default_gtiff_profile
-from rasterio.warp import Resampling
+# from rasterio.warp import Resampling
 from rasterio.crs import CRS
 from shapely.geometry import box
 from osgeo import gdal
@@ -89,8 +89,7 @@ def download_tiles(df_tiles: gpd.GeoDataFrame,
 
 
 def merge_tiles(paths):
-    merged_arr, merged_transform = merge(paths,
-                                         resampling=Resampling['bilinear'])
+    merged_arr, merged_transform = merge(paths)
     merged_arr = merged_arr[0, ...]
     profile = default_gtiff_profile.copy()
     with rasterio.open(paths[0]) as ds:
