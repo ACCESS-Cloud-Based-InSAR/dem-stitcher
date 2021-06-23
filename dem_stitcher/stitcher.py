@@ -89,8 +89,11 @@ def download_tiles(df_tiles: gpd.GeoDataFrame,
 
 
 def merge_tiles(paths):
-    merged_arr, merged_transform = merge(paths)
+    datasets = list(map(rasterio.open, paths))
+    merged_arr, merged_transform = merge(datasets)
     merged_arr = merged_arr[0, ...]
+    list(map(lambda dataset: dataset.close(), datasets))
+
     profile = default_gtiff_profile.copy()
     with rasterio.open(paths[0]) as ds:
         crs = ds.crs
