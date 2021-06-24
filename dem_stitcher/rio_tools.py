@@ -452,3 +452,34 @@ def reproject_arr_to_new_crs(src_array: np.ndarray,
               resampling=resampling,
               )
     return dst_array, reprojected_profile
+
+
+def resample_by_multiple(src_array: np.ndarray,
+                         src_profile: dict,
+                         multiple: float) -> Tuple[np.ndarray, dict]:
+    """Resample according to a multiple of the src pixel size. `Multiple = 2`
+    leads to a new array with pixel size twice as large, that is the resolution
+    is cut in half. Similarly, `multiple = .5` leads to double the resolution
+    and half the pixel size of the existing array.
+
+    Parameters
+    ----------
+    src_array : np.ndarray
+        The array to be resampled
+    src_profile : dict
+        The rasterio profile for the src array
+    multiple : float
+        The multiple that will scale the pixel size. Inverse of target
+        resolution.
+
+    Returns
+    -------
+    Tuple[np.ndarray, dict]
+        Resampled array, resampled profile
+    """
+    transform = src_profile['transform']
+    out_profile = src_profile.copy()
+    out_profile['transform'] = transform * transform.scale(multiple)
+    out_profile['width'] = int(round(src_profile['width'] / multiple))
+    out_profile['height'] = int(round(src_profile['height'] / multiple))
+    return reproject_arr_to_match_profile(src_array, src_profile, out_profile)
