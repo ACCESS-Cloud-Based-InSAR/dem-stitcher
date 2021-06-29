@@ -11,12 +11,10 @@ Please look at the demonstration [here](notebooks/Demo.ipynb).
 Tested with 3.8.5 Anaconda Python.
 
 1. `pip install -r requirements.txt`
-2. `conda -c conda-forge install gdal` (gdal only for building the VRT)
-3. Install the package either:
+2. Install the package either:
       + `pip install .` (or to make editable `pip install -e .`)
       + `pip install ...` from github as [here](https://stackoverflow.com/a/8256424)
 
-We will consolidate dependencies into `conda` at some point - I still prefer pip as its faster.
 
 ## Credentials
 

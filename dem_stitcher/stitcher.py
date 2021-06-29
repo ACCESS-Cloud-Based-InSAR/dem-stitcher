@@ -7,7 +7,6 @@ from rasterio import default_gtiff_profile
 # from rasterio.warp import Resampling
 from rasterio.crs import CRS
 from shapely.geometry import box
-from osgeo import gdal
 from typing import Union
 import warnings
 import numpy as np
@@ -21,7 +20,6 @@ from .rio_tools import (translate_profile,
                         )
 from .geoid import remove_geoid
 from .datasets import get_dem_tile_extents
-gdal.UseExceptions()
 
 RASTER_READERS = {'ned1': read_ned1,
                   '3dep': read_dem,
