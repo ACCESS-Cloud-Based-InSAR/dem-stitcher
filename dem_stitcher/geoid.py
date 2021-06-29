@@ -5,9 +5,10 @@ from .rio_tools import reproject_arr_to_match_profile, translate_profile
 from .datasets import DATA_PATH
 from .rio_window import read_raster_from_window
 
+S3_URL = 'https://aria-dev-lts-fwd-torresal.s3.us-west-2.amazonaws.com'
 GEOID_PATHS = {'geoid_18': DATA_PATH/'geoid_18.tif',
-               'egm_08': 'http://download.agisoft.com/geoids/egm2008-1.tif',
-               'egm_96': 'http://download.agisoft.com/geoids/egm96-15.tif'}
+               'egm_08': f'{S3_URL}/datasets/geoid/egm2008-1.tif',
+               'egm_96': f'{S3_URL}/datasets/geoid/egm96-15.tif'}
 
 
 def read_geoid(geoid_name: str, extent: tuple = None) -> tuple:
