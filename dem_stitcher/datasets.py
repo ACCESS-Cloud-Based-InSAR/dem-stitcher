@@ -11,6 +11,10 @@ DATASETS = list(DATA_PATH.glob('*.geojson.zip'))
 DATASETS = list(map(lambda x: x.name.split('.')[0], DATASETS))
 
 
+def get_available_datasets():
+    return DATASETS
+
+
 def get_dem_tile_extents(dataset: str) -> gpd.GeoDataFrame:
     if dataset not in DATASETS:
         raise ValueError(f'{dataset} must be in {", ".join(DATASETS)}')

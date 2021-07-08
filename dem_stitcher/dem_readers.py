@@ -21,7 +21,7 @@ def read_dem(url: str):
     return dem_arr, dem_profile
 
 
-def read_tdx(url: str):
+def read_glo(url: str):
     # Some tiles do not exist
     try:
         return read_dem(url)

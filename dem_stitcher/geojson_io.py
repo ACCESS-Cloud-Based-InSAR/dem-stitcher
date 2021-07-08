@@ -28,7 +28,8 @@ def to_geojson_obj(geodataframe: gpd.geodataframe.GeoDataFrame):
     return geojson
 
 
-def to_geojson_gzip(geodataframe: gpd.geodataframe.GeoDataFrame, dest_path: str):
+def to_geojson_gzip(geodataframe: gpd.geodataframe.GeoDataFrame,
+                    dest_path: str):
     geojson_ob = to_geojson_obj(geodataframe)
     with gzip.GzipFile(dest_path, 'w') as file_out:
         file_out.write(json.dumps(geojson_ob).encode('utf-8'))

@@ -12,7 +12,7 @@ import warnings
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 
-from .dem_readers import read_dem, read_ned1, read_tdx, read_srtm, read_nasadem
+from .dem_readers import read_dem, read_ned1, read_glo, read_srtm, read_nasadem
 from .rio_tools import (translate_profile,
                         crop_profile_from_coord_bounds,
                         reproject_arr_to_new_crs,
@@ -23,19 +23,19 @@ from .datasets import get_dem_tile_extents
 
 RASTER_READERS = {'ned1': read_ned1,
                   '3dep': read_dem,
-                  'tdx_30': read_tdx,
+                  'glo_30': read_glo,
                   'srtm_v3': read_srtm,
                   'nasadem': read_nasadem}
 
 PIXEL_AS_AREA = {'ned1': True,
                  '3dep': True,
-                 'tdx_30': False,
+                 'glo_30': False,
                  'srtm_v3': False,
                  'nasadem': False}
 
 DEM2GEOID = {'ned1': 'geoid_18',
              '3dep': 'geoid_18',
-             'tdx_30': 'egm_08',
+             'glo_30': 'egm_08',
              'srtm_v3': 'egm_96',
              'nasadem': 'egm_96'}
 
@@ -60,7 +60,7 @@ def download_tiles(df_tiles: gpd.GeoDataFrame,
     def download_and_write_one(url, dest_path):
         dem_arr, dem_profile = reader(url)
         # if dem_arr is None - the tile does not exist - this is the case
-        # for tdx
+        # for glo30
         if dem_arr is None:
             return
 
@@ -114,7 +114,8 @@ def download_dem(bounds: list,
                  save_raw_tiles: bool = False,
                  dst_area_or_point: str = 'Point',
                  dest_driver: str = 'ISCE',
-                 max_workers: int = 5
+                 max_workers: int = 5,
+                 force_agi_read_for_geoid: bool = False,
                  ) -> str:
     if isinstance(dest_dir, str):
         dest_dir = Path(dest_dir)
@@ -176,7 +177,9 @@ def download_dem(bounds: list,
                                dem_profile,
                                geoid_name,
                                extent=bounds,
-                               dem_area_or_point=dst_area_or_point)
+                               dem_area_or_point=dst_area_or_point,
+                               force_agi_read=force_agi_read_for_geoid
+                               )
 
     out_path = dest_dir/f'{dem_name}.dem.wgs84'
     dem_profile['driver'] = dest_driver
