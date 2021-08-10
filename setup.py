@@ -4,36 +4,24 @@ from os import path
 file_dir = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file.
-try:
-    import pypandoc
-    long_description = pypandoc.convert('README.md', 'rst')
-    long_description = long_description.replace('\r', '')
-except ImportError:
-    print('Pandoc not found. Long_description conversion failure.')
-    with open(path.join(file_dir, 'README.md'), encoding='utf-8') as f:
-        long_description = f.read()
+with open(path.join(file_dir, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
-desc = '''Download and merge DEM tiles for processing interferograms with ISCE2.'''
+desc = '''Download and merge DEM tiles
+for processing interferograms with ISCE2.'''
 
 setup(name='dem_stitcher',
       version='0.1dev',
-
       description=desc,
       long_description=long_description,
       url='https://github.com/aria-jpl/dem_stitcher',
-
-      author='''Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard''',
+      author='''Charlie Marshak, David Bekaert,
+      Michael Denbina, Marc Simard''',
       author_email='charlie.z.marshak@jpl.nasa.gov',
-
       keywords='dem',
-
       packages=['dem_stitcher'],
       package_data={"dem_stitcher": ["data/*.geojson.zip", "data/*.tif"]},
       # Required Packages
-      # We assume an environment specified by requirements.txt is provided We
-      # could take this approach:
-      # https://github.com/scikit-image/scikit-image/blob/master/setup.py#L117-L131
-      # but rather use the requirements.txt to specify a valid environment and
-      # not muddle the installation with pip and possibly conda.
+      # We assume an environment specified by requirements.txt is provided.
       install_requires=[],
       )
