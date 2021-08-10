@@ -4,13 +4,8 @@ description: Composite for pytest
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v2
-    - uses: extractions/netrc@v1
-      with:
-          machine: urs.earthdata.nasa.gov
-          username: ${{ secrets.EARTHDATA_USERNAME }}
-          password: ${{ secrets.EARTHDATA_PASSWORD }}
     - name: Install dependencies, linter, papermill and kernel for tests
+      shell: bash
       run: |
         python -m pip install --upgrade pip
         python -m pip install -r requirements.txt
@@ -18,9 +13,11 @@ runs:
         python -m pip install .
         python -m ipykernel install --user --name dem_stitcher
     - name: Lint with flake8
+      shell: bash
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 .
     - name: run pytest
+      shell: bash
       run: |
         pytest tests

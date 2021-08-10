@@ -11,4 +11,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - uses: ./.github/actions/pytest-composite
+    - uses: extractions/netrc@v1
+      with:
+          machine: urs.earthdata.nasa.gov
+          username: ${{ secrets.EARTHDATA_USERNAME }}
+          password: ${{ secrets.EARTHDATA_PASSWORD }}
+    - uses: ./.github/actions/pytest-automation
