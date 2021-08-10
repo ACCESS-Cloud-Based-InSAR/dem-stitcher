@@ -8,6 +8,8 @@ Please look at the demonstration [here](notebooks/Demo.ipynb).
 
 # Installation with pip
 
+Work in progress:
+
 1. Download the `requirements.txt` and install them e.g. `pip install -r requirements.txt.
 2. `pip install dem_stitcher`
 
