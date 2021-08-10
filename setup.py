@@ -11,7 +11,7 @@ desc = '''Download and merge DEM tiles
 for processing interferograms with ISCE2.'''
 
 setup(name='dem_stitcher',
-      version='0.1dev',
+      version='0.1.0',
       description=desc,
       long_description=long_description,
       url='https://github.com/aria-jpl/dem_stitcher',
