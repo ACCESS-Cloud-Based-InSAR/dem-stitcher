@@ -6,7 +6,12 @@ This is the joint work of Charlie Marshak, David Bekaert, Michael Denbina, and M
 
 Please look at the demonstration [here](notebooks/Demo.ipynb).
 
-# Installation
+# Installation with pip
+
+1. Download the `requirements.txt` and install them e.g. `pip install -r requirements.txt.
+2. `pip install dem_stitcher`
+
+# Installation for Development
 
 Tested with 3.8.5 Anaconda Python.
 
