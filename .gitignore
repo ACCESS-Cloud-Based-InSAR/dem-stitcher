@@ -17,6 +17,9 @@ _deprecated/
 # Notebooks used for presentations
 notebooks_plots/
 
+# Test output
+tests/out/
+
 # Data Files
 *.zip
 *.tar.gz
