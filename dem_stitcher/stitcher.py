@@ -116,7 +116,7 @@ def download_dem(bounds: list,
                  dest_driver: str = 'ISCE',
                  max_workers: int = 5,
                  force_agi_read_for_geoid: bool = False,
-                 ) -> str:
+                 ) -> Path:
     if isinstance(dest_dir, str):
         dest_dir = Path(dest_dir)
 

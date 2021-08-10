@@ -7,8 +7,8 @@ from .geojson_io import read_geojson_gzip
 DATA_PATH = Path(__file__).parents[0].absolute()/'data'
 
 # Get Datasets
-DATASETS = list(DATA_PATH.glob('*.geojson.zip'))
-DATASETS = list(map(lambda x: x.name.split('.')[0], DATASETS))
+_DATASET_PATHS = list(DATA_PATH.glob('*.geojson.zip'))
+DATASETS = list(map(lambda x: x.name.split('.')[0], _DATASET_PATHS))
 
 
 def get_available_datasets():

@@ -7,7 +7,7 @@ from .datasets import DATA_PATH
 from .rio_window import read_raster_from_window
 
 S3_URL = 'https://aria-dev-lts-fwd-torresal.s3.us-west-2.amazonaws.com'
-GEOID_PATHS_JPL = {'geoid_18': DATA_PATH/'geoid_18.tif',
+GEOID_PATHS_JPL = {'geoid_18': f'{DATA_PATH}/geoid_18.tif',
                    'egm_08': f'{S3_URL}/datasets/geoid/egm2008-1.tif',
                    'egm_96': f'{S3_URL}/datasets/geoid/egm96-15.tif'}
 
@@ -64,7 +64,7 @@ def remove_geoid(dem_arr: np.ndarray,
                  geoid_name: str,
                  extent: list = None,
                  dem_area_or_point: str = 'Point',
-                 force_agi_read: bool = False):
+                 force_agi_read: bool = False) -> np.ndarray:
 
     assert(dem_area_or_point in ['Point', 'Area'])
 
