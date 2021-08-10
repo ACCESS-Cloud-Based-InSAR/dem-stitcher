@@ -58,7 +58,11 @@ Look at this [readme](notebooks_tile_data/README.md) and this [notebook](noteboo
 
 # Testing
 
-Take a look at the [demo](notebooks/Demo.ipynb) and replace the bounds. Look at the downloaded tiles, etc.
+1. Install `papermill` and `pytest`.
+2. Install a new jupyter kernel to reference `dem_stitcher` with `python -m ipykernel install --user --name dem_stitcher` (the notebooks use this kernel name).
+3. Run pytest.
+
+There are automatic github actions that run the said tests as well.
 
 ## Contributing
 
