@@ -14,7 +14,7 @@ def test_download_dem(dem_name):
 
     out_notebook = out_dir/f'{dem_name}.ipynb'
 
-    pm.execute_notebook(test_dir/'test_notebook.ipynb',
+    pm.execute_notebook(test_dir/'test_download_dem.ipynb',
                         output_path=out_notebook,
                         parameters=dict(dem_name=dem_name,
                                         test_dir=str(test_dir)
