@@ -8,8 +8,18 @@ This is the joint work of Charlie Marshak, David Bekaert, Michael Denbina, and M
 
 Please look at the demonstration [here](notebooks/Demo.ipynb).
 
-# Installation with pip
+# Credentials
 
+The virtual reading of Nasadem and SRTM require earthdata login credentials to be put into the `~/.netrc` file. If these are not present, the stitcher will
+fail with `BadZipFile Error` as the request is made behind the secnes with `rasterio`. Specifically,
+
+```
+machine urs.earthdata.nasa.gov
+    login <username>
+    password <password>
+```
+
+# Installation with pip
 
 1. Download the `requirements.txt` and install them: `pip install -r requirements.txt`
 2. Install dem stitcher: `pip install dem_stitcher`
@@ -22,18 +32,6 @@ Tested with 3.8.5 Anaconda Python.
 2. Install the package either:
       + `pip install .` (or to make editable `pip install -e .`)
       + `pip install ...` from github as [here](https://stackoverflow.com/a/8256424)
-
-
-## Credentials
-
-The virtual reading of Nasadem and SRTM require earthdata login credentials to be put into the `~/.netrc` file. If these are not present, the tiler will
-fail with `BadZipFile Error` as the request is made behind the secnes with `rasterio`/`gdal`.
-
-```
-machine urs.earthdata.nasa.gov
-    login <username>
-    password <password>
-```
 
 # DEMs
 
