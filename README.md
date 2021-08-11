@@ -1,7 +1,5 @@
 # dem_stitcher
 
-![tests](https://github.com/aria-jpl/dem_stitcher/actions/workflows/pytest/badge.svg)
-
 The purpose of this repo is to download Digital Elevation Model (DEM) tiles and do some basic transformations so that they can be ingested into ISCE2 for the ARIA pipeline. We could see this being used in different applications. Meant to be "plugged-in" to other python routines.
 
 This is the joint work of Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard.
