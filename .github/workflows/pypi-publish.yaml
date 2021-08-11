@@ -7,27 +7,33 @@ on:
       - stable-pypi
 
 jobs:
+  deploy:
 
-  pytest:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
-      matrix:
-        python-version: [3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
-    - uses: extractions/netrc@v1
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: set up netrc
+      uses: extractions/netrc@v1
       with:
           machine: urs.earthdata.nasa.gov
           username: ${{ secrets.EARTHDATA_USERNAME }}
           password: ${{ secrets.EARTHDATA_PASSWORD }}
-    - uses: ./.github/actions/pytest-automation
 
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: pypa/gh-action-pypi-publish@release/v1
+    - name: install requirements and pytest
+      uses: ./.github/actions/pytest-automation
+
+    - name: Build package
+      run: python -m build
+
+    - name: Publish package
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
