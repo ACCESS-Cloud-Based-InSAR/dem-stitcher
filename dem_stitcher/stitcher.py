@@ -113,9 +113,10 @@ def download_dem(bounds: list,
                  ellipsoidal_height: bool = False,
                  save_raw_tiles: bool = False,
                  dst_area_or_point: str = 'Point',
-                 dest_driver: str = 'ISCE',
+                 dst_driver: str = 'ISCE',
                  max_workers: int = 5,
                  force_agi_read_for_geoid: bool = False,
+                 dst_file_name: str = None
                  ) -> Path:
     if isinstance(dest_dir, str):
         dest_dir = Path(dest_dir)
@@ -154,11 +155,6 @@ def download_dem(bounds: list,
                                                         dem_profile,
                                                         CRS.from_epsg(4326))
 
-        # dst_profile_4326 = dem_profile.copy()
-        # dst_profile_4326['crs'] = CRS.from_epsg(4326)
-        # dem_arr, dem_profile = reproject_arr_to_match_profile(dem_arr,
-        #                                                       dem_profile,
-        #                                                       dst_profile_4326)
     elif dem_profile['crs'] != CRS.from_epsg(4326):
         raise ValueError('CRS must be epsg 4269 or 4326')
 
@@ -181,8 +177,9 @@ def download_dem(bounds: list,
                                force_agi_read=force_agi_read_for_geoid
                                )
 
-    out_path = dest_dir/f'{dem_name}.dem.wgs84'
-    dem_profile['driver'] = dest_driver
+    out_file_name = dst_file_name or f'{dem_name}.dem.wgs84'
+    out_path = dest_dir/out_file_name
+    dem_profile['driver'] = dst_driver
     with rasterio.open(out_path, 'w', **dem_profile) as ds:
         ds.write(dem_arr, 1)
         ds.update_tags(AREA_OR_POINT=dst_area_or_point)
