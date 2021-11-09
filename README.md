@@ -48,18 +48,16 @@ Look at this [readme](notebooks_tile_data/README.md) and this [notebook](noteboo
 
 # Transformations
 
-1. Merge tiles from server
-2. Resample to `epsg:4326`
-3. (optional; default `True`) Pixel centered referenced raster ensuring (a) half-pixel shift in the north-west direction if the original raster tiles are centered around the UL corner point and (b) tagging the data with `{'AREA_OR_POINT: 'Point'}`.
+- Resample to `epsg:4326` (most DEMs are in this CRS)
+- Pixel or area centered referenced raster ensuring (a) half-pixel shift in the north-west direction if the original raster tiles are centered around the UL corner point and (b) tagging the data with `{'AREA_OR_POINT: 'Point'}`.
    + SRTM v3 and TDX are [pixel centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904)
    + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects)
-4. (optional; default `True`) - transform vertical heights to WGS84 Ellipsoidal height.
+- transform vertical heights to WGS84 Ellipsoidal height.
 
 # Testing
 
-1. Install `papermill` and `pytest`.
-2. Install a new jupyter kernel to reference `dem_stitcher` with `python -m ipykernel install --user --name dem_stitcher` (the notebooks use this kernel name).
-3. Run pytest.
+1. Install `pytest`.
+2. Run pytest.
 
 There are automatic github actions that run the said tests as well.
 

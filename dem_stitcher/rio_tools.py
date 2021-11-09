@@ -171,7 +171,7 @@ def rasterize_shapes_to_array(shapes: list,
                               attributes: list,
                               profile: dict,
                               all_touched: bool = False,
-                              dtype: str = np.float32) -> np.ndarray:
+                              dtype: str = 'float32') -> np.ndarray:
     """
     Takes a list of geometries and attributes to create an array. Roughly the
     inverse, in spirit, to `get_geopandas_features_from_array`.  For example,
