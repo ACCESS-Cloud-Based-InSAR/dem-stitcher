@@ -136,7 +136,7 @@ def stitch_dem(bounds: list,
     tile_dir = Path('tmp')
 
     # Datasets that permit virtual warping
-    # The readers return DatasetReader rather than Arr, Prof
+    # The readers return DatasetReader rather than (Array, Profile)
     if dem_name in ['glo_30', '3dep']:
         def reader(url):
             return RASTER_READERS[dem_name](url)
