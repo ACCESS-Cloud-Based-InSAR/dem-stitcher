@@ -7,8 +7,7 @@ file_dir = path.abspath(path.dirname(__file__))
 with open(path.join(file_dir, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-desc = '''Download and merge DEM tiles
-for processing interferograms with ISCE2.'''
+desc = 'Download and merge DEM tiles for processing interferograms with ISCE2.'
 
 setup(name='dem_stitcher',
       version='0.0.1',
