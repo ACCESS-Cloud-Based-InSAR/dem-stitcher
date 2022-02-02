@@ -1,0 +1,46 @@
+name: Static analysis
+
+on: push
+
+jobs:
+  flake8:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.x
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install flake8  flake8-import-order flake8-blind-except flake8-builtins
+
+      - name: Lint with flake8
+        run: |
+          flake8 --max-line-length=120 --import-order-style=pycharm --statistics \
+              --application-import-names s1-gunw
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Scan for secrets with gitleaks
+        uses: zricethezav/gitleaks-action@master
+
+  trufflehog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.x
+
+      - uses: ASFHyP3/actions/trufflehog@main

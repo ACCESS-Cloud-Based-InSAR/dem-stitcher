@@ -1,0 +1,26 @@
+name: Changelog updated?
+
+on:
+  pull_request:
+    types:
+      - opened
+      - labeled
+      - unlabeled
+      - synchronize
+    branches:
+      - main
+      - dev
+
+jobs:
+  changelog-udated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Changelog check
+        uses: Zomzog/changelog-checker@v1.0.0
+        with:
+          fileName: CHANGELOG.md
+          noChangelogLabel: bumpless
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
