@@ -1,16 +1,42 @@
-# dem_stitcher
+# dem-stitcher
 
-![Tests](https://github.com/aria-jpl/dem_stitcher/actions/workflows/pytest.yaml/badge.svg)
+![Tests](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/actions/workflows/pytest.yaml/badge.svg)
 
-The purpose of this repo is to download Digital Elevation Model (DEM) tiles and do some basic transformations so that they can be ingested into ISCE2 for the ARIA pipeline. We could see this being used in different applications. Meant to be "plugged-in" to other python routines.
+This tool aims to (a) provide a continuous raster of Digital Elevation Raster over an area of interest and (b) perform common transformations for processing. Such common transformations include converting the vertical datum from a reference geoid to the WGS84 ellipsoidal *or* ensuring a pixel- or area-center coordinate reference system. We utilize the GIS formats from `rasterio`. This tool was developed to support cloud SAR processing using ISCE2 and various research. The early work of this repository was done by Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard.
 
-This is the joint work of Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard.
+The API can be summarized as
 
-Please look at the demonstration [here](notebooks/Demo.ipynb).
+```
+bounds = [-119.085, 33.402, -118.984, 35.435]
+X, p = stitch_dem(bounds,
+                  dem_name='glo_30',
+                  dst_ellipsoidal_height=False,
+                  dst_area_or_point='Area')
+# X is an m x n numpy array
+# p is a dictionary (or a rasterio profile) including relevant GIS metadata
+```
+To save the DEM, would then be:
+```
+with rasterio.open('dem.tif', 'w', **p) as ds:
+   ds.write(X, 1)
+```
 
-# Credentials
 
-The virtual reading of Nasadem and SRTM require earthdata login credentials to be put into the `~/.netrc` file. If these are not present, the stitcher will
+# Installation with pip
+
+Install dem stitcher: `pip install dem-stitcher`
+
+## For Development
+
+Clone this repo.
+
+1. `pip install -r requirements.txt` (this will contain jupyter, pytest, flake8, etc.)
+2. Install the package using `pip install -e .`
+
+
+## Credentials
+
+The accessing of NASADEM and SRTM require earthdata login credentials to be put into the `~/.netrc` file. If these are not present, the stitcher will
 fail with `BadZipFile Error` as the request is made behind the secnes with `rasterio`. Specifically,
 
 ```
@@ -18,50 +44,49 @@ machine urs.earthdata.nasa.gov
     login <username>
     password <password>
 ```
+# Notebooks
 
-# Installation with pip
+We have notebooks to demonstrate common usage:
 
-1. Download the `requirements.txt` and install them: `pip install -r requirements.txt`
-2. Install dem stitcher: `pip install dem_stitcher`
++ [Basic Demo](notebooks/Basic_Demo.ipynb)
++ [Comparing DEMs](notebooks/Comparing_DEMs.ipynb)
++ [Staging a DEM for ISCE2](notebooks/Staging_a_DEM_for_ISCE2.ipynb) - this notebook requires the installation of a few extra libraries including ISCE2 via `conda-forge`
 
-# Installation for Development
-
-Tested with 3.8.5 Anaconda Python.
-
-1. `pip install -r requirements.txt`
-2. Install the package either:
-      + `pip install .` (or to make editable `pip install -e .`)
-      + `pip install ...` from github as [here](https://stackoverflow.com/a/8256424)
+We also demonstrate how the tiles used to organize the urls for the DEMs were generated for this tool were generated in this [notebook](notebooks/organize_tile_data/Format_and_Organize_Data.ipynb).
 
 # DEMs
 
-The DEMs we have are:
+The [DEMs](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/tree/main/dem_stitcher/data) that can currently be used with this tool are:
 
-1. The USGS DEMSs:
-   - Ned 1 arc-second (deprecated) [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
-   - 3Dep 1 arc-second[[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)]
-2. SRTM v3 [[link](https://dwtkns.com/srtm30m/)]
-3. Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
-4. Tandem-X 30 meter (GLO-30) [[link](https://registry.opendata.aws/copernicus-dem/)]
+```
+In [1]: from dem_stitcher.datasets import DATASETS; DATASETS
+Out[1]: ['srtm_v3', 'nasadem', 'glo_30', '3dep', 'ned1']
+```
 
-Look at this [readme](notebooks_tile_data/README.md) and this [notebook](notebooks_tile_data/Format_Data.ipynb) for some more information.
+1. `glo-30`: Copernicus GLO-30 DEM 30 meter [[link](https://registry.opendata.aws/copernicus-dem/)]
+2. The USGS DEMSs:
+   - `ned1`:  Ned 1 arc-second (deprecated by USGS) [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
+   - `3dep`: 3Dep 1 arc-second[[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)]
+3. `srtm_v3`: SRTM v3 [[link](https://dwtkns.com/srtm30m/)]
+4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
 
 # Transformations
 
-- Resample to `epsg:4326` (most DEMs are in this CRS)
-- Pixel or area centered referenced raster ensuring (a) half-pixel shift in the north-west direction if the original raster tiles are centered around the UL corner point and (b) tagging the data with `{'AREA_OR_POINT: 'Point'}`.
-   + SRTM v3 and TDX are [pixel centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904)
-   + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects)
-- transform vertical heights to WGS84 Ellipsoidal height.
+1. All DEMs are resampled to `epsg:4326` (most DEMs are in this CRS)
+2. All DEMs are resampled to match the bounds specified and align with the original DEM pixels
+3. Rasters can be transformed into pixel- or area-centered referenced raster (i.e. `Point` and `Area` tags in `gdal` as `{'AREA_OR_POINT: 'Point'}`. Note that Some helpful resources about this book-keeping are some of the DEM references:
+   + SRTM v3 and TDX are [pixel centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904).
+   + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects).
+4. Transform geoid heights to WGS84 Ellipsoidal height. This is done using the rasters [here](https://www.agisoft.com/downloads/geoids/). We generally resample the geoids and into the DEM reference frame before adjusting the vertical datum.
 
 # Testing
 
 1. Install `pytest`.
 2. Run pytest.
 
-There are automatic github actions that run the said tests as well.
+There are automatic github actions that run the said tests as well. Many more tests are still needed.
 
-## Contributing
+# Contributing
 
 1. Create an GitHub issue ticket desrcribing what changes you need (e.g. issue-1)
 2. Fork this repo

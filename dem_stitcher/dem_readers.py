@@ -1,11 +1,12 @@
+import io
+import zipfile
+from typing import Tuple, Union
+
+import numpy as np
 import rasterio
 import requests
-import zipfile
-from rasterio.io import MemoryFile
-import numpy as np
-import io
-from typing import Union, Tuple
 from rasterio import RasterioIOError
+from rasterio.io import MemoryFile
 
 
 def read_dem(url: str) -> rasterio.DatasetReader:

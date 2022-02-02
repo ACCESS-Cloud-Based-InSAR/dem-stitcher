@@ -1,24 +1,22 @@
+import shutil
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from rasterio.enums import Resampling
-from tqdm import tqdm
+from typing import List, Tuple
+
 import geopandas as gpd
+import numpy as np
 import rasterio
-from rasterio.merge import merge
 # from rasterio.warp import Resampling
 from rasterio.crs import CRS
+from rasterio.enums import Resampling
+from rasterio.merge import merge
 from shapely.geometry import box
-from typing import Tuple, List
-import numpy as np
-from concurrent.futures import ThreadPoolExecutor
-from lxml import etree
-import shutil
+from tqdm import tqdm
 
-from .dem_readers import read_dem, read_ned1, read_glo, read_srtm, read_nasadem
-from .rio_tools import (translate_profile,
-                        reproject_arr_to_new_crs,
-                        )
-from .geoid import remove_geoid
 from .datasets import get_dem_tile_extents
+from .dem_readers import read_dem, read_glo, read_nasadem, read_ned1, read_srtm
+from .geoid import remove_geoid
+from .rio_tools import reproject_arr_to_new_crs, translate_profile
 
 RASTER_READERS = {'ned1': read_ned1,
                   '3dep': read_dem,
@@ -192,48 +190,3 @@ def stitch_dem(bounds: list,
 
     dem_profile['driver'] = driver
     return dem_arr, dem_profile
-
-
-def tag_dem_xml_as_ellipsoidal(dem_path: Path) -> str:
-    xml_path = str(dem_path) + '.xml'
-    assert(Path(xml_path).exists())
-    tree = etree.parse(xml_path)
-    root = tree.getroot()
-
-    y = etree.Element("property", name='reference')
-    etree.SubElement(y, "value").text = "WGS84"
-    etree.SubElement(y, "doc").text = "Geodetic datum"
-
-    root.insert(0, y)
-    with open(xml_path, 'wb') as file:
-        file.write(etree.tostring(root, pretty_print=True))
-    return xml_path
-
-
-def stitch_dem_for_isce2(bounds: list,
-                         dem_name: str,
-                         dst_path: str = None,
-                         nodata: float = 0
-                         ) -> Path:
-
-    dem_arr, dem_profile = stitch_dem(bounds,
-                                      dem_name,
-                                      dst_ellipsoidal_height=True,
-                                      dst_area_or_point='Point',
-                                      max_workers=5,
-                                      )
-
-    dst_path = dst_path or f'{dem_name}.wgs.84'
-    out_path = Path(dst_path)
-
-    dem_profile['driver'] = 'ISCE'
-    dem_profile['nodata'] = nodata
-    dem_arr[np.isnan(dem_arr)] = nodata
-
-    with rasterio.open(out_path, 'w', **dem_profile) as ds:
-        ds.write(dem_arr, 1)
-        ds.update_tags(AREA_OR_POINT='Point')
-
-    tag_dem_xml_as_ellipsoidal(out_path)
-
-    return out_path

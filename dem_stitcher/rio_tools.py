@@ -1,16 +1,14 @@
-from rasterio.warp import (calculate_default_transform,
-                           reproject,
-                           Resampling,
-                           aligned_target)
-from rasterio.transform import xy
+from typing import Tuple, Union
+
+import fiona
+import numpy as np
 from affine import Affine
 from rasterio import features
-from rasterio.features import shapes
 from rasterio.crs import CRS
-from rasterio.transform import rowcol, from_origin
-import numpy as np
-import fiona
-from typing import Union, Tuple
+from rasterio.features import shapes
+from rasterio.transform import from_origin, rowcol, xy
+from rasterio.warp import (Resampling, aligned_target,
+                           calculate_default_transform, reproject)
 
 
 def crop_profile_from_coord_bounds(profile: dict, bounds: list) -> dict:

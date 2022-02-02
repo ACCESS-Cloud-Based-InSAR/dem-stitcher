@@ -1,8 +1,9 @@
 from pathlib import Path
+
 import geopandas as gpd
 from rasterio.crs import CRS
-from .geojson_io import read_geojson_gzip
 
+from .geojson_io import read_geojson_gzip
 
 DATA_PATH = Path(__file__).parents[0].absolute()/'data'
 

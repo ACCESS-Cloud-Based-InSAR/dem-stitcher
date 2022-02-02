@@ -23,5 +23,9 @@ setup(name='dem_stitcher',
       package_data={"dem_stitcher": ["data/*.geojson.zip", "data/*.tif"]},
       # Required Packages
       # We assume an environment specified by requirements.txt is provided.
-      install_requires=[],
+      install_requires=['rasterio',
+                        'geopandas',
+                        'requests',
+                        'tqdm',
+                        'boto3'],
       )
