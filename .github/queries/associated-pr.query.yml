@@ -1,0 +1,28 @@
+query: '
+  query($owner:String!, $name:String!, $sha:String!) {
+    repository(owner:$owner, name:$name) {
+      commit: object(expression:$sha) {
+        ... on Commit {
+          associatedPullRequests(first:1, orderBy:{field: UPDATED_AT, direction: DESC}){
+            edges{
+              node{
+                title
+                number
+                body
+              }
+            }
+          }
+        }
+      }
+    }
+  }'
+variables:
+  owner:
+    type: arg
+    name: owner
+  name:
+    type: arg
+    name: name
+  sha:
+    type: arg
+    name: sha

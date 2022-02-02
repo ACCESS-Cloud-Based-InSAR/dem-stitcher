@@ -1,0 +1,5 @@
+.*gitleaks.toml$
+CHANGELOG.md
+.*.ipynb$
+.*README.md
+dem_stitcher/rio_tools.py

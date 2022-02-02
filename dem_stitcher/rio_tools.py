@@ -1,16 +1,14 @@
-from rasterio.warp import (calculate_default_transform,
-                           reproject,
-                           Resampling,
-                           aligned_target)
-from rasterio.transform import xy
+from typing import Tuple, Union
+
+import fiona
+import numpy as np
 from affine import Affine
 from rasterio import features
-from rasterio.features import shapes
 from rasterio.crs import CRS
-from rasterio.transform import rowcol, from_origin
-import numpy as np
-import fiona
-from typing import Union, Tuple
+from rasterio.features import shapes
+from rasterio.transform import from_origin, rowcol, xy
+from rasterio.warp import (Resampling, aligned_target,
+                           calculate_default_transform, reproject)
 
 
 def crop_profile_from_coord_bounds(profile: dict, bounds: list) -> dict:
@@ -236,7 +234,7 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
         https://github.com/mapbox/rasterio/blob/master/rasterio/dtypes.py#L13-L24.
     resampling : str
         The type of resampling to use. See all the options:
-        https://github.com/mapbox/rasterio/blob/08d6634212ab131ca2a2691054108d81caa86a09/rasterio/enums.py#L28-L40
+        https://github.com/rasterio/rasterio/blob/master/rasterio/enums.py#L48-L82
 
     Returns
     -------
@@ -419,8 +417,8 @@ def reproject_arr_to_new_crs(src_array: np.ndarray,
     dst_crs : str
         The destination rasterio CRS to reproject into
     resampling : str
-        How to do resampling.  See all the options:
-        https://github.com/mapbox/rasterio/blob/08d6634212ab131ca2a2691054108d81caa86a09/rasterio/enums.py#L28-L40
+        See all the options:
+        https://github.com/rasterio/rasterio/blob/master/rasterio/enums.py#L48-L82
     target_resolution : float
         Target resolution
 

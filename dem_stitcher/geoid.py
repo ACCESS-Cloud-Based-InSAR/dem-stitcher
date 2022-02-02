@@ -1,11 +1,11 @@
-import rasterio
 import numpy as np
+import rasterio
 from rasterio.crs import CRS
-from .rio_tools import reproject_arr_to_match_profile, translate_profile
-from .datasets import DATA_PATH
-from .rio_window import read_raster_from_window
 from rasterio.transform import array_bounds
 
+from .datasets import DATA_PATH
+from .rio_tools import reproject_arr_to_match_profile, translate_profile
+from .rio_window import read_raster_from_window
 
 AGISOFT_URL = 'http://download.agisoft.com/geoids'
 GEOID_PATHS_AGI = {'geoid_18': f'{DATA_PATH}/geoid_18.tif',

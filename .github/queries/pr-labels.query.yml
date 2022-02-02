@@ -1,0 +1,24 @@
+query: '
+  query($owner:String!, $name:String!, $pr:Int!) {
+    repository(owner:$owner, name:$name) {
+      pullRequest(number:$pr) {
+        labels(first:100) {
+          nodes {
+            name
+          }
+        }
+      }
+    }
+  }'
+variables:
+  owner:
+    type: arg
+    name: owner
+  name:
+    type: arg
+    name: name
+  pr:
+    type: jq
+    file: pr.json
+    query: '.data.repository.commit.associatedPullRequests.edges[0].node.number'
+    cast: Int

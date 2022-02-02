@@ -89,3 +89,13 @@ __pycache__/
 
 # Ignore pdf Files
 *.pdf
+
+# Ignore json
+*.json
+
+# Notebooks
+*.ipynb
+!notebooks/Basic_Demo.ipynb
+!notebooks/Comparing_DEMs.ipynb
+!notebooks/Staging_a_DEM_for_ISCE2.ipynb
+!notebooks/organize_tile_data/Format_and_Organize_Data.ipynb

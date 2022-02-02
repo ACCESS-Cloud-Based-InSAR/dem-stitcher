@@ -1,6 +1,5 @@
-from .stitcher import (stitch_dem,
-                       stitch_dem_for_isce2)
+from .stitcher import stitch_dem
 
 
 __all__ = ['stitch_dem',
-           'stitch_dem_for_isce2']
+           ]
