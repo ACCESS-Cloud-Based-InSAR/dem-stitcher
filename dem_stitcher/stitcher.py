@@ -124,7 +124,7 @@ def shift_profile_for_pixel_loc(src_profile: dict,
 def stitch_dem(bounds: list,
                dem_name: str,
                dst_ellipsoidal_height: bool = True,
-               dst_area_or_point: str = 'Point',
+               dst_area_or_point: str = 'Area',
                max_workers=5,
                driver: str = 'GTiff'
                ) -> Tuple[np.ndarray, dict]:
