@@ -418,7 +418,7 @@ def reproject_arr_to_new_crs(src_array: np.ndarray,
         The destination rasterio CRS to reproject into
     resampling : str
         How to do resampling.  See all the options:
-        https://github.com/mapbox/rasterio/blob/08d6634212ab131ca2a2691054108d81caa86a09/rasterio/enums.py#L28-L40
+        https://github.com/rasterio/rasterio/blob/master/rasterio/enums.py#L48-L82
     target_resolution : float
         Target resolution
 

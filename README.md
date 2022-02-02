@@ -2,7 +2,11 @@
 
 ![Tests](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/actions/workflows/pytest.yaml/badge.svg)
 
-This tool aims to (a) provide a continuous raster of Digital Elevation Raster over an area of interest and (b) perform common transformations for processing. Such common transformations include converting the vertical datum from a reference geoid to the WGS84 ellipsoidal *or* ensuring a pixel- or area-center coordinate reference system. We utilize the GIS formats from `rasterio`. This tool was developed to support cloud SAR processing using ISCE2 and various research. The early work of this repository was done by Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard.
+This tool aims to (a) provide a continuous raster of Digital Elevation Raster over an area of interest and (b) perform some standard transformations for processing. Such transformations include:
++ converting the vertical datum from a reference geoid to the WGS84 ellipsoidal
++ ensuring a coordinate reference system centered at either the upper-left corner (`Area` tag) or center of the pixel (`Point` tag).
+
+We utilize the GIS formats from `rasterio`. This tool was developed to support cloud SAR processing using ISCE2 and various research. The early work of this repository was done by Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard.
 
 The API can be summarized as
 
@@ -74,9 +78,9 @@ Out[1]: ['srtm_v3', 'nasadem', 'glo_30', '3dep', 'ned1']
 
 1. All DEMs are resampled to `epsg:4326` (most DEMs are in this CRS)
 2. All DEMs are resampled to match the bounds specified and align with the original DEM pixels
-3. Rasters can be transformed into pixel- or area-centered referenced raster (i.e. `Point` and `Area` tags in `gdal` as `{'AREA_OR_POINT: 'Point'}`. Note that Some helpful resources about this book-keeping are some of the DEM references:
-   + SRTM v3 and TDX are [pixel centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904).
-   + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects).
+3. Rasters can be transformed into reference system either referring to upper-left corners of pixels or their centers (i.e. `Point` and `Area` tags in `gdal`, respectively, and seen as `{'AREA_OR_POINT: 'Point'}`. Note that `Area` is the *default* pixel reference for `gdal` as indicated [here](https://gdal.org/tutorials/geotransforms_tut.html). Some helpful resources about this book-keeping are below.
+   + SRTM v3 and TDX are [Pixel-centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904), i.e. `{'AREA_OR_POINT: 'Point'}`.
+   + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects), i.e. `{'AREA_OR_POINT: 'Area'}`.
 4. Transform geoid heights to WGS84 Ellipsoidal height. This is done using the rasters [here](https://www.agisoft.com/downloads/geoids/). We generally resample the geoids and into the DEM reference frame before adjusting the vertical datum.
 
 # Testing
