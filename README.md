@@ -1,7 +1,5 @@
 # dem-stitcher
 
-![Tests](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/actions/workflows/pytest.yaml/badge.svg)
-
 This tool aims to (a) provide a continuous raster of Digital Elevation Raster over an area of interest and (b) perform some standard transformations for processing. Such transformations include:
 + converting the vertical datum from a reference geoid to the WGS84 ellipsoidal
 + ensuring a coordinate reference system centered at either the upper-left corner (`Area` tag) or center of the pixel (`Point` tag).
