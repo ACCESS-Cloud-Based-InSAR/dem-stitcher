@@ -234,7 +234,7 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
         https://github.com/mapbox/rasterio/blob/master/rasterio/dtypes.py#L13-L24.
     resampling : str
         The type of resampling to use. See all the options:
-        https://github.com/mapbox/rasterio/blob/08d6634212ab131ca2a2691054108d81caa86a09/rasterio/enums.py#L28-L40
+        https://github.com/rasterio/rasterio/blob/master/rasterio/enums.py#L48-L82
 
     Returns
     -------
