@@ -1,4 +1,4 @@
 .*gitleaks.toml$
 CHANGELOG.md
 .*.ipynb$
-notebooks/organize_tile_data/README.md
+.*README.md
