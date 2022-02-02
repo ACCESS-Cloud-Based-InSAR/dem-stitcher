@@ -1,6 +1,6 @@
-from dem_stitcher.datasets import DATASETS
-from dem_stitcher import stitch_dem
 import pytest
+from dem_stitcher import stitch_dem
+from dem_stitcher.datasets import DATASETS
 
 
 @pytest.mark.parametrize("dem_name", DATASETS)
