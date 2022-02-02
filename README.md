@@ -28,7 +28,7 @@ Install dem stitcher: `pip install dem-stitcher`
 
 ## For Development
 
-1. Clone this repo `git clone https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher.git`
+1. Clone this repo `git clone https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher.git`
 2. Navigate with your terminal to the repo.
 3. Create a new environment and install requirements using `conda env update -f environment.yml`
 4. Install the package from cloned repo using `pip install -e .`
