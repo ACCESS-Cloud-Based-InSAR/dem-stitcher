@@ -10,7 +10,6 @@ with open(path.join(file_dir, 'README.md'), encoding='utf-8') as f:
 desc = 'Download and merge DEM tiles for processing interferograms with ISCE2.'
 
 setup(name='dem_stitcher',
-      version='0.0.1',
       description=desc,
       use_scm_version=True,
       long_description=long_description,
