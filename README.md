@@ -17,7 +17,7 @@ X, p = stitch_dem(bounds,
 # X is an m x n numpy array
 # p is a dictionary (or a rasterio profile) including relevant GIS metadata
 ```
-To save the DEM, would then be:
+Then, to save the DEM:
 ```
 with rasterio.open('dem.tif', 'w', **p) as ds:
    ds.write(X, 1)
