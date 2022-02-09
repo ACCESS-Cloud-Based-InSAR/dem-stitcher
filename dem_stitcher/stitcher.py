@@ -93,6 +93,8 @@ def merge_tiles(datasets: List[rasterio.DatasetReader],
                                          nodata=nodata,
                                          dtype='float32',
                                          target_aligned_pixels=True,
+                                         #force square pixel w.r.t longitude
+                                         res=datasets[0].res[-1]
                                          )
     merged_arr = merged_arr[0, ...]
 
