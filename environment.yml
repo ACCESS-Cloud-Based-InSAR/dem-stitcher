@@ -9,11 +9,11 @@ dependencies:
 - affine
 - Fiona
 - geopandas
+- matplotlib
 - numpy
 - pandas
 - rasterio
 - Shapely
-- matplotlib
 - tqdm
 - notebook
 - requests
