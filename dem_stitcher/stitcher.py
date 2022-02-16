@@ -7,6 +7,10 @@ import geopandas as gpd
 import numpy as np
 import rasterio
 # from rasterio.warp import Resampling
+####
+from rasterio.warp import reproject
+from rasterio.warp import aligned_target
+######
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
 from rasterio.merge import merge
@@ -94,10 +98,26 @@ def merge_tiles(datasets: List[rasterio.DatasetReader],
                                          dtype='float32',
                                          target_aligned_pixels=True,
                                          #force square pixel w.r.t longitude
-                                         res=datasets[0].res[-1]
+                                         #res=datasets[0].res[-1]
                                          )
-    merged_arr = merged_arr[0, ...]
+    # reshape to square pixels, if necessary
+    if datasets[0].res[0] != datasets[0].res[1]:
+        new_transform, new_width, new_height = aligned_target(merged_transform,
+                                         merged_arr.shape[2],
+                                         merged_arr.shape[1],
+                                         datasets[0].res[-1])
+        dst_arr = np.empty((1, new_height, new_width), dtype='float32')
+        merged_arr, merged_transform = reproject(merged_arr,
+                                        dst_arr,
+                                        src_crs=CRS.from_epsg(4269),
+                                        dst_crs=CRS.from_epsg(4269),
+                                        src_transform=merged_transform,
+                                        dst_transform=new_transform,
+                                        resampling=Resampling[resampling],
+                                        dst_resolution=datasets[0].res[-1]
+                                        )
 
+    merged_arr = merged_arr[0, ...]
     profile = datasets[0].profile.copy()
     profile['height'] = merged_arr.shape[0]
     profile['width'] = merged_arr.shape[1]
