@@ -7,13 +7,12 @@ dependencies:
 - gdal
 - rasterio
 - affine
-- Fiona
+- fiona
 - geopandas
 - matplotlib
 - numpy
 - pandas
-- rasterio
-- Shapely
+- shapely
 - tqdm
 - notebook
 - requests
