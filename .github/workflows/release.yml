@@ -33,7 +33,7 @@ jobs:
         uses: repo-sync/pull-request@v2
         with:
           source_branch: main
-          destination_branch: develop
+          destination_branch: dev
           pr_title: Pulling ${{ github.ref }} into default
           pr_body: Fast-forward of main to default failed!
           pr_assignee: ${{ github.actor }}
