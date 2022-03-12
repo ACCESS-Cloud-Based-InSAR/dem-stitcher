@@ -12,15 +12,7 @@ on:
       - dev
 
 jobs:
-  changelog-udated:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Changelog check
-        uses: Zomzog/changelog-checker@v1.0.0
-        with:
-          fileName: CHANGELOG.md
-          noChangelogLabel: bumpless
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  call-changelog-check-workflow:
+    uses: ASFHyP3/actions/.github/workflows/reusable-changelog-check.yml@main
+    secrets:
+      USER_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: ["3.0", "3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v2
@@ -39,44 +39,11 @@ jobs:
           python -m pip install .
           pytest .
 
-
-  tag-version:
-    runs-on: ubuntu-latest
-    needs: pytest
+  call-bump-version-workflow:
     if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.ACCESS_GITHUB_TOKEN }}
-
-      - name: Get associated PR
-        uses: helaili/github-graphql-action@2.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACCESS_GITHUB_TOKEN }}
-        with:
-          query: .github/queries/associated-pr.query.yml
-          outputFile: pr.json
-          owner: ${{ github.repository_owner }}
-          name: ${{ github.event.repository.name }}
-          sha: ${{ github.sha }}
-
-      - name: Get PR labels
-        uses: helaili/github-graphql-action@2.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACCESS_GITHUB_TOKEN }}
-        with:
-          query: .github/queries/pr-labels.query.yml
-          outputFile: labels.json
-          owner: ${{ github.repository_owner }}
-          name: ${{ github.event.repository.name }}
-
-      - uses: actions/setup-python@v1
-        with:
-          python-version: 3.x
-
-      - name: Tag version
-        uses: ASFHyP3/actions/bump-version@main
-        with:
-          user: access-cloud-insar-team
-          email: access-cloud-insar-team@jpl.nasa.gov
+    uses: ASFHyP3/actions/.github/workflows/reusable-bump-version.yml@main
+    with:
+      user: access-cloud-insar-team
+      email: access-cloud-insar-team@jpl.nasa.gov
+    secrets:
+      USER_TOKEN: ${{ secrets.ACCESS_GITHUB_TOKEN }}
