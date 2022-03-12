@@ -76,7 +76,7 @@ Out[1]: ['srtm_v3', 'nasadem', 'glo_30', '3dep', 'ned1']
 
 1. All DEMs are resampled to `epsg:4326` (most DEMs are in this CRS)
 2. All DEMs are resampled to match the bounds specified and align with the original DEM pixels
-3. Rasters can be transformed into reference system either referring to upper-left corners of pixels or their centers (i.e. `Point` and `Area` tags in `gdal`, respectively, and seen as `{'AREA_OR_POINT: 'Point'}`. Note that `Area` is the *default* pixel reference for `gdal` as indicated [here](https://gdal.org/tutorials/geotransforms_tut.html). Some helpful resources about this book-keeping are below.
+3. Rasters can be transformed into reference system either referring to each pixel's center or upper-left corners of pixels (i.e. `Point` and `Area` tags in `gdal`, respectively, and seen as `{'AREA_OR_POINT: 'Point'}` in the case of pixel center reference system). Note that `Area` is the *default* pixel reference for `gdal` as indicated [here](https://gdal.org/tutorials/geotransforms_tut.html). Some helpful resources about this book-keeping are below.
    + SRTM v3 and TDX are [Pixel-centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904), i.e. `{'AREA_OR_POINT: 'Point'}`.
    + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects), i.e. `{'AREA_OR_POINT: 'Area'}`.
 4. Transform geoid heights to WGS84 Ellipsoidal height. This is done using the rasters [here](https://www.agisoft.com/downloads/geoids/). We generally resample the geoids and into the DEM reference frame before adjusting the vertical datum.
