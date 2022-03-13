@@ -1,0 +1,15 @@
+name: Tag version
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  call-bump-version-workflow:
+    uses: ASFHyP3/actions/.github/workflows/reusable-bump-version.yml@main
+    with:
+      user: access-cloud-insar-team
+      email: access-cloud-insar-team@jpl.nasa.gov
+    secrets:
+      USER_TOKEN: ${{ secrets.ACCESS_GITHUB_TOKEN }}

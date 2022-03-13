@@ -4,24 +4,26 @@ channels:
  - anaconda
  - defaults
 dependencies:
-- gdal
-- rasterio
-- affine
-- fiona
-- geopandas
-- matplotlib
-- numpy
-- pandas
-- shapely
-- tqdm
-- notebook
-- requests
-- boto3
-- flake8-import-order
-- flake8-blind-except
-- flake8-builtins
-- setuptools
-- setuptools_scm
-- wheel
-- pytest
-- pip
+ - python
+ - pip
+ - affine
+ - boto3
+ - fiona
+ - gdal
+ - geopandas
+ - matplotlib
+ - notebook
+ - numpy
+ - pandas
+ - rasterio
+ - requests
+ - shapely
+ - tqdm
+ # for testing and distribution
+ - flake8-blind-except
+ - flake8-builtins
+ - flake8-import-order
+ - pytest
+ - setuptools
+ - setuptools_scm
+ - wheel
