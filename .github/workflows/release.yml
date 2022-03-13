@@ -1,43 +1,16 @@
-name: Write release and finish
+name: Create Release
 
 on:
   push:
     tags:
-      - v*
+      - 'v*'
 
 jobs:
-  finish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.ACCESS_GITHUB_TOKEN }}
-
-      - name: Create Release
-        uses: docker://antonyurchenko/git-release:v3.5.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.ACCESS_GITHUB_TOKEN }}
-          RELEASE_NAME_PREFIX: "dem-stitcher "
-          ALLOW_TAG_PREFIX: true
-
-      - name: Attempt fast-forward develop from main
-        run: |
-          git fetch --prune
-          git checkout develop && git pull --ff-only
-          git merge --ff-only origin/main
-          git push
-
-      - name: Open PR to bring main back to develop
-        if: ${{ failure() }}
-        uses: repo-sync/pull-request@v2
-        with:
-          source_branch: main
-          destination_branch: dev
-          pr_title: Pulling ${{ github.ref }} into default
-          pr_body: Fast-forward of main to default failed!
-          pr_assignee: ${{ github.actor }}
-          pr_label: tools-bot
-          pr_draft: false
-          pr_allow_empty: true
-          github_token: ${{ secrets.ACCESS_GITHUB_TOKEN }}
+  call-release-workflow:
+    uses: ASFHyP3/actions/.github/workflows/reusable-release.yml@main
+    with:
+      release_prefix: dem-stitcher
+      develop_branch: dev
+      sync_pr_label: team-bot
+    secrets:
+      USER_TOKEN: ${{ secrets.ACCESS_GITHUB_TOKEN }}
