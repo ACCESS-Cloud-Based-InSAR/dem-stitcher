@@ -127,7 +127,7 @@ def shift_profile_for_pixel_loc(src_profile: dict,
                                 dst_area_or_point: str, ):
     assert(dst_area_or_point in ['Area', 'Point'])
     assert(src_area_or_point in ['Area', 'Point'])
-    # no shift if SRTMv3
+    # no shift if SRTMv3 or NASADEM
     if dst_area_or_point == 'Point' and src_area_or_point == 'Area':
         shift = 0
         profile_shifted = translate_profile(src_profile, shift, shift)
