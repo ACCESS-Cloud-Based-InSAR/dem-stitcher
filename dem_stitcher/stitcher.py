@@ -85,7 +85,7 @@ def download_tiles(urls: list,
 
 def merge_tiles(datasets: List[rasterio.DatasetReader],
                 bounds: list = None,
-                resampling: str = 'bilinear',
+                resampling: str = 'nearest',
                 nodata: float = np.nan
                 ) -> Tuple[np.ndarray, dict]:
     merged_arr, merged_transform = merge(datasets,
@@ -94,8 +94,6 @@ def merge_tiles(datasets: List[rasterio.DatasetReader],
                                          nodata=nodata,
                                          dtype='float32',
                                          target_aligned_pixels=True,
-                                         # force square pixel w.r.t longitude
-                                         # res=datasets[0].res[-1]
                                          )
     # reshape to square pixels, if necessary
     if datasets[0].res[0] != datasets[0].res[1]:
@@ -129,12 +127,18 @@ def shift_profile_for_pixel_loc(src_profile: dict,
                                 dst_area_or_point: str, ):
     assert(dst_area_or_point in ['Area', 'Point'])
     assert(src_area_or_point in ['Area', 'Point'])
+    # no shift if SRTMv3
     if dst_area_or_point == 'Point' and src_area_or_point == 'Area':
-        shift = -.5
+        shift = 0
         profile_shifted = translate_profile(src_profile, shift, shift)
     elif (dst_area_or_point == 'Area') and (src_area_or_point == 'Point'):
         shift = .5
         profile_shifted = translate_profile(src_profile, shift, shift)
+    # half shift down if glo30
+    elif (dst_area_or_point == 'Point') and (src_area_or_point == 'Point'):
+        x_shift = 0
+        y_shift = 1
+        profile_shifted = translate_profile(src_profile, x_shift, y_shift)
     else:
         profile_shifted = src_profile.copy()
     return profile_shifted
