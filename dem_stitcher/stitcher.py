@@ -94,23 +94,23 @@ def merge_tiles(datasets: List[rasterio.DatasetReader],
                                          nodata=nodata,
                                          dtype='float32',
                                          target_aligned_pixels=True,
+                                         res=datasets[0].res[-1]
                                          )
     # reshape to square pixels, if necessary
-    if datasets[0].res[0] != datasets[0].res[1]:
-        new_transform, new_width, new_height = aligned_target(merged_transform,
-                                                              merged_arr.shape[2],
-                                                              merged_arr.shape[1],
-                                                              datasets[0].res[-1])
-        dst_arr = np.empty((1, new_height, new_width), dtype='float32')
-        merged_arr, merged_transform = reproject(merged_arr,
-                                                 dst_arr,
-                                                 src_crs=CRS.from_epsg(4269),
-                                                 dst_crs=CRS.from_epsg(4269),
-                                                 src_transform=merged_transform,
-                                                 dst_transform=new_transform,
-                                                 resampling=Resampling[resampling],
-                                                 dst_resolution=datasets[0].res[-1]
-                                                 )
+    new_transform, new_width, new_height = aligned_target(merged_transform,
+                                                          merged_arr.shape[2],
+                                                          merged_arr.shape[1],
+                                                          datasets[0].res[-1])
+    dst_arr = np.empty((1, new_height, new_width), dtype='float32')
+    merged_arr, merged_transform = reproject(merged_arr,
+                                             dst_arr,
+                                             src_crs=datasets[0].profile['crs'],
+                                             dst_crs=datasets[0].profile['crs'],
+                                             src_transform=merged_transform,
+                                             dst_transform=new_transform,
+                                             resampling=Resampling[resampling],
+                                             dst_resolution=datasets[0].res[-1]
+                                             )
 
     merged_arr = merged_arr[0, ...]
     profile = datasets[0].profile.copy()
@@ -129,8 +129,9 @@ def shift_profile_for_pixel_loc(src_profile: dict,
     assert(src_area_or_point in ['Area', 'Point'])
     # no shift if SRTMv3 or NASADEM
     if dst_area_or_point == 'Point' and src_area_or_point == 'Area':
-        shift = 0
-        profile_shifted = translate_profile(src_profile, shift, shift)
+        x_shift = 0
+        y_shift = 1
+        profile_shifted = translate_profile(src_profile, x_shift, y_shift)
     elif (dst_area_or_point == 'Area') and (src_area_or_point == 'Point'):
         shift = .5
         profile_shifted = translate_profile(src_profile, shift, shift)
