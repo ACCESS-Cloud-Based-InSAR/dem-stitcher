@@ -1,3 +1,4 @@
+import os
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -5,6 +6,7 @@ from typing import List, Tuple
 
 import geopandas as gpd
 import numpy as np
+from osgeo import gdal
 import rasterio
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
@@ -17,7 +19,7 @@ from tqdm import tqdm
 from .datasets import get_dem_tile_extents
 from .dem_readers import read_dem, read_glo, read_nasadem, read_ned1, read_srtm
 from .geoid import remove_geoid
-from .rio_tools import reproject_arr_to_new_crs, translate_profile
+from .rio_tools import reproject_arr_to_new_crs, translate_profile, gdal_translate_profile
 
 RASTER_READERS = {'ned1': read_ned1,
                   '3dep': read_dem,
@@ -88,11 +90,14 @@ def merge_tiles(datasets: List[rasterio.DatasetReader],
                 resampling: str = 'nearest',
                 nodata: float = np.nan
                 ) -> Tuple[np.ndarray, dict]:
+    static_1arc_res = 0.0002777777777777777775
+    if str(datasets[0].profile['dtype']) == 'int16':
+        nodata = datasets[0].profile['nodata']
     merged_arr, merged_transform = merge(datasets,
                                          bounds=bounds,
                                          resampling=Resampling[resampling],
                                          nodata=nodata,
-                                         dtype='float32',
+                                         dtype=str(datasets[0].profile['dtype']),
                                          target_aligned_pixels=True,
                                          res=datasets[0].res[-1]
                                          )
@@ -101,11 +106,11 @@ def merge_tiles(datasets: List[rasterio.DatasetReader],
                                                           merged_arr.shape[2],
                                                           merged_arr.shape[1],
                                                           datasets[0].res[-1])
-    dst_arr = np.empty((1, new_height, new_width), dtype='float32')
+    dst_arr = np.empty((1, new_height, new_width), dtype=datasets[0].profile['dtype'])
     merged_arr, merged_transform = reproject(merged_arr,
                                              dst_arr,
                                              src_crs=datasets[0].profile['crs'],
-                                             dst_crs=datasets[0].profile['crs'],
+                                             dst_crs=CRS.from_epsg(4326),
                                              src_transform=merged_transform,
                                              dst_transform=new_transform,
                                              resampling=Resampling[resampling],
@@ -117,10 +122,43 @@ def merge_tiles(datasets: List[rasterio.DatasetReader],
     profile['height'] = merged_arr.shape[0]
     profile['width'] = merged_arr.shape[1]
     profile['nodata'] = nodata
-    profile['dtype'] = 'float32'
+    profile['dtype'] = str(datasets[0].profile['dtype'])
     profile['transform'] = merged_transform
     return merged_arr, profile
+    
+    
+def gdal_merge_tiles(datasets: list,
+                res: float = None,
+                bounds: list = None,
+                nodata: float = np.nan,
+                driver: str = 'ISCE',
+                filepath: str = None,
+                resampling: str = 'near',
+                ) -> Tuple[np.ndarray, dict]:
+    from affine import Affine
+    
+    gdal.BuildVRT(filepath+ '_uncropped.vrt', datasets)
+    gdal.Warp(filepath, filepath+ '_uncropped.vrt', \
+                         options=gdal.WarpOptions(format = driver, \
+                         outputBounds = bounds, \
+                         dstNodata = nodata, \
+                         dstSRS = CRS.from_epsg(4326), \
+                         xRes = res, \
+                         yRes = res, \
+                         resampleAlg=resampling, \
+                         targetAlignedPixels = True, \
+                         multithread = True))
 
+    with rasterio.open(filepath) as read_dataset:
+        merged_arr = read_dataset.read(1)
+        profile = read_dataset.profile
+        
+    #update geotrans
+    trans_list = gdal.Open(filepath).GetGeoTransform()
+    tranform_cropped = Affine.from_gdal(*trans_list)
+    profile['transform'] = tranform_cropped
+    
+    return merged_arr, profile
 
 def shift_profile_for_pixel_loc(src_profile: dict,
                                 src_area_or_point: str,
@@ -129,7 +167,7 @@ def shift_profile_for_pixel_loc(src_profile: dict,
     assert(src_area_or_point in ['Area', 'Point'])
     # no shift if SRTMv3 or NASADEM
     if dst_area_or_point == 'Point' and src_area_or_point == 'Area':
-        x_shift = 0
+        x_shift = 1
         y_shift = 1
         profile_shifted = translate_profile(src_profile, x_shift, y_shift)
     elif (dst_area_or_point == 'Area') and (src_area_or_point == 'Point'):
@@ -137,20 +175,46 @@ def shift_profile_for_pixel_loc(src_profile: dict,
         profile_shifted = translate_profile(src_profile, shift, shift)
     # half shift down if glo30
     elif (dst_area_or_point == 'Point') and (src_area_or_point == 'Point'):
-        x_shift = 0
+        x_shift = 1
         y_shift = 1
         profile_shifted = translate_profile(src_profile, x_shift, y_shift)
     else:
         profile_shifted = src_profile.copy()
     return profile_shifted
+    
+def gdal_shift_profile_for_pixel_loc(filepath: str,
+                                src_area_or_point: str,
+                                dst_area_or_point: str,
+                                input_array: np.ndarray,
+                                src_profile: dict):
+    assert(dst_area_or_point in ['Area', 'Point'])
+    assert(src_area_or_point in ['Area', 'Point'])
+    # no shift if SRTMv3 or NASADEM
+    if dst_area_or_point == 'Point' and src_area_or_point == 'Area':
+        x_shift = 1
+        y_shift = 1
+        array_shifted, profile_shifted = gdal_translate_profile(filepath, x_shift, y_shift)
+    elif (dst_area_or_point == 'Area') and (src_area_or_point == 'Point'):
+        shift = .5
+        array_shifted, profile_shifted = gdal_translate_profile(filepath, shift, shift)
+    # half shift down if glo30
+    elif (dst_area_or_point == 'Point') and (src_area_or_point == 'Point'):
+        x_shift = 1
+        y_shift = 1
+        array_shifted, profile_shifted = gdal_translate_profile(filepath, x_shift, y_shift)
+    else:
+        array_shifted = input_array
+        profile_shifted = src_profile.copy()
+    return array_shifted, profile_shifted
 
 
 def stitch_dem(bounds: list,
                dem_name: str,
+               filepath: str,
                dst_ellipsoidal_height: bool = True,
                dst_area_or_point: str = 'Area',
                max_workers=5,
-               driver: str = 'GTiff'
+               driver: str = 'ISCE'
                ) -> Tuple[np.ndarray, dict]:
 
     df_tiles = get_dem_tiles(bounds, dem_name)
@@ -169,48 +233,71 @@ def stitch_dem(bounds: list,
 
         # If datasets are non-existent, returns None
         datasets = list(filter(lambda x: x is not None, results))
+        #save tiles to dir for faster warping
+        tile_dir.mkdir(exist_ok=True, parents=True)
+        dest_paths = []
+        #dem_arr, dem_profile = reader(url)
+        for i in datasets:
+            data_arr = i.read(1)
+            dest_path = os.path.join('tmp',os.path.basename(i.name))
+            dest_paths.append(dest_path)
+            with rasterio.open(dest_path, 'w', **i.profile) as ds:
+                ds.write(data_arr, 1)
     else:
+        #save tiles to dir for faster warping
         tile_dir.mkdir(exist_ok=True, parents=True)
         dest_paths = download_tiles(urls,
                                     dem_name,
                                     tile_dir,
                                     max_workers=max_workers)
         datasets = list(map(rasterio.open, dest_paths))
+        dest_paths = [str(i.resolve()) for i in dest_paths]
 
-    dem_arr, dem_profile = merge_tiles(datasets,
+    nodata = np.nan
+    if str(datasets[0].profile['dtype']) == 'int16':
+        nodata = datasets[0].profile['nodata']
+    dem_arr, dem_profile = gdal_merge_tiles(dest_paths,
+                                       datasets[0].res[-1],
                                        bounds=bounds,
-                                       nodata=np.nan)
+                                       nodata=nodata,
+                                       filepath = filepath,
+                                       resampling='near'
+                                       )
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
 
     # Close datasets
     list(map(lambda dataset: dataset.close(), datasets))
 
-    # Delete orginal tiles if downloaded
-    if tile_dir.exists():
-        shutil.rmtree(str(tile_dir))
-
-    # Reproject to 4326
-    if dem_profile['crs'] == CRS.from_epsg(4269):
-        dem_arr, dem_profile = reproject_arr_to_new_crs(dem_arr,
-                                                        dem_profile,
-                                                        CRS.from_epsg(4326))
-        dem_arr = dem_arr[0, ...]
-
     if dem_profile['crs'] != CRS.from_epsg(4326):
         raise ValueError('CRS must be epsg 4269 or 4326')
 
-    dem_profile = shift_profile_for_pixel_loc(dem_profile,
+    print('src_area_or_point',src_area_or_point)
+    print('dst_area_or_point',dst_area_or_point)
+    dem_arr, dem_profile = gdal_shift_profile_for_pixel_loc(filepath,
                                               src_area_or_point,
-                                              dst_area_or_point)
-
+                                              dst_area_or_point,
+                                              dem_arr,
+                                              dem_profile)
     if dst_ellipsoidal_height:
         geoid_name = DEM2GEOID[dem_name]
         dem_arr = remove_geoid(dem_arr,
                                dem_profile,
                                geoid_name,
                                extent=bounds,
+                               src_area_or_point=src_area_or_point,
                                dem_area_or_point=dst_area_or_point,
+                               filepath = filepath
                                )
+                               
+    # update DEM array
+    update_file = gdal.Open(filepath, gdal.GA_Update)
+    update_file.GetRasterBand(1).WriteArray(dem_arr)
+    del update_file
 
     dem_profile['driver'] = driver
-    return dem_arr, dem_profile
+    
+    # Delete orginal tiles if downloaded
+    if tile_dir.exists():
+        shutil.rmtree(str(tile_dir))
+
+    return
