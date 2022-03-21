@@ -3,6 +3,8 @@ from typing import Tuple, Union
 import fiona
 import numpy as np
 from affine import Affine
+from osgeo import gdal
+import rasterio
 from rasterio import features
 from rasterio.crs import CRS
 from rasterio.features import shapes
@@ -49,7 +51,6 @@ def translate_profile(profile: dict,
         Rasterio profile with transform shifted
     """
     transform = profile['transform']
-
     new_origin = transform * (x_shift, y_shift)
     new_transform = Affine.translation(*new_origin)
     new_transform *= transform.scale(transform.a,
@@ -59,6 +60,62 @@ def translate_profile(profile: dict,
     p_new['transform'] = new_transform
 
     return p_new
+
+
+def gdal_translate_profile(filepath: str,
+                      x_shift: float,
+                      y_shift: float,
+                      ) -> dict:
+    """Shift profile
+
+    Parameters
+    ----------
+    profile : dict
+        Rasterio profile
+    shift : float
+        Number of pixels to translate by
+
+    Returns
+    -------
+    dict
+        Rasterio profile and array with transform shifted
+    """
+
+    # open dataset with update permission
+    ds = gdal.Open(filepath, gdal.GA_Update)
+    # get the geotransform as a tuple of 6
+    gt = ds.GetGeoTransform()
+    # unpack geotransform into variables
+    x_tl, x_res, dx_dy, y_tl, dy_dx, y_res = gt
+
+    # compute shift of 1 pixel RIGHT in X direction
+    shift_x = x_shift * x_res
+    # compute shift of 2 pixels UP in Y direction
+    # y_res likely negative, because Y decreases with increasing Y index
+    shift_y = y_shift * y_res
+
+    # make new geotransform
+    gt_update = (x_tl + shift_x, x_res, dx_dy, y_tl + shift_y, dy_dx, y_res)
+    # assign new geotransform to raster
+    ds.SetGeoTransform(gt_update)
+    # ensure changes are committed
+    ds.FlushCache()
+    ds = None
+    
+    # Update VRT
+    gdal.BuildVRT(filepath+'.vrt', filepath, \
+                            options=gdal.BuildVRTOptions(options=['-overwrite']))
+    
+    with rasterio.open(filepath) as read_dataset:
+        dat_arr = read_dataset.read(1)
+        profile = read_dataset.profile
+        
+    #update geotrans
+    trans_list = gdal.Open(filepath).GetGeoTransform()
+    tranform_cropped = Affine.from_gdal(*trans_list)
+    profile['transform'] = tranform_cropped
+
+    return dat_arr, profile
 
 
 def get_geopandas_features_from_array(arr: np.ndarray,
