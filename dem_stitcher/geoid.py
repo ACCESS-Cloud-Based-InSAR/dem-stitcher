@@ -4,7 +4,7 @@ from rasterio.crs import CRS
 from rasterio.transform import array_bounds
 
 from .datasets import DATA_PATH
-from .rio_tools import reproject_arr_to_match_profile, translate_profile
+from .rio_tools import reproject_arr_to_match_profile, translate_profile, gdal_translate_profile
 from .rio_window import read_raster_from_window
 
 AGISOFT_URL = 'http://download.agisoft.com/geoids'
@@ -20,22 +20,29 @@ def get_geoid_dict() -> dict:
 
 def read_geoid(geoid_name: str,
                extent: list = None,
-               buffer: float = .05) -> tuple:
+               buffer: float = .05,
+               res: float = None,
+               filepath: str = None
+               ) -> tuple:
+    from dem_stitcher.stitcher import gdal_merge_tiles
 
     geoid_dict = get_geoid_dict()
     geoid_path = geoid_dict[geoid_name]
-
-    if extent is None:
-        with rasterio.open(geoid_path) as ds:
-            geoid_arr = ds.read(1)
-            geoid_profile = ds.profile
-    else:
-        crs = CRS.from_epsg(4326)
-        geoid_arr, geoid_profile = read_raster_from_window(geoid_path,
-                                                           extent,
-                                                           crs,
-                                                           buffer=buffer,
-                                                           min_res_buffer=1)
+    
+    with rasterio.open(geoid_path) as ds:
+        geoid_arr = ds.read(1)
+        geoid_profile = ds.profile
+    
+    nodata = np.nan
+    if str(geoid_profile['dtype']) == 'int16':
+        nodata = geoid_profile['nodata']
+    
+    geoid_arr, geoid_profile = gdal_merge_tiles(['/vsicurl/'+geoid_path],
+                                       res,
+                                       bounds=extent,
+                                       nodata=nodata,
+                                       filepath=filepath+'.geoid',
+                                       resampling='bilinear')
 
     return geoid_arr, geoid_profile
 
@@ -44,7 +51,13 @@ def remove_geoid(dem_arr: np.ndarray,
                  dem_profile: dict,
                  geoid_name: str,
                  extent: list = None,
-                 dem_area_or_point: str = 'Point') -> np.ndarray:
+                 src_area_or_point: str = 'Point',
+                 dem_area_or_point: str = 'Point',
+                 filepath: str = None
+                 ) -> np.ndarray:
+    import os
+    import glob
+    from dem_stitcher.stitcher import gdal_shift_profile_for_pixel_loc
 
     assert(dem_area_or_point in ['Point', 'Area'])
 
@@ -55,19 +68,19 @@ def remove_geoid(dem_arr: np.ndarray,
     # make list a tuple, so we can still cache results
     geoid_arr, geoid_profile = read_geoid(geoid_name,
                                           extent=extent,
-                                          buffer=0.05)
+                                          buffer=0.05,
+                                          res=dem_profile['transform'][0],
+                                          filepath=filepath)
+                                          
+    geoid_arr, geoid_profile = gdal_shift_profile_for_pixel_loc(filepath+'.geoid',
+                                              src_area_or_point,
+                                              dem_area_or_point,
+                                              geoid_arr,
+                                              geoid_profile)
 
-    geoid_offset, _ = reproject_arr_to_match_profile(geoid_arr,
-                                                     geoid_profile,
-                                                     dem_profile,
-                                                     resampling='bilinear')
+    dem_arr_offset = dem_arr + geoid_arr
+    
+    #remove temp files
+    for i in glob.glob(filepath+'.geoid*'): os.remove(i)
 
-    # Translate geoid if necessary
-    if dem_area_or_point == 'Point':
-        shift = -.5
-        geoid_profile = translate_profile(geoid_profile,
-                                          shift, shift)
-
-    geoid_offset = geoid_offset[0, ...]
-    dem_arr_offset = dem_arr + geoid_offset
     return dem_arr_offset
