@@ -35,6 +35,7 @@ setup(
         'gdal',
         'geopandas',
         'numpy',
+        'pyproj',
         'rasterio',
         'requests',
         'shapely',
@@ -49,7 +50,6 @@ setup(
             'flake8-builtins',
             'pytest',
             'pytest-cov',
-            'notebooks',
         ]
     },
 

@@ -6,7 +6,6 @@ import rasterio
 from affine import Affine
 from osgeo import gdal
 from rasterio import features
-from rasterio.crs import CRS
 from rasterio.features import shapes
 from rasterio.transform import from_origin, rowcol, xy
 from rasterio.warp import (Resampling, aligned_target,
@@ -42,8 +41,10 @@ def translate_profile(profile: dict,
     ----------
     profile : dict
         Rasterio profile
-    shift : float
-        Number of pixels to translate by
+    x_shift : float
+        Number of pixels to translate in the x direction by
+    y_shift : float
+        Number of pixels to translate in the y direction by
 
     Returns
     -------
@@ -69,10 +70,13 @@ def gdal_translate_profile(filepath: str,
 
     Parameters
     ----------
-    profile : dict
-        Rasterio profile
-    shift : float
-        Number of pixels to translate by
+    filepath : str
+        dataset file to update
+    x_shift : float
+        Number of pixels to translate in the x direction by
+    y_shift : float
+        Number of pixels to translate in the y direction by
+
 
     Returns
     -------
@@ -160,7 +164,7 @@ def get_geopandas_features_from_array(arr: np.ndarray,
                                mask=~mask,
                                transform=transform,
                                connectivity=connectivity))
-    geo_features = list({'properties': {label_name: (value)},
+    geo_features = list({'properties': {label_name: value},
                          'geometry': geometry}
                         for i, (geometry, value) in enumerate(feature_list))
     return geo_features
@@ -407,7 +411,7 @@ def get_bounds_dict(profile: dict) -> dict:
     return bounds_dict
 
 
-def reproject_profile_to_new_crs(src_profile: dict, dst_crs: CRS,
+def reproject_profile_to_new_crs(src_profile: dict, dst_crs: str,
                                  target_resolution: Union[float, int] = None)\
                                          -> dict:
     """
