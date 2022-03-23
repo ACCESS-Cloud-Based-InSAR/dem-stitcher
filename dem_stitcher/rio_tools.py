@@ -2,9 +2,9 @@ from typing import Tuple, Union
 
 import fiona
 import numpy as np
+import rasterio
 from affine import Affine
 from osgeo import gdal
-import rasterio
 from rasterio import features
 from rasterio.crs import CRS
 from rasterio.features import shapes
@@ -63,9 +63,8 @@ def translate_profile(profile: dict,
 
 
 def gdal_translate_profile(filepath: str,
-                      x_shift: float,
-                      y_shift: float,
-                      ) -> dict:
+                           x_shift: float,
+                           y_shift: float) -> Tuple[np.ndarray, dict]:
     """Shift profile
 
     Parameters
@@ -77,7 +76,7 @@ def gdal_translate_profile(filepath: str,
 
     Returns
     -------
-    dict
+    np.ndarray, dict
         Rasterio profile and array with transform shifted
     """
 
@@ -100,20 +99,21 @@ def gdal_translate_profile(filepath: str,
     ds.SetGeoTransform(gt_update)
     # ensure changes are committed
     ds.FlushCache()
-    ds = None
-    
+    del ds
+
     # Update VRT
-    gdal.BuildVRT(filepath+'.vrt', filepath, \
-                            options=gdal.BuildVRTOptions(options=['-overwrite']))
-    
+    gdal.BuildVRT(filepath+'.vrt',
+                  filepath,
+                  options=gdal.BuildVRTOptions(options=['-overwrite']))
+
     with rasterio.open(filepath) as read_dataset:
         dat_arr = read_dataset.read(1)
         profile = read_dataset.profile
-        
-    #update geotrans
+
+    # update geotrans
     trans_list = gdal.Open(filepath).GetGeoTransform()
-    tranform_cropped = Affine.from_gdal(*trans_list)
-    profile['transform'] = tranform_cropped
+    transform_cropped = Affine.from_gdal(*trans_list)
+    profile['transform'] = transform_cropped
 
     return dat_arr, profile
 
@@ -200,12 +200,10 @@ def polygonize_array_to_shapefile(arr: np.ndarray,
     dtype = str(arr.dtype)
     if 'int' in dtype or 'bool' in dtype:
         arr = arr.astype('int32')
-        dtype = 'int32'
         dtype_for_shape_file = 'int'
 
     if 'float' in dtype:
         arr = arr.astype('float32')
-        dtype = 'float32'
         dtype_for_shape_file = 'float'
 
     crs = profile['crs']

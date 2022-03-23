@@ -29,11 +29,16 @@ setup(
     python_requires='>=3.8',
 
     install_requires=[
-        'rasterio',
+        'affine',
+        'boto3',
+        'fiona',
+        'gdal',
         'geopandas',
+        'numpy',
+        'rasterio',
         'requests',
+        'shapely',
         'tqdm',
-        'boto3'
     ],
 
     extras_require={
