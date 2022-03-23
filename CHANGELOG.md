@@ -7,9 +7,15 @@ and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [2.0.2]
+## [2.1.0]
+
+### Changed
+* `dem_sticher.sticher.stitch_dem` no longer returns the raster profile and data
+  array and instead writes the output stitched DEM to a file as specified by the
+  new `filepath` argument. 
 
 ### Fixed
+* Pixel shifts sometimes seen in stitched output DEMs (see [#18](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/pull/18))
 * [Package data](dem_stitcher/data/) is again included with python wheel distributions,
   which was missing in v2.0.1
 
