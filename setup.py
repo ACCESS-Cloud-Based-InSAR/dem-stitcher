@@ -29,11 +29,17 @@ setup(
     python_requires='>=3.8',
 
     install_requires=[
-        'rasterio',
+        'affine',
+        'boto3',
+        'fiona',
+        'gdal',
         'geopandas',
+        'numpy',
+        'pyproj',
+        'rasterio',
         'requests',
+        'shapely',
         'tqdm',
-        'boto3'
     ],
 
     extras_require={
@@ -44,7 +50,6 @@ setup(
             'flake8-builtins',
             'pytest',
             'pytest-cov',
-            'notebooks',
         ]
     },
 

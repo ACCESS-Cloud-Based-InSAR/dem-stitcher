@@ -1,11 +1,8 @@
 import numpy as np
 import rasterio
-from rasterio.crs import CRS
 from rasterio.transform import array_bounds
 
 from .datasets import DATA_PATH
-from .rio_tools import reproject_arr_to_match_profile, translate_profile, gdal_translate_profile
-from .rio_window import read_raster_from_window
 
 AGISOFT_URL = 'http://download.agisoft.com/geoids'
 GEOID_PATHS_AGI = {'geoid_18': f'{DATA_PATH}/geoid_18.tif',
@@ -28,21 +25,20 @@ def read_geoid(geoid_name: str,
 
     geoid_dict = get_geoid_dict()
     geoid_path = geoid_dict[geoid_name]
-    
+
     with rasterio.open(geoid_path) as ds:
-        geoid_arr = ds.read(1)
         geoid_profile = ds.profile
-    
+
     nodata = np.nan
     if str(geoid_profile['dtype']) == 'int16':
         nodata = geoid_profile['nodata']
-    
-    geoid_arr, geoid_profile = gdal_merge_tiles(['/vsicurl/'+geoid_path],
-                                       res,
-                                       bounds=extent,
-                                       nodata=nodata,
-                                       filepath=filepath+'.geoid',
-                                       resampling='bilinear')
+
+    geoid_arr, geoid_profile = gdal_merge_tiles([f'/vsicurl/{geoid_path}'],
+                                                res,
+                                                bounds=extent,
+                                                nodata=nodata,
+                                                filepath=filepath+'.geoid',
+                                                resampling='bilinear')
 
     return geoid_arr, geoid_profile
 
@@ -71,16 +67,17 @@ def remove_geoid(dem_arr: np.ndarray,
                                           buffer=0.05,
                                           res=dem_profile['transform'][0],
                                           filepath=filepath)
-                                          
-    geoid_arr, geoid_profile = gdal_shift_profile_for_pixel_loc(filepath+'.geoid',
-                                              src_area_or_point,
-                                              dem_area_or_point,
-                                              geoid_arr,
-                                              geoid_profile)
+
+    geoid_arr, geoid_profile = gdal_shift_profile_for_pixel_loc(f'{filepath}.geoid',
+                                                                src_area_or_point,
+                                                                dem_area_or_point,
+                                                                geoid_arr,
+                                                                geoid_profile)
 
     dem_arr_offset = dem_arr + geoid_arr
-    
-    #remove temp files
-    for i in glob.glob(filepath+'.geoid*'): os.remove(i)
+
+    # remove temp files
+    for i in glob.glob(filepath+'.geoid*'):
+        os.remove(i)
 
     return dem_arr_offset

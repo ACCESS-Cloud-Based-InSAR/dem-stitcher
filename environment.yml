@@ -11,10 +11,11 @@ dependencies:
  - fiona
  - gdal
  - geopandas
+ - jupyter
  - matplotlib
- - notebook
  - numpy
  - pandas
+ - pyproj
  - rasterio
  - requests
  - shapely
