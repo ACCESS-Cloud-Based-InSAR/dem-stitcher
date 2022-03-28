@@ -158,6 +158,9 @@ def gdal_merge_tiles(datasets: list,
     trans_list = gdal.Open(filepath).GetGeoTransform()
     transform_cropped = Affine.from_gdal(*trans_list)
     profile['transform'] = transform_cropped
+    
+    # delete uncropped file
+    os.remove(f'{filepath}_uncropped.vrt')
 
     return merged_arr, profile
 
@@ -222,7 +225,7 @@ def stitch_dem(bounds: list,
     df_tiles = get_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
     tile_dir = Path('tmp')
-
+    
     # Datasets that permit virtual warping
     # The readers return DatasetReader rather than (Array, Profile)
     if dem_name in ['glo_30', '3dep']:
@@ -272,13 +275,12 @@ def stitch_dem(bounds: list,
     if dem_profile['crs'] != CRS.from_epsg(4326):
         raise ValueError('CRS must be epsg 4269 or 4326')
 
-    print('src_area_or_point', src_area_or_point)
-    print('dst_area_or_point', dst_area_or_point)
     dem_arr, dem_profile = gdal_shift_profile_for_pixel_loc(filepath,
                                                             src_area_or_point,
                                                             dst_area_or_point,
                                                             dem_arr,
                                                             dem_profile)
+
     if dst_ellipsoidal_height:
         geoid_name = DEM2GEOID[dem_name]
         dem_arr = remove_geoid(dem_arr,
