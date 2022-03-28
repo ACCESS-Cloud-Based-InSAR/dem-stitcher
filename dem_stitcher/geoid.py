@@ -17,7 +17,6 @@ def get_geoid_dict() -> dict:
 
 def read_geoid(geoid_name: str,
                extent: list = None,
-               buffer: float = .05,
                res: float = None,
                filepath: str = None
                ) -> tuple:
@@ -57,14 +56,9 @@ def remove_geoid(dem_arr: np.ndarray,
 
     assert(dem_area_or_point in ['Point', 'Area'])
 
-    extent = array_bounds(dem_profile['height'],
-                          dem_profile['width'],
-                          dem_profile['transform'])
-
     # make list a tuple, so we can still cache results
     geoid_arr, geoid_profile = read_geoid(geoid_name,
                                           extent=extent,
-                                          buffer=0.05,
                                           res=dem_profile['transform'][0],
                                           filepath=filepath)
 
