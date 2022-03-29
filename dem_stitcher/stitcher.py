@@ -141,7 +141,7 @@ def gdal_merge_tiles(datasets: list,
               f'{filepath}_uncropped.vrt',
               options=gdal.WarpOptions(format=driver,
                                        outputBounds=bounds,
-                                       dstNodata=nodata,
+                                       dstNodata=None,
                                        dstSRS=CRS.from_epsg(4326),
                                        xRes=res,
                                        yRes=res,
@@ -153,6 +153,10 @@ def gdal_merge_tiles(datasets: list,
     with rasterio.open(filepath) as read_dataset:
         merged_arr = read_dataset.read(1)
         profile = read_dataset.profile
+        
+    # set nodata to 0 to avoid interpolation issues
+    merged_arr[merged_arr == nodata] = 0
+    profile['nodata'] = None
 
     # update geotrans
     trans_list = gdal.Open(filepath).GetGeoTransform()
@@ -258,9 +262,8 @@ def stitch_dem(bounds: list,
         datasets = list(map(rasterio.open, dest_paths))
         dest_paths = [str(i.resolve()) for i in dest_paths]
 
-    nodata = np.nan
-    if str(datasets[0].profile['dtype']) == 'int16':
-        nodata = datasets[0].profile['nodata']
+    nodata = np.array([datasets[0].profile['nodata']], \
+                   dtype = datasets[0].profile['dtype'])[0]
     dem_arr, dem_profile = gdal_merge_tiles(dest_paths,
                                             datasets[0].res[-1],
                                             bounds=bounds,
@@ -281,6 +284,12 @@ def stitch_dem(bounds: list,
                                                             dem_arr,
                                                             dem_profile)
 
+    # set nodata to 0 to avoid interpolation issues
+    dem_arr[dem_arr == nodata] = 0
+    dem_profile['nodata'] = None
+    # create mask to apply later
+    dem_mask = np.zeros(dem_arr.shape)
+    dem_mask[dem_arr != 0] = 1
     if dst_ellipsoidal_height:
         geoid_name = DEM2GEOID[dem_name]
         dem_arr = remove_geoid(dem_arr,
@@ -291,7 +300,9 @@ def stitch_dem(bounds: list,
                                dem_area_or_point=dst_area_or_point,
                                filepath=filepath)
 
-    # update DEM array
+    # apply mask
+    dem_arr[dem_mask == 0] = 0
+    # update DEM array in file
     update_file = gdal.Open(filepath, gdal.GA_Update)
     update_file.GetRasterBand(1).WriteArray(dem_arr)
     del update_file
