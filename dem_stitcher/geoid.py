@@ -28,10 +28,7 @@ def read_geoid(geoid_name: str,
     with rasterio.open(geoid_path) as ds:
         geoid_profile = ds.profile
 
-    nodata = np.nan
-    if str(geoid_profile['dtype']) == 'int16':
-        nodata = geoid_profile['nodata']
-
+    nodata = geoid_profile['nodata']
     geoid_arr, geoid_profile = gdal_merge_tiles([f'/vsicurl/{geoid_path}'],
                                                 res,
                                                 bounds=extent,
