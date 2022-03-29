@@ -258,7 +258,7 @@ def stitch_dem(bounds: list,
         datasets = list(map(rasterio.open, dest_paths))
         dest_paths = [str(i.resolve()) for i in dest_paths]
 
-    nodata = np.nan
+    nodata = None
     if str(datasets[0].profile['dtype']) == 'int16':
         nodata = datasets[0].profile['nodata']
     dem_arr, dem_profile = gdal_merge_tiles(dest_paths,
@@ -267,6 +267,7 @@ def stitch_dem(bounds: list,
                                             nodata=nodata,
                                             filepath=filepath,
                                             resampling='near')
+    dem_arr[np.isnan(dem_arr)] = 0.
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
 
     # Close datasets
