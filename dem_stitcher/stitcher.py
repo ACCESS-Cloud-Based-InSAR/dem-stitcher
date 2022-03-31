@@ -153,7 +153,7 @@ def gdal_merge_tiles(datasets: list,
     with rasterio.open(filepath) as read_dataset:
         merged_arr = read_dataset.read(1)
         profile = read_dataset.profile
-        
+
     # set nodata to 0 to avoid interpolation issues
     merged_arr[merged_arr == nodata] = 0
     profile['nodata'] = None
@@ -162,7 +162,7 @@ def gdal_merge_tiles(datasets: list,
     trans_list = gdal.Open(filepath).GetGeoTransform()
     transform_cropped = Affine.from_gdal(*trans_list)
     profile['transform'] = transform_cropped
-    
+
     # delete uncropped file
     os.remove(f'{filepath}_uncropped.vrt')
 
@@ -229,7 +229,7 @@ def stitch_dem(bounds: list,
     df_tiles = get_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
     tile_dir = Path('tmp')
-    
+
     # Datasets that permit virtual warping
     # The readers return DatasetReader rather than (Array, Profile)
     if dem_name in ['glo_30', '3dep']:
@@ -262,8 +262,7 @@ def stitch_dem(bounds: list,
         datasets = list(map(rasterio.open, dest_paths))
         dest_paths = [str(i.resolve()) for i in dest_paths]
 
-    nodata = np.array([datasets[0].profile['nodata']], \
-                   dtype = datasets[0].profile['dtype'])[0]
+    nodata = np.array([datasets[0].profile['nodata']], dtype=datasets[0].profile['dtype'])[0]
     dem_arr, dem_profile = gdal_merge_tiles(dest_paths,
                                             datasets[0].res[-1],
                                             bounds=bounds,

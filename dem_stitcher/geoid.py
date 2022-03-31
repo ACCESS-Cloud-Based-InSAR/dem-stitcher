@@ -1,6 +1,5 @@
 import numpy as np
 import rasterio
-from rasterio.transform import array_bounds
 
 from .datasets import DATA_PATH
 
