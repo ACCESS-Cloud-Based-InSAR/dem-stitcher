@@ -7,6 +7,13 @@ and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.1.1]
+
+## Changed
+* `dem_sticher` can now be installed in a Python 3.7 environment. Support for Python 3.7
+  is unlikely to remain long term as most upstream packages have dropped support for it
+  and [Python 3.7 End Of Life](https://endoflife.date/python) is slated for 27 Jun 2023.
+
 ## [2.1.0]
 
 ### Changed
