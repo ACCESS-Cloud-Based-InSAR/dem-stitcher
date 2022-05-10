@@ -20,7 +20,10 @@ def get_geoid_dict() -> dict:
 
 def read_geoid(geoid_name: str,
                extent: list = None,
-               buffer: float = .05) -> tuple:
+               res_buffer: int = 1) -> tuple:
+
+    if (extent[0] < -180) or (extent[2] > 180) or (extent[1] < -90) or (extent[3] > 90):
+        raise ValueError('Extent should be in lon/lat as xmin, ymin, xmax, ymax')
 
     geoid_dict = get_geoid_dict()
     geoid_path = geoid_dict[geoid_name]
@@ -30,12 +33,11 @@ def read_geoid(geoid_name: str,
             geoid_arr = ds.read(1)
             geoid_profile = ds.profile
     else:
-        crs = CRS.from_epsg(4326)
+        extent_crs = CRS.from_epsg(4326)
         geoid_arr, geoid_profile = read_raster_from_window(geoid_path,
                                                            extent,
-                                                           crs,
-                                                           buffer=buffer,
-                                                           min_res_buffer=1)
+                                                           extent_crs,
+                                                           res_buffer=res_buffer)
 
     return geoid_arr, geoid_profile
 
@@ -54,19 +56,18 @@ def remove_geoid(dem_arr: np.ndarray,
 
     # make list a tuple, so we can still cache results
     geoid_arr, geoid_profile = read_geoid(geoid_name,
-                                          extent=extent,
-                                          buffer=0.05)
+                                          extent=extent)
+
+    # Translate geoid if necessary as all geoids have Area tag
+    if dem_area_or_point == 'Point':
+        shift = -.5
+        geoid_profile = translate_profile(geoid_profile,
+                                          shift, shift)
 
     geoid_offset, _ = reproject_arr_to_match_profile(geoid_arr,
                                                      geoid_profile,
                                                      dem_profile,
                                                      resampling='bilinear')
-
-    # Translate geoid if necessary
-    if dem_area_or_point == 'Point':
-        shift = -.5
-        geoid_profile = translate_profile(geoid_profile,
-                                          shift, shift)
 
     geoid_offset = geoid_offset[0, ...]
     dem_arr_offset = dem_arr + geoid_offset

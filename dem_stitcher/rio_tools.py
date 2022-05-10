@@ -40,8 +40,10 @@ def translate_profile(profile: dict,
     ----------
     profile : dict
         Rasterio profile
-    shift : float
-        Number of pixels to translate by
+    x_shift : float
+        Number of pixels to translate by in x-direction
+    y_shift : float
+        Number of pixels to translate by in y-direction
 
     Returns
     -------
@@ -52,8 +54,8 @@ def translate_profile(profile: dict,
 
     new_origin = transform * (x_shift, y_shift)
     new_transform = Affine.translation(*new_origin)
-    new_transform *= transform.scale(transform.a,
-                                     transform.e)
+    new_transform = new_transform * transform.scale(transform.a,
+                                                    transform.e)
 
     p_new = profile.copy()
     p_new['transform'] = new_transform
@@ -214,6 +216,7 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
                                    src_profile: dict,
                                    ref_profile: dict,
                                    nodata: str = None,
+                                   num_threads: int = 1,
                                    resampling='bilinear') \
                                            -> Tuple[np.ndarray, dict]:
     """
@@ -232,6 +235,8 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
         The nodata value to be used in output profile. If None, the nodata from
         src_profile is used in the output profile.  See
         https://github.com/mapbox/rasterio/blob/master/rasterio/dtypes.py#L13-L24.
+    num_threads: int
+        gdal allows for multiple threads for resampling
     resampling : str
         The type of resampling to use. See all the options:
         https://github.com/rasterio/rasterio/blob/master/rasterio/enums.py#L48-L82
@@ -273,7 +278,9 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
               dst_transform=transform,
               dst_crs=crs,
               dst_nodata=nodata,
-              resampling=resampling)
+              resampling=resampling,
+              num_threads=num_threads
+              )
     return dst_array.astype(src_dtype), reproject_profile
 
 
@@ -481,3 +488,21 @@ def resample_by_multiple(src_array: np.ndarray,
     out_profile['width'] = int(round(src_profile['width'] / multiple))
     out_profile['height'] = int(round(src_profile['height'] / multiple))
     return reproject_arr_to_match_profile(src_array, src_profile, out_profile)
+
+
+def update_profile_resolution(src_profile: dict, resolution: Union[float, Tuple[float]]) -> dict:
+    transform = src_profile['transform']
+    width = src_profile['width']
+    height = src_profile['height']
+
+    dst_transform, dst_width, dst_height = aligned_target(transform,
+                                                          width,
+                                                          height,
+                                                          resolution)
+
+    dst_profile = src_profile.copy()
+    dst_profile['width'] = dst_width
+    dst_profile['height'] = dst_height
+    dst_profile['transform'] = dst_transform
+
+    return dst_profile

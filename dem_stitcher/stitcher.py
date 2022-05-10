@@ -1,12 +1,12 @@
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import geopandas as gpd
 import numpy as np
 import rasterio
-# from rasterio.warp import Resampling
+from affine import Affine
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
 from rasterio.merge import merge
@@ -16,7 +16,10 @@ from tqdm import tqdm
 from .datasets import get_dem_tile_extents
 from .dem_readers import read_dem, read_glo, read_nasadem, read_ned1, read_srtm
 from .geoid import remove_geoid
-from .rio_tools import reproject_arr_to_new_crs, translate_profile
+from .rio_tools import (reproject_arr_to_match_profile,
+                        reproject_arr_to_new_crs, translate_profile,
+                        update_profile_resolution)
+from .rio_window import get_indices_from_extent
 
 RASTER_READERS = {'ned1': read_ned1,
                   '3dep': read_dem,
@@ -84,30 +87,45 @@ def download_tiles(urls: list,
 
 def merge_tiles(datasets: List[rasterio.DatasetReader],
                 bounds: list = None,
-                resampling: str = 'bilinear',
-                nodata: float = np.nan
+                resampling: str = 'nearest',
+                nodata: float = np.nan,
+                res_buffer: int = 0
                 ) -> Tuple[np.ndarray, dict]:
     merged_arr, merged_transform = merge(datasets,
-                                         bounds=bounds,
                                          resampling=Resampling[resampling],
                                          nodata=nodata,
                                          dtype='float32',
-                                         target_aligned_pixels=True,
                                          )
     merged_arr = merged_arr[0, ...]
+
+    # each pair is in (row, col) format
+    corner_ul, corner_br = get_indices_from_extent(merged_transform,
+                                                   bounds,
+                                                   shape=merged_arr.shape,
+                                                   res_buffer=res_buffer)
+    sy = np.s_[corner_ul[0]: corner_br[0]]
+    sx = np.s_[corner_ul[1]: corner_br[1]]
+    merged_arr = merged_arr[sy, sx]
+
+    # We swap row and columns because Affine expects (x, y) or (col, row)
+    origin_affine = corner_ul[1], corner_ul[0]
+    new_origin = merged_transform * origin_affine
+    merged_transform_final = Affine.translation(*new_origin)
+    merged_transform_final = merged_transform_final * Affine.scale(merged_transform.a,
+                                                                   merged_transform.e)
 
     profile = datasets[0].profile.copy()
     profile['height'] = merged_arr.shape[0]
     profile['width'] = merged_arr.shape[1]
     profile['nodata'] = nodata
     profile['dtype'] = 'float32'
-    profile['transform'] = merged_transform
+    profile['transform'] = merged_transform_final
     return merged_arr, profile
 
 
 def shift_profile_for_pixel_loc(src_profile: dict,
                                 src_area_or_point: str,
-                                dst_area_or_point: str, ):
+                                dst_area_or_point: str) -> dict:
     assert(dst_area_or_point in ['Area', 'Point'])
     assert(src_area_or_point in ['Area', 'Point'])
     if dst_area_or_point == 'Point' and src_area_or_point == 'Area':
@@ -125,6 +143,7 @@ def stitch_dem(bounds: list,
                dem_name: str,
                dst_ellipsoidal_height: bool = True,
                dst_area_or_point: str = 'Area',
+               dst_resolution: Union[float, Tuple[float]] = None,
                max_workers=5,
                driver: str = 'GTiff'
                ) -> Tuple[np.ndarray, dict]:
@@ -165,16 +184,8 @@ def stitch_dem(bounds: list,
     if tile_dir.exists():
         shutil.rmtree(str(tile_dir))
 
-    # Reproject to 4326
-    if dem_profile['crs'] == CRS.from_epsg(4269):
-        dem_arr, dem_profile = reproject_arr_to_new_crs(dem_arr,
-                                                        dem_profile,
-                                                        CRS.from_epsg(4326))
-        dem_arr = dem_arr[0, ...]
-
-    if dem_profile['crs'] != CRS.from_epsg(4326):
-        raise ValueError('CRS must be epsg 4269 or 4326')
-
+    print('source tag', src_area_or_point)
+    print('dst tag', dst_area_or_point)
     dem_profile = shift_profile_for_pixel_loc(dem_profile,
                                               src_area_or_point,
                                               dst_area_or_point)
@@ -187,6 +198,24 @@ def stitch_dem(bounds: list,
                                extent=bounds,
                                dem_area_or_point=dst_area_or_point,
                                )
+
+    # Reproject to 4326 for USGS DEMs
+    if dem_profile['crs'] == CRS.from_epsg(4269):
+        dem_arr, dem_profile = reproject_arr_to_new_crs(dem_arr,
+                                                        dem_profile,
+                                                        CRS.from_epsg(4326))
+        dem_arr = dem_arr[0, ...]
+
+    if dem_profile['crs'] != CRS.from_epsg(4326):
+        raise ValueError('CRS must be epsg 4269 or 4326')
+
+    if dst_resolution is not None:
+        dem_profile_res = update_profile_resolution(dem_profile, dst_resolution)
+        dem_arr, dem_profile = reproject_arr_to_match_profile(dem_arr,
+                                                              dem_profile,
+                                                              dem_profile_res,
+                                                              num_threads=5,
+                                                              resampling='bilinear')
 
     dem_profile['driver'] = driver
     return dem_arr, dem_profile
