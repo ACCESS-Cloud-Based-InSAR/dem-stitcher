@@ -163,8 +163,8 @@ def test_no_change_when_no_transformations_to_tile(los_angeles_glo30_path):
                                                 resampling='nearest')
     X_sub_r = X_sub_r[0, ...]
 
-
-    # The subset will have nan values
+    # The subset will have nan values so only compare areas with nan values
+    # when reprojected into the larger file
     mask = np.isnan(X_sub_r)
     subset_data = X_sub_r[~mask]
     tile_data = X_tile[~mask]
