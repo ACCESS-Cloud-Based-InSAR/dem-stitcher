@@ -2,7 +2,9 @@ import numpy as np
 import pytest
 import rasterio
 from affine import Affine
-from dem_stitcher.stitcher import merge_tiles, shift_profile_for_pixel_loc
+from dem_stitcher.rio_tools import reproject_arr_to_match_profile
+from dem_stitcher.stitcher import (merge_and_transform_dem_tiles, merge_tiles,
+                                   shift_profile_for_pixel_loc)
 from numpy.testing import assert_array_equal
 from rasterio import default_gtiff_profile
 
@@ -136,13 +138,35 @@ def test_shift_pixel_loc(src_tag, dst_tag, transform_expected):
     # Check the transform is what we expect
     assert(transform_expected == t_new)
 
-# @pytest.mark.parametrize("dem_name", DATASETS)
-# def test_download_dem(dem_name):
-#     # Bay Area
-#     bounds = [-121.5, 34.95, -120.2, 36.25]
-#     dem_arr, _ = stitch_dem(bounds,
-#                             dem_name,
-#                             max_workers=5,
-#                             dst_ellipsoidal_height=False
-#                             )
-#     assert(len(dem_arr.shape) == 2)
+
+def test_no_change_when_no_transformations_to_tile(los_angeles_glo30_path):
+    """Opens a single glo tile, selects bounds contained inside of it and then reprojects the obtained tile back into
+    the tiles original frame to determine if modifications were made.
+    """
+    datasets = [rasterio.open(los_angeles_glo30_path)]
+    X_tile = datasets[0].read(1)
+    p_tile = datasets[0].profile
+
+    # Within the Los Angeles tile
+    bounds = [-118.8, 34.6, -118.5, 34.8]
+    X_sub, p_sub = merge_and_transform_dem_tiles(datasets,
+                                                 bounds,
+                                                 dem_name='glo_30',
+                                                 # Do not modify tile
+                                                 dst_ellipsoidal_height=False,
+                                                 dst_area_or_point='Point')
+
+    datasets[0].close()
+
+    X_sub_r, _ = reproject_arr_to_match_profile(X_sub, p_sub, p_tile,
+                                                num_threads=5,
+                                                resampling='nearest')
+    X_sub_r = X_sub_r[0, ...]
+
+
+    # The subset will have nan values
+    mask = np.isnan(X_sub_r)
+    subset_data = X_sub_r[~mask]
+    tile_data = X_tile[~mask]
+
+    assert_array_equal(subset_data, tile_data)

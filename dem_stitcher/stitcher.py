@@ -1,4 +1,5 @@
 import shutil
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List, Tuple, Union
@@ -139,18 +140,70 @@ def shift_profile_for_pixel_loc(src_profile: dict,
     return profile_shifted
 
 
+def merge_and_transform_dem_tiles(datasets: list,
+                                  bounds: list,
+                                  dem_name: str,
+                                  dst_ellipsoidal_height: bool = True,
+                                  dst_area_or_point: str = 'Area',
+                                  dst_resolution: Union[float, Tuple[float]] = None,
+                                  num_threads_reproj: int = 5,
+                                  driver: str = 'GTiff') -> Tuple[np.ndarray, dict]:
+    dem_arr, dem_profile = merge_tiles(datasets,
+                                       bounds=bounds,
+                                       nodata=np.nan)
+    src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
+
+    dem_profile = shift_profile_for_pixel_loc(dem_profile,
+                                              src_area_or_point,
+                                              dst_area_or_point)
+
+    # Reproject to 4326 for USGS DEMs over North America
+    # Note 4269 is almost identical to 4326 and often no changes are made
+    if dem_profile['crs'] == CRS.from_epsg(4269):
+        dem_arr, dem_profile = reproject_arr_to_new_crs(dem_arr,
+                                                        dem_profile,
+                                                        CRS.from_epsg(4326))
+        dem_arr = dem_arr[0, ...]
+
+    if dem_profile['crs'] != CRS.from_epsg(4326):
+        raise ValueError('CRS must be epsg 4269 or 4326')
+
+    if dst_ellipsoidal_height:
+        geoid_name = DEM2GEOID[dem_name]
+        dem_arr = remove_geoid(dem_arr,
+                               dem_profile,
+                               geoid_name,
+                               extent=bounds,
+                               dem_area_or_point=dst_area_or_point,
+                               )
+
+    if dst_resolution is not None:
+        dem_profile_res = update_profile_resolution(dem_profile, dst_resolution)
+        dem_arr, dem_profile = reproject_arr_to_match_profile(dem_arr,
+                                                              dem_profile,
+                                                              dem_profile_res,
+                                                              num_threads=num_threads_reproj,
+                                                              resampling='bilinear')
+
+    return dem_arr, dem_profile
+
+
 def stitch_dem(bounds: list,
                dem_name: str,
                dst_ellipsoidal_height: bool = True,
                dst_area_or_point: str = 'Area',
                dst_resolution: Union[float, Tuple[float]] = None,
+               num_threads_reproj: int = 5,
                max_workers=5,
                driver: str = 'GTiff'
                ) -> Tuple[np.ndarray, dict]:
 
     df_tiles = get_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
-    tile_dir = Path('tmp')
+
+    # Random unique identifier
+    tmp_id = str(uuid.uuid4())
+    tile_dir = Path(f'tmp_{tmp_id}')
 
     # Datasets that permit virtual warping
     # The readers return DatasetReader rather than (Array, Profile)
@@ -172,10 +225,14 @@ def stitch_dem(bounds: list,
                                     max_workers=max_workers)
         datasets = list(map(rasterio.open, dest_paths))
 
-    dem_arr, dem_profile = merge_tiles(datasets,
-                                       bounds=bounds,
-                                       nodata=np.nan)
-    src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
+    dem_arr, dem_profile = merge_and_transform_dem_tiles(datasets,
+                                                         bounds,
+                                                         dem_name,
+                                                         dst_ellipsoidal_height=dst_ellipsoidal_height,
+                                                         dst_area_or_point=dst_area_or_point,
+                                                         dst_resolution=dst_resolution,
+                                                         num_threads_reproj=num_threads_reproj,
+                                                         )
 
     # Close datasets
     list(map(lambda dataset: dataset.close(), datasets))
@@ -184,38 +241,7 @@ def stitch_dem(bounds: list,
     if tile_dir.exists():
         shutil.rmtree(str(tile_dir))
 
-    print('source tag', src_area_or_point)
-    print('dst tag', dst_area_or_point)
-    dem_profile = shift_profile_for_pixel_loc(dem_profile,
-                                              src_area_or_point,
-                                              dst_area_or_point)
-
-    if dst_ellipsoidal_height:
-        geoid_name = DEM2GEOID[dem_name]
-        dem_arr = remove_geoid(dem_arr,
-                               dem_profile,
-                               geoid_name,
-                               extent=bounds,
-                               dem_area_or_point=dst_area_or_point,
-                               )
-
-    # Reproject to 4326 for USGS DEMs
-    if dem_profile['crs'] == CRS.from_epsg(4269):
-        dem_arr, dem_profile = reproject_arr_to_new_crs(dem_arr,
-                                                        dem_profile,
-                                                        CRS.from_epsg(4326))
-        dem_arr = dem_arr[0, ...]
-
-    if dem_profile['crs'] != CRS.from_epsg(4326):
-        raise ValueError('CRS must be epsg 4269 or 4326')
-
-    if dst_resolution is not None:
-        dem_profile_res = update_profile_resolution(dem_profile, dst_resolution)
-        dem_arr, dem_profile = reproject_arr_to_match_profile(dem_arr,
-                                                              dem_profile,
-                                                              dem_profile_res,
-                                                              num_threads=5,
-                                                              resampling='bilinear')
-
+    # Set driver in profile
     dem_profile['driver'] = driver
+
     return dem_arr, dem_profile
