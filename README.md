@@ -74,27 +74,29 @@ Out[1]: ['srtm_v3', 'nasadem', 'glo_30', '3dep', 'ned1']
 
 # Transformations
 
-1. All DEMs are resampled to `epsg:4326` (most DEMs are in this CRS)
-2. All DEMs are resampled to match the bounds specified and align with the original DEM pixels
+Wherever possible, we do not resample the original DEMs unless necessary. When extents are specified, we obtain the the minimum square pixel extent within the merged tile DEMs that contain that extent and return this. Any required resampling (e.g. updating the CRS or updating the resolution because the tiles have non-square resolution at high latitudes) is done at the end of the translations. We importantly note that first translating the DEM (to either pixel or area center coordinates) and then resampling is different than first resampling and then translation (as affine transformations like this are not commutative). As indicated above, all resampling (if required) is done at the end. Here are some notes:
+
+1. All DEMs are resampled to `epsg:4326` (most DEMs are in this CRS except some of the USGS DEMs, which are in `epsg:4269` and is very similar CRS)
+2. All DEMs meant to align with the original DEM pixels unless a resolution for the final product is specified
 3. Rasters can be transformed into reference system either referring to upper-left corners of pixels or their centers (i.e. `Point` and `Area` tags in `gdal`, respectively, and seen as `{'AREA_OR_POINT: 'Point'}`. Note that `Area` is the *default* pixel reference for `gdal` as indicated [here](https://gdal.org/tutorials/geotransforms_tut.html). Some helpful resources about this book-keeping are below.
    + SRTM v3 and TDX are [Pixel-centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904), i.e. `{'AREA_OR_POINT: 'Point'}`.
    + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects), i.e. `{'AREA_OR_POINT: 'Area'}`.
-4. Transform geoid heights to WGS84 Ellipsoidal height. This is done using the rasters [here](https://www.agisoft.com/downloads/geoids/). We generally resample the geoids and into the DEM reference frame before adjusting the vertical datum.
+4. Transform geoid heights to WGS84 Ellipsoidal height. This is done using the rasters [here](https://www.agisoft.com/downloads/geoids/). We:
+   + Adjust the geoid to pixel/area coordinates
+   + resample the geoids into the DEM reference frame
+   + Adjust the vertical datum.
+
 
 # Testing
 
-1. Install `pytest`.
-2. Run pytest.
+1. Install `pytest`
+2. Run `pytest .`
 
-There are automatic github actions that run the said tests as well. Many more tests are still needed.
+ We have an integration test (marked as `integration`) which ensures all the datasets are downloaded and can be transformed (not validated for correctness at this time). Otherwise, all tests have basic tests with mock data to illustrate how the DEM stitcher is working. The non-integration tests are as github actions via `pytest tests -m "not integration"`.
 
 # Contributing
 
-1. Create an GitHub issue ticket desrcribing what changes you need (e.g. issue-1)
-2. Fork this repo
-3. Make your modifications in your own fork
-4. Make a pull-request in this repo with the code in your fork and tag the repo owner / largest contributor as a reviewer
+1. Create an GitHub issue ticket desrcribing what changes you need (or a bug)
+2. We will work on solving this issue (hopefully with you)
 
-## Support
-
-Create an issue ticket.
+We are not actively taking pull-requests outside of our organization.
