@@ -2,7 +2,7 @@ import shutil
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Callable, List, Tuple, Union
 
 import geopandas as gpd
 import numpy as np
@@ -47,6 +47,24 @@ def get_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
     return df_tiles
 
 
+def _download_and_write_one_tile(url: str,
+                                 dest_path: Path,
+                                 reader: Callable,
+                                 dem_name: str) -> dict:
+    dem_arr, dem_profile = reader(url)
+    # if dem_arr is None - the tile does not exist - this is the case
+    # for glo30
+    if dem_arr is None:
+        return
+
+    dem_profile['driver'] = 'GTiff'
+    with rasterio.open(dest_path, 'w', **dem_profile) as ds:
+        ds.write(dem_arr, 1)
+        if dem_name in ['srtm_v3', 'nasadem', 'glo_30']:
+            ds.update_tags(AREA_OR_POINT='Point')
+    return dem_profile
+
+
 def download_tiles(urls: list,
                    dem_name: str,
                    dest_dir: Path,
@@ -58,26 +76,15 @@ def download_tiles(urls: list,
                           tile_ids))
     reader = RASTER_READERS[dem_name]
 
-    def download_and_write_one(url, dest_path):
-        dem_arr, dem_profile = reader(url)
-        # if dem_arr is None - the tile does not exist - this is the case
-        # for glo30
-        if dem_arr is None:
-            return
-
-        dem_profile['driver'] = 'GTiff'
-        with rasterio.open(dest_path, 'w', **dem_profile) as ds:
-            ds.write(dem_arr, 1)
-            if dem_name in ['srtm', 'nasadem']:
-                ds.update_tags(AREA_OR_POINT='Point')
-        return dem_profile
-
-    def download_and_write_one_z(data: list) -> dict:
-        return download_and_write_one(*data)
+    def download_and_write_one_partial(zipped_data: list) -> dict:
+        return _download_and_write_one_tile(zipped_data[0],
+                                            zipped_data[1],
+                                            reader,
+                                            dem_name)
 
     data_list = zip(urls, dest_paths)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        results = list(tqdm(executor.map(download_and_write_one_z, data_list),
+        results = list(tqdm(executor.map(download_and_write_one_partial, data_list),
                             total=len(urls),
                             desc=f'Downloading {dem_name} tiles'))
     profiles = results
