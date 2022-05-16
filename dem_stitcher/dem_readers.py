@@ -23,8 +23,14 @@ def read_glo(url: str) -> Union[rasterio.DatasetReader, None]:
 
 
 def read_dem_bytes(url: str, suffix: str = '.img') -> bytes:
-    request = requests.get(url)
-    zip_ob = zipfile.ZipFile(io.BytesIO(request.content))
+    # online
+    if (url[:7] == 'http://') or (url[:8] == 'https://'):
+        resp = requests.get(url)
+        data = io.BytesIO(resp.content)
+    # local file
+    else:
+        data = url
+    zip_ob = zipfile.ZipFile(data)
 
     filenames = zip_ob.filelist
 
