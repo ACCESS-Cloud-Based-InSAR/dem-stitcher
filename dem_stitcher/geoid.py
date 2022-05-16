@@ -54,9 +54,11 @@ def remove_geoid(dem_arr: np.ndarray,
                           dem_profile['width'],
                           dem_profile['transform'])
 
-    # make list a tuple, so we can still cache results
     geoid_arr, geoid_profile = read_geoid(geoid_name,
-                                          extent=extent)
+                                          extent=list(extent),
+                                          # Need buffer of at least 1
+                                          # because of translation
+                                          res_buffer=1)
 
     # Translate geoid if necessary as all geoids have Area tag
     if dem_area_or_point == 'Point':
