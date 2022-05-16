@@ -19,8 +19,11 @@ X, p = stitch_dem(bounds,
 ```
 Then, to save the DEM:
 ```
+import rasterio
+
 with rasterio.open('dem.tif', 'w', **p) as ds:
    ds.write(X, 1)
+   ds.
 ```
 
 
@@ -85,6 +88,7 @@ Wherever possible, we do not resample the original DEMs unless necessary. When e
    + Adjust the geoid to pixel/area coordinates
    + resample the geoids into the DEM reference frame
    + Adjust the vertical datum.
+5. All DEMs are converted to `float32` and have nodata `np.nan`. This increases data size and also to ensure (a) easy comparison and (b) no side-effects of the stitcher due to unusual nodata values (this is done in `merge_tiles` in the `stitcher.py`). Other nodata values can be specified outside the stitcher as is frequently done (e.g. ISCE2 requires nodata to be filled).
 
 
 # Testing

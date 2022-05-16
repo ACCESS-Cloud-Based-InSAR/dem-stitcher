@@ -103,3 +103,7 @@ tests/notebooks/
 !notebooks/Comparing_DEMs.ipynb
 !notebooks/Staging_a_DEM_for_ISCE2.ipynb
 !notebooks/organize_tile_data/Format_and_Organize_Data.ipynb
+!notebooks/analysis_and_comparison/0_Alignment_with_original_DEM_tiles.ipynb
+!notebooks/analysis_and_comparison/1_Comparison_with_ISCE2_dem.ipynb
+
+notebooks/analysis_and_comparison/la_test/
