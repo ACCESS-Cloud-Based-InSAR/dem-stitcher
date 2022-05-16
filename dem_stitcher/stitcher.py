@@ -68,6 +68,8 @@ def download_tiles(urls: list,
         dem_profile['driver'] = 'GTiff'
         with rasterio.open(dest_path, 'w', **dem_profile) as ds:
             ds.write(dem_arr, 1)
+            if dem_name in ['srtm', 'nasadem']:
+                ds.update_tags(AREA_OR_POINT='Point')
         return dem_profile
 
     def download_and_write_one_z(data: list) -> dict:
@@ -89,12 +91,13 @@ def download_tiles(urls: list,
 def merge_tiles(datasets: List[rasterio.DatasetReader],
                 bounds: list = None,
                 resampling: str = 'nearest',
-                nodata: float = np.nan,
                 res_buffer: int = 0
                 ) -> Tuple[np.ndarray, dict]:
     merged_arr, merged_transform = merge(datasets,
                                          resampling=Resampling[resampling],
-                                         nodata=nodata,
+                                         # This fixes the nodata values
+                                         nodata=np.nan,
+                                         # This fixes the float32 output
                                          dtype='float32',
                                          )
     merged_arr = merged_arr[0, ...]
@@ -118,7 +121,7 @@ def merge_tiles(datasets: List[rasterio.DatasetReader],
     profile = datasets[0].profile.copy()
     profile['height'] = merged_arr.shape[0]
     profile['width'] = merged_arr.shape[1]
-    profile['nodata'] = nodata
+    profile['nodata'] = np.nan
     profile['dtype'] = 'float32'
     profile['transform'] = merged_transform_final
     return merged_arr, profile
@@ -146,11 +149,9 @@ def merge_and_transform_dem_tiles(datasets: list,
                                   dst_ellipsoidal_height: bool = True,
                                   dst_area_or_point: str = 'Area',
                                   dst_resolution: Union[float, Tuple[float]] = None,
-                                  num_threads_reproj: int = 5,
-                                  driver: str = 'GTiff') -> Tuple[np.ndarray, dict]:
+                                  num_threads_reproj: int = 5) -> Tuple[np.ndarray, dict]:
     dem_arr, dem_profile = merge_tiles(datasets,
-                                       bounds=bounds,
-                                       nodata=np.nan)
+                                       bounds=bounds)
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
 
     dem_profile = shift_profile_for_pixel_loc(dem_profile,

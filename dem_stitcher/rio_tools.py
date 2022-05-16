@@ -490,15 +490,54 @@ def resample_by_multiple(src_array: np.ndarray,
     return reproject_arr_to_match_profile(src_array, src_profile, out_profile)
 
 
+def _aligned_target(transform: Affine,
+                    width: int, height: int,
+                    resolution: Union[float, tuple]):
+    """Aligns target to specified resolution; ensures same origin.
+    Source: https://github.com/rasterio/rasterio/blob/master/rasterio/warp.py#L354-L393
+
+    Parameters
+    ----------
+    transform : Affine
+        Input affine transformation matrix
+    width, height: int
+        Input dimensions
+    resolution: tuple (x resolution, y resolution) or float
+        Target resolution, in units of target coordinate reference
+        system.
+    Returns
+    -------
+    transform: Affine
+        Output affine transformation matrix
+    width, height: int
+        Output dimensions
+    """
+    if isinstance(resolution, (float, int)):
+        res = (float(resolution), float(resolution))
+    else:
+        res = resolution
+
+    xmin = transform.xoff
+    ymin = transform.yoff + height * transform.e
+    xmax = transform.xoff + width * transform.a
+    ymax = transform.yoff
+
+    dst_transform = Affine(res[0], 0, xmin, 0, -res[1], ymax)
+    dst_width = max(int(np.ceil((xmax - xmin) / res[0])), 1)
+    dst_height = max(int(np.ceil((ymax - ymin) / res[1])), 1)
+
+    return dst_transform, dst_width, dst_height
+
+
 def update_profile_resolution(src_profile: dict, resolution: Union[float, Tuple[float]]) -> dict:
     transform = src_profile['transform']
     width = src_profile['width']
     height = src_profile['height']
 
-    dst_transform, dst_width, dst_height = aligned_target(transform,
-                                                          width,
-                                                          height,
-                                                          resolution)
+    dst_transform, dst_width, dst_height = _aligned_target(transform,
+                                                           width,
+                                                           height,
+                                                           resolution)
 
     dst_profile = src_profile.copy()
     dst_profile['width'] = dst_width
