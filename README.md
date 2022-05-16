@@ -13,7 +13,7 @@ bounds = [-119.085, 33.402, -118.984, 35.435]
 X, p = stitch_dem(bounds,
                   dem_name='glo_30',
                   dst_ellipsoidal_height=False,
-                  dst_area_or_point='Area')
+                  dst_area_or_point='Point')
 # X is an m x n numpy array
 # p is a dictionary (or a rasterio profile) including relevant GIS metadata
 ```
@@ -23,7 +23,7 @@ import rasterio
 
 with rasterio.open('dem.tif', 'w', **p) as ds:
    ds.write(X, 1)
-   ds.
+   ds.update_tags(AREA_OR_POINT=dst_area_or_point)
 ```
 
 
