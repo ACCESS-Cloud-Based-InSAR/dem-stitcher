@@ -1,33 +1,10 @@
 from typing import Tuple, Union
 
-import fiona
 import numpy as np
 from affine import Affine
-from rasterio import features
 from rasterio.crs import CRS
-from rasterio.features import shapes
-from rasterio.transform import from_origin, rowcol, xy
 from rasterio.warp import (Resampling, aligned_target,
                            calculate_default_transform, reproject)
-
-
-def crop_profile_from_coord_bounds(profile: dict, bounds: list) -> dict:
-    profile_new = profile.copy()
-
-    transform = profile['transform']
-    row_min, col_min = rowcol(transform, bounds[0], bounds[3])
-    row_max, col_max = rowcol(transform, bounds[2], bounds[1])
-
-    origin_x, origin_y = transform * (col_min - 1,
-                                      row_min - 1
-                                      )
-
-    transform_new = from_origin(origin_x, origin_y, transform.a, -transform.e)
-    profile_new['height'] = row_max - row_min + 2
-    profile_new['width'] = col_max - col_min + 2
-    profile_new['transform'] = transform_new
-
-    return profile_new
 
 
 def translate_profile(profile: dict,
@@ -61,155 +38,6 @@ def translate_profile(profile: dict,
     p_new['transform'] = new_transform
 
     return p_new
-
-
-def get_geopandas_features_from_array(arr: np.ndarray,
-                                      transform: Affine,
-                                      label_name: str = 'label',
-                                      mask: np.ndarray = None,
-                                      connectivity: int = 4) -> list:
-    """
-    Obtains a list of geopandas features in which contigious integers are
-    grouped as polygons for use as:
-
-        df =  gpd.GeoDataFrame.from_features(geo_features)
-
-    Parameters
-    ----------
-    arr : np.ndarray
-        The array of integers to group into contiguous polygons. Note some
-        labels that are connected through diagonals May be separated depending
-        on connectivity.
-    transform : Affine
-        Rasterio transform related to arr
-    label_name : str
-        The label name used for each different polygonal feature, default is
-        `label`.
-    mask : np.ndarray
-        Nodata mask in which true values indicate where nodata is located.
-    connectivity : int
-        4- or 8- connectivity of the polygonal features.  See rasterio:
-        https://rasterio.readthedocs.io/en/latest/api/rasterio.features.html#rasterio.features.shapes
-        And see: https://en.wikipedia.org/wiki/Pixel_connectivity
-
-    Returns
-    -------
-    list:
-        List of features to use for constructing geopandas dataframe with
-        gpd.GeoDataFrame.from_features
-    """
-    # see rasterio.features.shapes - needs all false values to be no data areas
-    if mask is None:
-        mask = np.zeros(arr.shape, dtype=bool)
-    feature_list = list(shapes(arr,
-                               mask=~mask,
-                               transform=transform,
-                               connectivity=connectivity))
-    geo_features = list({'properties': {label_name: (value)},
-                         'geometry': geometry}
-                        for i, (geometry, value) in enumerate(feature_list))
-    return geo_features
-
-
-def polygonize_array_to_shapefile(arr: np.ndarray,
-                                  profile: dict,
-                                  shape_file_dir: str,
-                                  label_name: str = 'label',
-                                  mask: np.ndarray = None,
-                                  connectivity: int = 4):
-    """
-    Directly create a polygonal shapefile from an array of integers grouping
-    pixels with the same value together into a polygon. Polygons with
-    contiguous value in array will have attribute determined by `label_name`
-    and value determined by arr.
-
-    Parameters
-    ----------
-    arr : np.ndarray
-        The integer array.
-    profile : dict
-        Rasterio profile corresponding to arr.
-    shape_file_dir : str
-        The string of the path to saved shapefile. Assumes parent directories
-        exist.
-    label_name : str
-        The attribute name used in the shapefile.
-    mask : np.ndarray
-        Removes polygons associated with a nodata mask. True values are where
-        the nodata are located in arr.
-    connectivity : int
-        4- or 8- connectivity of the polygonal features.  See rasterio:
-        https://rasterio.readthedocs.io/en/latest/api/rasterio.features.html#rasterio.features.shapes
-        And see: https://en.wikipedia.org/wiki/Pixel_connectivity
-    """
-    dtype = str(arr.dtype)
-    if 'int' in dtype or 'bool' in dtype:
-        arr = arr.astype('int32')
-        dtype = 'int32'
-        dtype_for_shape_file = 'int'
-
-    if 'float' in dtype:
-        arr = arr.astype('float32')
-        dtype = 'float32'
-        dtype_for_shape_file = 'float'
-
-    crs = profile['crs']
-    results = get_geopandas_features_from_array(arr,
-                                                profile['transform'],
-                                                label_name='label',
-                                                mask=mask,
-                                                connectivity=connectivity)
-    with fiona.open(shape_file_dir, 'w',
-                    driver='ESRI Shapefile',
-                    crs=crs,
-                    schema={'properties': [(label_name, dtype_for_shape_file)],
-                            'geometry': 'Polygon'}) as dst:
-        dst.writerecords(results)
-
-
-def rasterize_shapes_to_array(shapes: list,
-                              attributes: list,
-                              profile: dict,
-                              all_touched: bool = False,
-                              dtype: str = 'float32') -> np.ndarray:
-    """
-    Takes a list of geometries and attributes to create an array. Roughly the
-    inverse, in spirit, to `get_geopandas_features_from_array`.  For example,
-    `shapes = df.geometry` and `attributes = df.label`, where df is a geopandas
-    GeoDataFrame. We note the array is initialized as array of zeros.
-
-    Parameters
-    ----------
-    shapes : list
-        List of Shapely geometries.
-    attributes : list
-        List of attributes corresponding to shapes.
-    profile : dict
-        Rasterio profile in which shapes will be projected into, importantly
-        the transform and dimensions specified.
-    all_touched : bool
-        Whether factionally covered pixels are written with specific value or
-        ignored. See `rasterio.features.rasterize`.
-    dtype : str
-        The initial array is np.zeros and dtype can be specified as a numpy
-        dtype or appropriate string.
-
-    Returns
-    -------
-    np.ndarray:
-        The output array determined with profile.
-    """
-    out_arr = np.zeros((profile['height'], profile['width']), dtype=dtype)
-
-    # this is where we create a generator of geom, value pairs to use in
-    # rasterizing
-    shapes = [(geom, value) for geom, value in zip(shapes, attributes)]
-    burned = features.rasterize(shapes=shapes,
-                                out=out_arr,
-                                transform=profile['transform'],
-                                all_touched=all_touched)
-
-    return burned
 
 
 def reproject_arr_to_match_profile(src_array: np.ndarray,
@@ -282,56 +110,6 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
               num_threads=num_threads
               )
     return dst_array.astype(src_dtype), reproject_profile
-
-
-def get_cropped_profile(profile: dict,
-                        slice_x: slice,
-                        slice_y: slice) -> dict:
-    """
-    This is a tool for using a reference profile and numpy slices (i.e.
-    np.s_[start: stop]) to create a new profile that is within the window of
-    slice_x, slice_y.
-
-    Parameters
-    ----------
-    profile : dict
-        The reference rasterio profile.
-    slice_x : slice
-        The horizontal slice.
-    slice_y : slice
-        The vertical slice.
-
-    Returns
-    -------
-    dict:
-        The rasterio dictionary from cropping.
-    """
-
-    x_start = slice_x.start or 0
-    y_start = slice_y.start or 0
-    x_stop = slice_x.stop or profile['width']
-    y_stop = slice_y.stop or profile['height']
-
-    if (x_start < 0) | (x_stop < 0) | (y_start < 0) | (y_stop < 0):
-        raise ValueError('Slices must be positive')
-
-    width = x_stop - x_start
-    height = y_stop - y_start
-
-    profile_cropped = profile.copy()
-
-    trans = profile['transform']
-    x_cropped, y_cropped = xy(trans, y_start, x_start, offset='ul')
-    trans_list = list(trans.to_gdal())
-    trans_list[0] = x_cropped
-    trans_list[3] = y_cropped
-    tranform_cropped = Affine.from_gdal(*trans_list)
-    profile_cropped['transform'] = tranform_cropped
-
-    profile_cropped['height'] = height
-    profile_cropped['width'] = width
-
-    return profile_cropped
 
 
 def get_bounds_dict(profile: dict) -> dict:
@@ -457,37 +235,6 @@ def reproject_arr_to_new_crs(src_array: np.ndarray,
               resampling=resampling,
               )
     return dst_array, reprojected_profile
-
-
-def resample_by_multiple(src_array: np.ndarray,
-                         src_profile: dict,
-                         multiple: float) -> Tuple[np.ndarray, dict]:
-    """Resample according to a multiple of the src pixel size. `Multiple = 2`
-    leads to a new array with pixel size twice as large, that is the resolution
-    is cut in half. Similarly, `multiple = .5` leads to double the resolution
-    and half the pixel size of the existing array.
-
-    Parameters
-    ----------
-    src_array : np.ndarray
-        The array to be resampled
-    src_profile : dict
-        The rasterio profile for the src array
-    multiple : float
-        The multiple that will scale the pixel size. Inverse of target
-        resolution.
-
-    Returns
-    -------
-    Tuple[np.ndarray, dict]
-        Resampled array, resampled profile
-    """
-    transform = src_profile['transform']
-    out_profile = src_profile.copy()
-    out_profile['transform'] = transform * transform.scale(multiple)
-    out_profile['width'] = int(round(src_profile['width'] / multiple))
-    out_profile['height'] = int(round(src_profile['height'] / multiple))
-    return reproject_arr_to_match_profile(src_array, src_profile, out_profile)
 
 
 def _aligned_target(transform: Affine,
