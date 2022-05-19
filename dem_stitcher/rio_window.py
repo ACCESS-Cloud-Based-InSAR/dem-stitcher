@@ -79,7 +79,8 @@ def read_raster_from_window(raster_path: str,
                             window_extent: list,
                             window_crs: CRS,
                             res_buffer: int = 0) -> tuple:
-    """_summary_
+    """Obtains minimum pixels from original raster (specified by raster_path) that contain
+    window extent. Does not reproject into window extent!
 
     Parameters
     ----------
@@ -104,7 +105,7 @@ def read_raster_from_window(raster_path: str,
     ValueError
        Extent is not properly specified
     """
-    if (window_extent[0] > window_extent[2]) or (window_extent[1] > window_extent[3]):
+    if (window_extent[0] >= window_extent[2]) or (window_extent[1] >= window_extent[3]):
         raise ValueError('Extents must be in the form of (xmin, ymin, xmax, ymax)')
 
     with rasterio.open(raster_path) as ds:
