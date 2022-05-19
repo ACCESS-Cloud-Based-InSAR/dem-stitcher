@@ -23,7 +23,7 @@ import rasterio
 
 with rasterio.open('dem.tif', 'w', **p) as ds:
    ds.write(X, 1)
-   ds.update_tags(AREA_OR_POINT=dst_area_or_point)
+   ds.update_tags(AREA_OR_POINT='Point')
 ```
 
 
@@ -88,7 +88,7 @@ Wherever possible, we do not resample the original DEMs unless necessary. When e
    + Adjust the geoid to pixel/area coordinates
    + resample the geoids into the DEM reference frame
    + Adjust the vertical datum.
-5. All DEMs are converted to `float32` and have nodata `np.nan`. This increases data size and also to ensure (a) easy comparison and (b) no side-effects of the stitcher due to unusual nodata values (this is done in `merge_tiles` in the `stitcher.py`). Other nodata values can be specified outside the stitcher as is frequently done (e.g. ISCE2 requires nodata to be filled).
+5. All DEMs are converted to `float32` and have nodata `np.nan`. Although this can increase data size of certain rasters (SRTM is distributed as integers), this ensures (a) easy comparison across DEMs and (b) no side-effects of the stitcher due to unusual nodata values. Note, this datatype is done in `merge_tiles` in the `stitcher.py`. Other nodata values can be specified outside the stitcher as is frequently done (e.g. ISCE2 requires nodata to be filled as `0`).
 
 
 # Testing
