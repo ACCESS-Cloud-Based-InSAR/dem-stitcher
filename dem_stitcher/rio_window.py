@@ -80,7 +80,7 @@ def read_raster_from_window(raster_path: str,
                             window_crs: CRS,
                             res_buffer: int = 0) -> tuple:
     """Obtains minimum pixels from original raster (specified by raster_path) that contain
-    window extent. Does not reproject into window extent!
+    window extent. Does not reproject into window extent! Returns only 1st channel.
 
     Parameters
     ----------
@@ -98,7 +98,7 @@ def read_raster_from_window(raster_path: str,
     Returns
     -------
     tuple
-        (array, profile) where profile is rasterio profile
+        (array, profile) where profile is rasterio profile and array is the first channel of the image
 
     Raises
     ------
@@ -111,7 +111,6 @@ def read_raster_from_window(raster_path: str,
     with rasterio.open(raster_path) as ds:
         src_profile = ds.profile
         src_crs = ds.crs
-        assert(ds.count == 1)
 
     src_shape = src_profile['width'], src_profile['height']
     window_extent_r = transform_bounds(window_extent, window_crs, src_crs)
