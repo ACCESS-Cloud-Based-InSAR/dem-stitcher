@@ -1,0 +1,6 @@
+include LICENSE.txt
+include README.md
+
+graft dem_stitcher
+
+global-exclude *.py[cod] __pycache__ *.so
