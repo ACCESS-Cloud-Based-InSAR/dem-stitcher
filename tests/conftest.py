@@ -2,6 +2,9 @@ from pathlib import Path
 
 import pytest
 import rasterio
+from affine import Affine
+from rasterio import default_gtiff_profile
+from rasterio.crs import CRS
 
 
 @pytest.fixture(scope='session')
@@ -10,7 +13,7 @@ def test_data_dir():
     return data_dir
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def get_los_angeles_tile_dataset():
     tiles_dir = Path(__file__).resolve().parent / 'data' / 'tiles'
 
@@ -26,3 +29,19 @@ def get_los_angeles_tile_dataset():
         return rasterio.open(tile_path)
 
     return _get_tile_dataset
+
+
+@pytest.fixture(scope='session')
+def get_los_angeles_dummy_profile():
+
+    def _get_dummy_profile(res: float):
+        p_la = default_gtiff_profile.copy()
+        t = Affine(res, 0, -118, 0, -res, 35)
+        p_la['transform'] = t
+        p_la['width'] = 10
+        p_la['height'] = 10
+        p_la['count'] = 1
+        p_la['crs'] = CRS.from_epsg(4326)
+        return p_la
+
+    return _get_dummy_profile
