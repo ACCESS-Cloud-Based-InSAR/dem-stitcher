@@ -43,7 +43,7 @@ def translate_profile(profile: dict,
 def reproject_arr_to_match_profile(src_array: np.ndarray,
                                    src_profile: dict,
                                    ref_profile: dict,
-                                   nodata: str = None,
+                                   nodata: Union[float, int] = None,
                                    num_threads: int = 1,
                                    resampling='bilinear') \
                                            -> Tuple[np.ndarray, dict]:
@@ -59,10 +59,9 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
         The source profile of the `src_array`
     ref_profile : dict
         The profile that to reproject into.
-    nodata : str
+    nodata : Union[int, float]
         The nodata value to be used in output profile. If None, the nodata from
-        src_profile is used in the output profile.  See
-        https://github.com/mapbox/rasterio/blob/master/rasterio/dtypes.py#L13-L24.
+        src_profile is used in the output profile.
     num_threads: int
         gdal allows for multiple threads for resampling
     resampling : str
