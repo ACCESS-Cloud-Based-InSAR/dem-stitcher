@@ -11,12 +11,5 @@ on:
       - main
 
 jobs:
-  bump-labeled:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require Labels
-        uses: mheap/github-action-required-labels@v1
-        with:
-          mode: exactly
-          count: 1
-          labels: "major, minor, patch, bumpless"
+  call-labeled-pr-check-workflow:
+    uses: ASFHyP3/actions/.github/workflows/reusable-labeled-pr-check.yml@main
