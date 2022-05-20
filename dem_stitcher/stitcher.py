@@ -181,7 +181,6 @@ def merge_and_transform_dem_tiles(datasets: list,
         dem_arr = remove_geoid(dem_arr,
                                dem_profile,
                                geoid_name,
-                               extent=bounds,
                                dem_area_or_point=dst_area_or_point,
                                )
 

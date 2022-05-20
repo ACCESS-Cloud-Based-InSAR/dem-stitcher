@@ -22,7 +22,8 @@ def read_geoid(geoid_name: str,
                extent: list = None,
                res_buffer: int = 1) -> tuple:
 
-    if (extent[0] < -180) or (extent[2] > 180) or (extent[1] < -90) or (extent[3] > 90):
+    if ((extent is not None) and
+       ((extent[0] < -180) or (extent[2] > 180) or (extent[1] < -90) or (extent[3] > 90))):
         raise ValueError('Extent should be in lon/lat as xmin, ymin, xmax, ymax')
 
     geoid_dict = get_geoid_dict()
@@ -38,6 +39,10 @@ def read_geoid(geoid_name: str,
                                                            extent,
                                                            extent_crs,
                                                            res_buffer=res_buffer)
+    # Transform nodata to nan
+    geoid_arr = geoid_arr.astype('float32')
+    geoid_arr[geoid_profile['nodata'] == geoid_arr] = np.nan
+    geoid_profile['nodata'] = np.nan
 
     return geoid_arr, geoid_profile
 
@@ -45,8 +50,7 @@ def read_geoid(geoid_name: str,
 def remove_geoid(dem_arr: np.ndarray,
                  dem_profile: dict,
                  geoid_name: str,
-                 extent: list = None,
-                 dem_area_or_point: str = 'Point') -> np.ndarray:
+                 dem_area_or_point: str = 'Area') -> np.ndarray:
 
     assert(dem_area_or_point in ['Point', 'Area'])
 
