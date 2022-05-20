@@ -37,8 +37,4 @@ jobs:
         shell: bash -l {0}
         run: |
           python -m pip install .
-<<<<<<< HEAD
           pytest . -m 'not integration'
-=======
-          pytest .
->>>>>>> dev

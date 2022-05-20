@@ -7,7 +7,6 @@ from dem_stitcher.rio_window import (get_indices_from_extent,
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 
-
 """
 This does a simple test of window reading over an extent of the following area:
 
