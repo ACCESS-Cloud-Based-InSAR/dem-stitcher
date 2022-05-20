@@ -60,9 +60,10 @@ def remove_geoid(dem_arr: np.ndarray,
 
     geoid_arr, geoid_profile = read_geoid(geoid_name,
                                           extent=list(extent),
-                                          # Need buffer of at least 1
-                                          # because of translation
-                                          res_buffer=1)
+                                          # Need buffer of at least 2
+                                          # because of translation and
+                                          # consistent resampling at edges
+                                          res_buffer=2)
 
     # Translate geoid if necessary as all geoids have Area tag
     if dem_area_or_point == 'Point':
