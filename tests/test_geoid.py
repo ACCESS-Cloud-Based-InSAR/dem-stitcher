@@ -1,8 +1,10 @@
 import numpy as np
 import pytest
+from numpy.testing import assert_array_equal
+
 from dem_stitcher.geoid import read_geoid, remove_geoid
 from dem_stitcher.rio_tools import reproject_arr_to_match_profile
-from numpy.testing import assert_array_equal
+
 
 """We will test 'geoid_18' over US because we include that in datasets so no interconnectivity required"""
 

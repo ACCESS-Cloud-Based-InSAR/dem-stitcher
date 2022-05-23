@@ -2,10 +2,11 @@ import geopandas as gpd
 import numpy as np
 import pytest
 from affine import Affine
-from dem_stitcher.rio_window import (get_indices_from_extent,
-                                     read_raster_from_window)
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
+
+from dem_stitcher.rio_window import (get_indices_from_extent,
+                                     read_raster_from_window)
 
 """
 This does a simple test of window reading over an extent of the following area:

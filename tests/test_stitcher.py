@@ -2,13 +2,14 @@ import numpy as np
 import pytest
 import rasterio
 from affine import Affine
+from numpy.testing import assert_array_equal
+from rasterio import default_gtiff_profile
+
 from dem_stitcher import stitch_dem
 from dem_stitcher.datasets import DATASETS
 from dem_stitcher.rio_tools import reproject_arr_to_match_profile
 from dem_stitcher.stitcher import (merge_and_transform_dem_tiles, merge_tiles,
                                    shift_profile_for_pixel_loc)
-from numpy.testing import assert_array_equal
-from rasterio import default_gtiff_profile
 
 # from dem_stitcher.datasets import DATASETS
 

@@ -1,7 +1,8 @@
 import rasterio
+from numpy.testing import assert_array_equal
+
 from dem_stitcher.rio_tools import (reproject_arr_to_match_profile,
                                     update_profile_resolution)
-from numpy.testing import assert_array_equal
 
 
 def test_update_resolution(test_data_dir):
