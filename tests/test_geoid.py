@@ -28,16 +28,16 @@ def test_read_geoid():
     assert(p_r['transform'] == p_all['transform'])
 
 
-@pytest.mark.parametrize("res", [.001, .01, .1, 1])
-def test_remove_geoid(get_los_angeles_dummy_profile, res):
+@pytest.mark.parametrize("dem_res", [.001, .01, .1, 1])
+def test_remove_geoid(get_los_angeles_dummy_profile, dem_res):
     """
     We test removing a geoid against a zero array, which should literally be the entire geoid array
-    reprojecting into the DEM raster. If the DEM resolution >> geoid resolution, then
+    reprojected into the DEM reference frame. If the DEM resolution >> geoid resolution, then
     we must select a buffer to read the geoid such that it covers the extended boundary DEM pixel completely.
     If not, then the resampling around the boundary will be different in this test because we only read a subset
     of the geoid array.
     """
-    p_ref = get_los_angeles_dummy_profile(res=res)
+    p_ref = get_los_angeles_dummy_profile(res=dem_res)
     X_geoid, p_geoid = read_geoid('geoid_18')
 
     res_buffer_default = 2
@@ -46,12 +46,12 @@ def test_remove_geoid(get_los_angeles_dummy_profile, res):
     X_sub = X_sub[0, ...]
 
     Y = np.zeros((10, 10), dtype=np.float32)
-    if res >= .1:
+    if dem_res >= .1:
         geoid_res = p_geoid['transform'].a
         with pytest.warns(UserWarning):
             _ = remove_geoid(Y, p_ref, 'geoid_18')
 
-        res_buffer_updated = (int(np.ceil(res / geoid_res)))
+        res_buffer_updated = (int(np.ceil(dem_res / geoid_res)))
         assert(res_buffer_default < res_buffer_updated)
 
         X_sub_2 = remove_geoid(Y, p_ref, 'geoid_18', res_buffer=res_buffer_updated)
