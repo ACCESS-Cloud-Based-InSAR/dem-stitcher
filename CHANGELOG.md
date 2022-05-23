@@ -8,12 +8,18 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.2.0]
 
-- Return API to original form (array, dictionary)
-- Fix Issues #31 and #32: resampling/translation bug - do not resample unless specified in `dst_resolution`
-- Add `dst_resolution` to specify resolution of output DEM; does not alter origin
-- Add tests for `rio_window.py`, `stitcher.py`, `geoid.py`, and `rio_tools.py`; including integration test
+## Changed
+- Return API to original form such that `stitch` returns tuple: `(dem_array, dem_metadata_dictionary)`
+- Add `dst_resolution` to specify resolution of output DEM; does not alter origin; can be used to enforce square dimensions if desired
+- Add tests for `rio_window.py`, `stitcher.py`, `geoid.py`, and `rio_tools.py`; including integration test which is marked
+- Github actions run on tests that are not "integration" tests, so no internet connectivity required
 - Added notebooks related to #31 and #32
+- Function `remove_geoid` updated to use non-resampling windowing and warns user if user does not properly set resolution buffer
+- Remove gdal python bindings unrelated to rasterio
+- Update ISCE notebook
 
+## Fixed
+- Fix Issues #31 and #32: resampling/translation bug - do not resample unless specified in `dst_resolution`
 
 ## [2.1.1]
 
@@ -39,7 +45,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [2.0.1]
 
 ### Fixed
-* Square dimensions for DEM pixels are now enforced to prevent distorted along polar regions.
+* Square dimensions for DEM pixels are now enforced to prevent distortion along polar regions.
 
 ## [2.0.0]
 
