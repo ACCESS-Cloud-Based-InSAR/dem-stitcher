@@ -90,6 +90,7 @@ Wherever possible, we do not resample the original DEMs unless necessary. When e
    + Adjust the vertical datum.
 5. All DEMs are converted to `float32` and have nodata `np.nan`. Although this can increase data size of certain rasters (SRTM is distributed as integers), this ensures (a) easy comparison across DEMs and (b) no side-effects of the stitcher due to unusual nodata values. Note, this datatype is done in `merge_tiles` in the `stitcher.py`. Other nodata values can be specified outside the stitcher as is frequently done (e.g. ISCE2 requires nodata to be filled as `0`).
 
+There are some [notebooks](notebooks/analysis_and_comparison) that illustrate how tiles are merged by comparing the output of our stitcher with the original tiles.
 
 # Testing
 
@@ -100,7 +101,7 @@ Wherever possible, we do not resample the original DEMs unless necessary. When e
 
 # Contributing
 
-1. Create an GitHub issue ticket desrcribing what changes you need (or a bug)
+1. Create an GitHub issue ticket desrcribing what changes you would like to see or to report a bug
 2. We will work on solving this issue (hopefully with you)
 
 We are not actively taking pull-requests outside of our organization.
