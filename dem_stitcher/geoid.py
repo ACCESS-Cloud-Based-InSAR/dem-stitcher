@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import rasterio
 from rasterio.crs import CRS
@@ -50,7 +52,8 @@ def read_geoid(geoid_name: str,
 def remove_geoid(dem_arr: np.ndarray,
                  dem_profile: dict,
                  geoid_name: str,
-                 dem_area_or_point: str = 'Area') -> np.ndarray:
+                 dem_area_or_point: str = 'Area',
+                 res_buffer: int = 2) -> np.ndarray:
 
     assert(dem_area_or_point in ['Point', 'Area'])
 
@@ -60,10 +63,19 @@ def remove_geoid(dem_arr: np.ndarray,
 
     geoid_arr, geoid_profile = read_geoid(geoid_name,
                                           extent=list(extent),
-                                          # Need buffer of at least 2
-                                          # because of translation and
-                                          # consistent resampling at edges
-                                          res_buffer=2)
+                                          res_buffer=res_buffer)
+
+    t_dem = dem_profile['transform']
+    t_geoid = geoid_profile['transform']
+    res_dem = max(t_dem.a, abs(t_dem.e))
+    res_geoid = max(t_geoid.a, abs(t_geoid.e))
+
+    if res_geoid * res_buffer <= res_dem:
+        buffer_recommendation = int(np.ceil(res_dem / res_geoid))
+        warning = ('The dem resolution is larger than the geoid resolution and its buffer; '
+                   'Edges resampled with bilinear interpolation will be inconsistent so select larger buffer.'
+                   f'Select a `res_buffer = {buffer_recommendation}`')
+        warnings.warn(warning, category=UserWarning)
 
     # Translate geoid if necessary as all geoids have Area tag
     if dem_area_or_point == 'Point':
