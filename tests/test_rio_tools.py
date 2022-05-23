@@ -1,5 +1,5 @@
 import rasterio
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_almost_equal
 
 from dem_stitcher.rio_tools import (reproject_arr_to_match_profile,
                                     update_profile_resolution)
@@ -36,5 +36,5 @@ def test_update_resolution(test_data_dir):
                                                             resampling='bilinear')
     X_quarter_deg_reprj = X_quarter_deg_reprj[0, ...]
 
-    assert_array_equal(X_quarter_deg_reprj, X_quarter_deg)
+    assert_almost_equal(X_quarter_deg_reprj, X_quarter_deg, 5)
     assert(t_quarter_deg == p_higher_res['transform'])
