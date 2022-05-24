@@ -1,3 +1,4 @@
+import pytest
 import rasterio
 from numpy.testing import assert_almost_equal
 
@@ -5,6 +6,7 @@ from dem_stitcher.rio_tools import (reproject_arr_to_match_profile,
                                     update_profile_resolution)
 
 
+@pytest.mark.integration
 def test_update_resolution(test_data_dir):
     """Checks that reprojection to higher resolution via bilinear interpolation preservers geotransform and correctly
     resamples

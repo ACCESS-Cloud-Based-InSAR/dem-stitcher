@@ -6,23 +6,22 @@ channels:
 dependencies:
  - python
  - pip
- - pip:
-    - affine
-    - boto3
-    - fiona
-    - geopandas
-    - importlib_metadata  # drop when py>=3.8
-    - jupyter
-    - matplotlib
-    - numpy
-    - rasterio
-    - requests
-    - tqdm
-    # for testing and distribution
-    - flake8-blind-except
-    - flake8-builtins
-    - flake8-import-order
-    - pytest
-    - setuptools
-    - setuptools_scm
-    - wheel
+ - affine
+ - boto3
+ - fiona
+ - geopandas
+ - importlib_metadata  # drop when py>=3.8
+ - jupyter
+ - matplotlib
+ - numpy
+ - rasterio
+ - requests
+ - tqdm
+ # for testing and distribution
+ - flake8-blind-except
+ - flake8-builtins
+ - flake8-import-order
+ - pytest
+ - setuptools
+ - setuptools_scm
+ - wheel
