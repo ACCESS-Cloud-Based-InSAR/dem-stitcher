@@ -191,6 +191,7 @@ def merge_and_transform_dem_tiles(datasets: list,
                                                               dem_profile_res,
                                                               num_threads=num_threads_reproj,
                                                               resampling='bilinear')
+        dem_arr = dem_arr[0, ...]
 
     return dem_arr, dem_profile
 
