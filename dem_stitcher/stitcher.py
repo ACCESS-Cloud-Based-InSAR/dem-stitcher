@@ -193,7 +193,7 @@ def merge_and_transform_dem_tiles(datasets: list,
                                                               resampling='bilinear')
         dem_arr = dem_arr[0, ...]
 
-    ## Ensure dem_arr has correct shape
+    # Ensure dem_arr has correct shape
     assert(len(dem_arr.shape) == 2)
 
     return dem_arr, dem_profile
