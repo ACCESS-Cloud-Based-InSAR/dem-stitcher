@@ -160,3 +160,46 @@ def test_get_indices_shape(extent, arr_index):
     t = Affine(1, 0, 10, 0, -1, 0)
     ul, br = get_indices_from_extent(t, extent, res_buffer=1, shape=(12, 10))
     assert(arr_index == (ul, br))
+
+
+# Additional tests for unequal dimensions
+# bounds are (left=10.0, bottom=-4.0, right=15.0, top=0.0)
+# t = Affine(1, 0, 10, 0, -1, 0) as above
+# shape is now (4, 5) = (height, width)
+
+extents_2 = [
+              [9.5, -4.5, 15.5, .5],     # beyond the reference image extent by .5 degrees
+              [10.5, -3.5, 14.5, -.5],   # .5 degree within reference image
+              [11.5, -2.5, 13.5, -1.5],  # 1.5 degree within reference image
+              [10.5, -5, 15, -.5],       # .5 degree on left and top
+              [11.5, -5, 15, -1.5],      # 1.5 degree on left and top
+             ]
+
+ref_2 = np.zeros((4, 5))
+ref_2[1:-1, 1:-1] = 1
+arrays_2 = [ref_2,
+            ref_2,
+            ref_2[1:-1, 1:-1],
+            ref_2,
+            ref_2[1:, 1:]
+            ]
+
+# Using upper left corner (10, 0) because (0, 0) raises warnings being the identify affine transformation
+t = Affine(1, 0, 10, 0, -1, 0)
+transforms_2 = [t,                           # reference transform
+                t,                           # reference transform
+                t.translation(1, -1) * t,    # transform with UL corner at (, -1)
+                t,                           # reference transform
+                t.translation(1, -1) * t]    # trasnform with UL corner at (12, -1)
+
+
+@pytest.mark.parametrize("extent, array, transform", zip(extents_2, arrays_2, transforms_2))
+def test_read_window_4326_unequal_dims(test_data_dir, extent, array, transform):
+    raster_path = test_data_dir / 'rio_window' / 'test_window_unequal_dim.tif'
+
+    window_arr, p = read_raster_from_window(raster_path,
+                                            extent,
+                                            CRS.from_epsg(4326),
+                                            res_buffer=0)
+    assert_array_equal(array, window_arr)
+    assert(transform == p['transform'])
