@@ -112,7 +112,7 @@ def read_raster_from_window(raster_path: str,
         src_profile = ds.profile
         src_crs = ds.crs
 
-    src_shape = src_profile['width'], src_profile['height']
+    src_shape = src_profile['height'], src_profile['width']
     window_extent_r = transform_bounds(window_extent, window_crs, src_crs)
 
     corner_ul, corner_br = get_indices_from_extent(src_profile['transform'],
