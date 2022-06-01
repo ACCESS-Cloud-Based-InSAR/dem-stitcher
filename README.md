@@ -31,6 +31,8 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
 
 Install dem stitcher: `pip install dem-stitcher`
 
+If you plan to use this stitcher with ISCE2 or require `gdal` (not just `rasterio`), then it is best to use the development instructions below so the GIS packages work well together.
+
 ## For Development
 
 1. Clone this repo `git clone https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher.git`
@@ -91,6 +93,8 @@ Wherever possible, we do not resample the original DEMs unless necessary. When e
 5. All DEMs are converted to `float32` and have nodata `np.nan`. Although this can increase data size of certain rasters (SRTM is distributed as integers), this ensures (a) easy comparison across DEMs and (b) no side-effects of the stitcher due to unusual nodata values. Note, this datatype is done in `merge_tiles` in the `stitcher.py`. Other nodata values can be specified outside the stitcher as is frequently done (e.g. ISCE2 requires nodata to be filled as `0`).
 
 There are some [notebooks](notebooks/analysis_and_comparison) that illustrate how tiles are merged by comparing the output of our stitcher with the original tiles.
+
+Currently, as a performance note, when merging tiles, we merge the all needed tiles into memory and this creates overhead on this front. Of course, one may elect to physically download the tiles and use virtual warping. Ultimately, the accuracy of the final DEM is our prime focus.
 
 # Testing
 
