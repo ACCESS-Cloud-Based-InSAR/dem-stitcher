@@ -45,8 +45,7 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
                                    ref_profile: dict,
                                    nodata: Union[float, int] = None,
                                    num_threads: int = 1,
-                                   resampling='bilinear') \
-                                           -> Tuple[np.ndarray, dict]:
+                                   resampling='bilinear') -> Tuple[np.ndarray, dict]:
     """
     Reprojects an array to match a reference profile providing the reprojected
     array and the new profile.  Simply a wrapper for rasterio.warp.reproject.
@@ -58,7 +57,7 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
     src_profile : dict
         The source profile of the `src_array`
     ref_profile : dict
-        The profile that to reproject into.
+        The reference profile whose geo-metadata will be resampled into.
     nodata : Union[int, float]
         The nodata value to be used in output profile. If None, the nodata from
         src_profile is used in the output profile.
@@ -80,9 +79,8 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
     (vertical dim.) x (horizontal dim), but output will be: 1 x (vertical dim.)
     x (horizontal dim).
     """
-    height, width = ref_profile['height'], ref_profile['width']
-    crs = ref_profile['crs']
-    transform = ref_profile['transform']
+    dst_crs = ref_profile['crs']
+    dst_transform = ref_profile['transform']
 
     reproject_profile = ref_profile.copy()
 
@@ -94,18 +92,17 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
                               'nodata': nodata,
                               'count': count})
 
+    height, width = ref_profile['height'], ref_profile['width']
     dst_array = np.zeros((count, height, width))
-
-    resampling = Resampling[resampling]
 
     reproject(src_array,
               dst_array,
               src_transform=src_profile['transform'],
               src_crs=src_profile['crs'],
-              dst_transform=transform,
-              dst_crs=crs,
+              dst_transform=dst_transform,
+              dst_crs=dst_crs,
               dst_nodata=nodata,
-              resampling=resampling,
+              resampling=Resampling[resampling],
               num_threads=num_threads
               )
     return dst_array.astype(src_dtype), reproject_profile
