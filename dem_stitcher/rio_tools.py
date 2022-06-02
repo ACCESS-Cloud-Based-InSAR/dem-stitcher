@@ -60,7 +60,8 @@ def reproject_arr_to_match_profile(src_array: np.ndarray,
         The reference profile whose geo-metadata will be resampled into.
     nodata : Union[int, float]
         The nodata value to be used in output profile. If None, the nodata from
-        src_profile is used in the output profile.
+        src_profile is used in the output profile. Thus, update `src_profile['nodata']= None` to
+        ensure None can be used.
     num_threads: int
         gdal allows for multiple threads for resampling
     resampling : str
