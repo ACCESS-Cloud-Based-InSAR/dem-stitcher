@@ -4,17 +4,16 @@ channels:
  - anaconda
  - defaults
 dependencies:
- - python
+ - python<=3.9
  - pip
  - affine
  - boto3
- - fiona
+ - gdal
  - geopandas
  - importlib_metadata  # drop when py>=3.8
  - jupyter
  - matplotlib
  - numpy
- - rasterio
  - requests
  - tqdm
  # for testing and distribution
@@ -25,3 +24,5 @@ dependencies:
  - setuptools
  - setuptools_scm
  - wheel
+ - pip:
+    - rasterio
