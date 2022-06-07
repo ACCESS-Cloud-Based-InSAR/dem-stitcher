@@ -8,12 +8,10 @@ dependencies:
  - pip
  - boto3
  - dateparser
- - hyp3lib>=1.7
+ - gdal<3.4
  - isce2
  - jinja2
- - matplotlib
  - proj<9.0
- - gdal<3.4
  - netcdf4
  - numpy
  - pip:
@@ -25,6 +23,7 @@ dependencies:
    - lxml
    - rasterio>=1.2
    - Shapely>=1.6.4
+   - pytest
    - matplotlib
    - tqdm>=4.32.2
    - notebook
