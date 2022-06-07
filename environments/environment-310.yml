@@ -1,10 +1,10 @@
-name: dem-stitcher
+name: dem-stitcher-310
 channels:
  - conda-forge
  - anaconda
  - defaults
 dependencies:
- - python<3.10
+ - python=3.10
  - pip
  - pip:
     - affine>=2.3.0
@@ -12,7 +12,7 @@ dependencies:
     - geopandas>=0.5.1
     - numpy>=1.17.2
     - pandas>=0.25.1
-    - rasterio>=1.0.28
+    - rasterio==1.3a3
     - Shapely>=1.6.4
     - matplotlib
     - tqdm>=4.32.2

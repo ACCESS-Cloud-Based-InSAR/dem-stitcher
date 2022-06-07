@@ -1,0 +1,30 @@
+name: dem-stitcher-isce
+channels:
+ - conda-forge
+ - anaconda
+ - defaults
+dependencies:
+ - python<3.10
+ - pip
+ - boto3
+ - dateparser
+ - hyp3lib>=1.7
+ - isce2
+ - jinja2
+ - matplotlib
+ - proj<9.0
+ - gdal<3.4
+ - netcdf4
+ - numpy
+ - pip:
+   - affine>=2.3.0
+   - Fiona>=1.8.6
+   - geopandas>=0.5.1
+   - numpy>=1.17.2
+   - pandas>=0.25.1
+   - lxml
+   - rasterio>=1.2
+   - Shapely>=1.6.4
+   - matplotlib
+   - tqdm>=4.32.2
+   - notebook
