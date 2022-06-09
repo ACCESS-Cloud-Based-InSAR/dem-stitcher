@@ -71,7 +71,7 @@ The [DEMs](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/tree/main/de
 
 ```
 In [1]: from dem_stitcher.datasets import DATASETS; DATASETS
-Out[1]: ['srtm_v3', 'nasadem', 'glo_30', '3dep', 'ned1']
+Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90', 'ned1']
 ```
 
 1. `glo-30`: Copernicus GLO-30 DEM 30 meter [[link](https://registry.opendata.aws/copernicus-dem/)]

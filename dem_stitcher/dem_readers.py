@@ -1,25 +1,16 @@
 import io
 import zipfile
-from typing import Tuple, Union
+from typing import Tuple
 
 import numpy as np
 import rasterio
 import requests
-from rasterio import RasterioIOError
 from rasterio.io import MemoryFile
 
 
 def read_dem(url: str) -> rasterio.DatasetReader:
     ds = rasterio.open(url)
     return ds
-
-
-def read_glo(url: str) -> Union[rasterio.DatasetReader, None]:
-    # Some tiles do not exist
-    try:
-        return read_dem(url)
-    except RasterioIOError:
-        return None
 
 
 def read_dem_bytes(url: str, suffix: str = '.img') -> bytes:

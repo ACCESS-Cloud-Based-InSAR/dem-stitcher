@@ -15,7 +15,7 @@ from shapely.geometry import box
 from tqdm import tqdm
 
 from .datasets import get_dem_tile_extents
-from .dem_readers import read_dem, read_glo, read_nasadem, read_ned1, read_srtm
+from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
 from .geoid import remove_geoid
 from .rio_tools import (reproject_arr_to_match_profile,
                         reproject_arr_to_new_crs, translate_profile,
@@ -24,15 +24,21 @@ from .rio_window import get_indices_from_extent
 
 RASTER_READERS = {'ned1': read_ned1,
                   '3dep': read_dem,
-                  'glo_30': read_glo,
+                  'glo_30': read_dem,
+                  'glo_90': read_dem,
+                  'glo_90_missing': read_dem,
                   'srtm_v3': read_srtm,
                   'nasadem': read_nasadem}
 
 DEM2GEOID = {'ned1': 'geoid_18',
              '3dep': 'geoid_18',
              'glo_30': 'egm_08',
+             'glo_90': 'egm_08',
+             'glo_90_missing': 'egm_08',
              'srtm_v3': 'egm_96',
              'nasadem': 'egm_96'}
+
+PIXEL_CENTER_DEMS = ['srtm_v3', 'nasadem', 'glo_30', 'glo_90', 'glo_90_missing']
 
 
 def get_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
@@ -60,7 +66,7 @@ def _download_and_write_one_tile(url: str,
     dem_profile['driver'] = 'GTiff'
     with rasterio.open(dest_path, 'w', **dem_profile) as ds:
         ds.write(dem_arr, 1)
-        if dem_name in ['srtm_v3', 'nasadem', 'glo_30']:
+        if dem_name in PIXEL_CENTER_DEMS:
             ds.update_tags(AREA_OR_POINT='Point')
     return dem_profile
 
@@ -218,7 +224,7 @@ def stitch_dem(bounds: list,
 
     # Datasets that permit virtual warping
     # The readers return DatasetReader rather than (Array, Profile)
-    if dem_name in ['glo_30', '3dep']:
+    if dem_name in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']:
         def reader(url):
             return RASTER_READERS[dem_name](url)
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
