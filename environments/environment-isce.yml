@@ -3,6 +3,10 @@ channels:
  - conda-forge
  - anaconda
  - defaults
+channels:
+ - conda-forge
+ - anaconda
+ - defaults
 dependencies:
  - python>=3.8,<3.10
  - pip
@@ -25,23 +29,22 @@ dependencies:
  - jsonschema==3.2.0
  - setuptools
  - setuptools_scm
- - pip:
-   - affine>=2.3.0
-   - Fiona>=1.8.6
-   - geopandas>=0.5.1
-   - numpy>=1.17.2
-   - pandas>=0.25.1
-   - jinja2
-   - lxml
-   - matplotlib
-   - lxml
-   - rasterio>=1.2
-   - Shapely>=1.6.4
-   - papermill
-   - pytest
-   - pytest-cov
-   - matplotlib
-   - tqdm>=4.32.2
-   - notebook
-   - ipykernel
-   - jupyter
+ - affine>=2.3.0
+ - Fiona>=1.8.6
+ - geopandas>=0.5.1
+ - numpy>=1.17.2
+ - pandas>=0.25.1
+ - jinja2
+ - lxml
+ - matplotlib
+ - lxml
+ - rasterio>=1.2
+ - Shapely>=1.6.4
+ - papermill
+ - pytest
+ - pytest-cov
+ - matplotlib
+ - tqdm>=4.32.2
+ - notebook
+ - ipykernel
+ - jupyter
