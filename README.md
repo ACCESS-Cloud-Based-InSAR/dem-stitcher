@@ -31,7 +31,7 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
 
 To install dem stitcher: `pip install dem-stitcher`
 
-Currently, only python 3.7 - 3.9 are supported (3.7 will soon be dropped). Python 3.10 requires a pre-release of `rasterio` (see `environments/environment-310.yml`).
+Currently, only python 3.8 - 3.9 are supported (3.7 is unofficially supported, i.e. not tested). Python 3.10 requires a pre-release of `rasterio` (see `environments/environment-310.yml`).
 
 ## With ISCE2 or gdal
 
