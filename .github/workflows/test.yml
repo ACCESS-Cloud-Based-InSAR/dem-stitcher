@@ -16,10 +16,10 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.7", "3.8", "3.9"]
-        environment-file: ["environment.yml", "https://raw.githubusercontent.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/dev/environment.yml"]
+        environment-file: ["environment.yml", "environments/environment-isce.yml"]
         exclude:
         - python-version: "3.7"
-          environment-file: "https://raw.githubusercontent.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/dev/environment.yml"
+          environment-file: "environments/environment-isce.yml"
 
     steps:
       - uses: actions/checkout@v2

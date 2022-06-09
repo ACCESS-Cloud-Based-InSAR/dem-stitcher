@@ -35,7 +35,7 @@ Currently python 3.7 - 3.9 is supported. Python 3.10 requires a pre-release of `
 
 ## With ISCE2 or gdal
 
-If you plan to use this stitcher with ISCE2 or require `gdal` (not just `rasterio`), then the environment will be more complicated. Currently, we have an example environment for use with staging a DEM with `isce2` in `environments/environment-isce.yml` and an associated notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb), which requires older versions of `gdal` and `Proj`. The most up-to-date environment is in the Dockerized TopsApp [workflow](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp) and is used in our testing suite.
+If you plan to use this stitcher with ISCE2 or require `gdal` (not just `rasterio`), then the environment will be more complicated. Currently, we have an example environment for use with staging a DEM with `isce2` in `environments/environment-isce.yml` and an associated notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb), which requires older versions of `gdal` and `Proj`. The most up-to-date environment is in the Dockerized TopsApp [workflow](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml).
 
 ## For Development
 
