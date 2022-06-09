@@ -18,8 +18,8 @@ jobs:
         python-version: ["3.7", "3.8", "3.9"]
         environment-file: ["environment.yml", "https://raw.githubusercontent.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/dev/environment.yml"]
         exclude:
-          - python-version: "3.7"
-            environment: "https://raw.githubusercontent.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/dev/environment.yml"
+        - python-version: "3.7"
+          environment: "https://raw.githubusercontent.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/dev/environment.yml"
 
     steps:
       - uses: actions/checkout@v2
