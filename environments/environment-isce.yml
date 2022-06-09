@@ -8,10 +8,10 @@ dependencies:
  - pip
  - boto3
  - dateparser
- - gdal<3.4
+ - gdal>=3,<3.4
  - isce2
  - jinja2
- - proj<9.0
+ - proj>=8.0,<9.0
  - netcdf4
  - numpy
  - pip:
