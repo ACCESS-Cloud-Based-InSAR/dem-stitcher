@@ -267,8 +267,8 @@ def _aligned_target(transform: Affine,
     ymax = transform.yoff
 
     dst_transform = Affine(res[0], 0, xmin, 0, -res[1], ymax)
-    dst_width = max(int(np.ceil((xmax - xmin) / res[0])), 1)
-    dst_height = max(int(np.ceil((ymax - ymin) / res[1])), 1)
+    dst_width = max(int(np.floor((xmax - xmin) / res[0])), 1)
+    dst_height = max(int(np.floor((ymax - ymin) / res[1])), 1)
 
     return dst_transform, dst_width, dst_height
 
