@@ -236,7 +236,7 @@ def stitch_dem(bounds: list,
     Tuple[np.ndarray, dict]
         (DEM Array, metadata dictionary). The metadata dictionary can be used as in rasterio to write the array
         in a gdal compatible format. See the
-        [notebooks](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/tree/reproject-and-test/notebooks)
+        [notebooks](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/tree/dev/notebooks)
         for demonstrations.
     """
 
