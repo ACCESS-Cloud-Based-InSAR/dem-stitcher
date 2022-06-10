@@ -6,42 +6,36 @@ channels:
 dependencies:
  - python>=3.8,<3.10
  - pip
+ - affine>=2.3.0
  - asf_search>=3.0.4
  - boto3
  - dateparser
- - hyp3lib>=1.7
- - gdal>=3,<3.4
- - isce2
- - jinja2
- - proj>=8.0,<9.0
- - netcdf4
- - numpy
- - tqdm
- # for testing and distribution
+ - Fiona>=1.8.6
  - flake8
- - flake8-import-order
  - flake8-blind-except
  - flake8-builtins
+ - flake8-import-order
+ - gdal>=3,<3.4
+ - geopandas>=0.5.1
+ - hyp3lib>=1.7
+ - ipykernel
+ - isce2
+ - jinja2
+ - joblib
  - jsonschema==3.2.0
+ - jupyter
+ - lxml
+ - matplotlib
+ - netcdf4
+ - notebook
+ - numpy>=1.17.2
+ - pandas>=0.25.1
+ - papermill
+ - proj>=8.0,<9.0
+ - pytest
+ - pytest-cov
+ - rasterio>=1.2
  - setuptools
  - setuptools_scm
- - pip:
-   - affine>=2.3.0
-   - Fiona>=1.8.6
-   - geopandas>=0.5.1
-   - numpy>=1.17.2
-   - pandas>=0.25.1
-   - jinja2
-   - lxml
-   - matplotlib
-   - lxml
-   - rasterio>=1.2
-   - Shapely>=1.6.4
-   - papermill
-   - pytest
-   - pytest-cov
-   - matplotlib
-   - tqdm>=4.32.2
-   - notebook
-   - ipykernel
-   - jupyter
+ - Shapely>=1.6.4
+ - tqdm>=4.32.2
