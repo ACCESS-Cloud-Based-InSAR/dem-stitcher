@@ -17,6 +17,8 @@ from tqdm import tqdm
 from .datasets import get_dem_tile_extents
 from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
 from .geoid import remove_geoid
+from .glo_30_missing import (intersect_missing_glo_30_tiles,
+                             merge_glo_30_and_90_dems)
 from .rio_tools import (reproject_arr_to_match_profile,
                         reproject_arr_to_new_crs, translate_profile,
                         update_profile_resolution)
@@ -205,6 +207,29 @@ def merge_and_transform_dem_tiles(datasets: list,
     return dem_arr, dem_profile
 
 
+def patch_glo_30_with_glo_90(arr_glo_30: np.ndarray,
+                             prof_glo_30: dict,
+                             extent: list,
+                             stitcher_kwargs: dict) -> Tuple[np.ndarray, dict]:
+    if not intersect_missing_glo_30_tiles(extent):
+        return arr_glo_30, prof_glo_30
+
+    stitcher_kwargs['dem_name'] = 'glo_90_missing'
+    # if dst_resolution is None, then make sure we upsample to 30 meter resolution
+    dst_resolution = stitcher_kwargs['dst_resolution']
+    stitcher_kwargs['dst_resolution'] = dst_resolution or 0.0002777777777777777775
+
+    arr_glo_90, prof_glo_90 = stitch_dem(**stitcher_kwargs)
+
+    dem_arr, dem_prof = merge_glo_30_and_90_dems(arr_glo_30,
+                                                 prof_glo_30,
+                                                 arr_glo_90,
+                                                 prof_glo_90
+                                                 )
+
+    return dem_arr, dem_prof
+
+
 def stitch_dem(bounds: list,
                dem_name: str,
                dst_ellipsoidal_height: bool = True,
@@ -212,7 +237,8 @@ def stitch_dem(bounds: list,
                dst_resolution: Union[float, Tuple[float]] = None,
                n_threads_reproj: int = 5,
                n_threads_downloading=5,
-               driver: str = 'GTiff'
+               driver: str = 'GTiff',
+               fill_in_glo_30: bool = True
                ) -> Tuple[np.ndarray, dict]:
     """This is API for stitching DEMs
 
@@ -236,6 +262,9 @@ def stitch_dem(bounds: list,
         Threads for downloading tiles, by default 5
     driver : str, optional
         Output format in profile, by default 'GTiff'
+    fill_in_glo_30 : bool, optional
+        If `dem_name` is 'glo_30' then fills in missing glo_30 tiles over Armenia and Azerbaijan with glo_30 tiles by
+        upsampling them to 30 meters, by default True
 
     Returns
     -------
@@ -245,6 +274,8 @@ def stitch_dem(bounds: list,
         [notebooks](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/tree/dev/notebooks)
         for demonstrations.
     """
+    # Used for filling in glo_30 missing tiles if needed
+    stitcher_kwargs = locals()
 
     df_tiles = get_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
@@ -273,6 +304,20 @@ def stitch_dem(bounds: list,
                                     max_workers=n_threads_downloading)
         datasets = list(map(rasterio.open, dest_paths))
 
+    if not datasets:
+        # This is the case that an extent is entirely contained within glo90
+        if ((dem_name == 'glo_30') and fill_in_glo_30 and intersect_missing_glo_30_tiles(bounds)):
+
+            stitcher_kwargs['dem_name'] = 'glo_90_missing'
+            # if dst_resolution is None, then make sure we upsample to 30 meter resolution
+            dst_resolution = stitcher_kwargs['dst_resolution']
+            stitcher_kwargs['dst_resolution'] = dst_resolution or 0.0002777777777777777775
+
+            dem_arr, dem_profile = stitch_dem(**stitcher_kwargs)
+            return dem_arr, dem_profile
+        else:
+            raise ValueError(f'Extent is not within coverage area in {dem_name}')
+
     dem_arr, dem_profile = merge_and_transform_dem_tiles(datasets,
                                                          bounds,
                                                          dem_name,
@@ -291,5 +336,11 @@ def stitch_dem(bounds: list,
 
     # Set driver in profile
     dem_profile['driver'] = driver
+
+    if (dem_name == 'glo_30') and fill_in_glo_30:
+        dem_arr, dem_profile = patch_glo_30_with_glo_90(dem_arr,
+                                                        dem_profile,
+                                                        bounds,
+                                                        stitcher_kwargs)
 
     return dem_arr, dem_profile
