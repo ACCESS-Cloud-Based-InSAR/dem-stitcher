@@ -204,10 +204,41 @@ def stitch_dem(bounds: list,
                dst_ellipsoidal_height: bool = True,
                dst_area_or_point: str = 'Area',
                dst_resolution: Union[float, Tuple[float]] = None,
-               num_threads_reproj: int = 5,
-               max_workers=5,
+               n_threads_reproj: int = 5,
+               n_threads_downloading=5,
                driver: str = 'GTiff'
                ) -> Tuple[np.ndarray, dict]:
+    """This is API for stitching DEMs
+
+    Parameters
+    ----------
+    bounds : list
+        [xmin, ymin, xmax, ymax] in epsg:4326 (i.e. x=lon and y=lat)
+    dem_name : str
+        One of the dems supported by the stitcher (use `from dem_stitcher.datasets import DATASETS; DATASETS`)
+    dst_ellipsoidal_height : bool, optional
+        If True, removes the geoid. If not, then they are in the reference geoid height. By default True
+    dst_area_or_point : str, optional
+        Can be 'Area' or 'Point'. The former means each pixel is referenced with respect to the upper
+        left corner. The latter means the pixel is center at its own center. By default 'Area' (as is `gdal`)
+    dst_resolution : Union[float, Tuple[float]], optional
+        Can be float (square pixel with float resolution) or (x_res, y_res). When None is specified,
+        then the DEM tile resolution is used. By default None
+    n_threads_reproj : int, optional
+        Threads to use for reprojection, by default 5
+    n_threads_downloading : int, optional
+        Threads for downloading tiles, by default 5
+    driver : str, optional
+        Output format in profile, by default 'GTiff'
+
+    Returns
+    -------
+    Tuple[np.ndarray, dict]
+        (DEM Array, metadata dictionary). The metadata dictionary can be used as in rasterio to write the array
+        in a gdal compatible format. See the
+        [notebooks](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/tree/reproject-and-test/notebooks)
+        for demonstrations.
+    """
 
     df_tiles = get_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
@@ -221,7 +252,7 @@ def stitch_dem(bounds: list,
     if dem_name in ['glo_30', '3dep']:
         def reader(url):
             return RASTER_READERS[dem_name](url)
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=n_threads_downloading) as executor:
             results = list(tqdm(executor.map(reader, urls),
                                 total=len(urls),
                                 desc=f'Reading {dem_name} Datasets'))
@@ -233,7 +264,7 @@ def stitch_dem(bounds: list,
         dest_paths = download_tiles(urls,
                                     dem_name,
                                     tile_dir,
-                                    max_workers=max_workers)
+                                    max_workers=n_threads_downloading)
         datasets = list(map(rasterio.open, dest_paths))
 
     dem_arr, dem_profile = merge_and_transform_dem_tiles(datasets,
@@ -242,7 +273,7 @@ def stitch_dem(bounds: list,
                                                          dst_ellipsoidal_height=dst_ellipsoidal_height,
                                                          dst_area_or_point=dst_area_or_point,
                                                          dst_resolution=dst_resolution,
-                                                         num_threads_reproj=num_threads_reproj,
+                                                         num_threads_reproj=n_threads_reproj,
                                                          )
 
     # Close datasets

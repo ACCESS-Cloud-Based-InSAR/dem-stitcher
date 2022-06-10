@@ -184,7 +184,7 @@ def test_download_dem(dem_name):
 
     dem_arr, _ = stitch_dem(bounds,
                             dem_name,
-                            max_workers=5,
+                            n_threads_downloading=5,
                             dst_ellipsoidal_height=True,
                             dst_resolution=0.0002777777777777777775
                             )
