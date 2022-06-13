@@ -1,0 +1,2 @@
+class NoDEMCoverage(Exception):
+    pass

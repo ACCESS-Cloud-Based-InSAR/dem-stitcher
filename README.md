@@ -74,12 +74,13 @@ In [1]: from dem_stitcher.datasets import DATASETS; DATASETS
 Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90', 'ned1']
 ```
 
-1. `glo-30`: Copernicus GLO-30 DEM 30 meter [[link](https://registry.opendata.aws/copernicus-dem/)]
+1. `glo_30`/`glo_90`: Copernicus GLO-30/GLO-90 DEM. They are the 30 and 90 meter resolution, respectively [[link](https://registry.opendata.aws/copernicus-dem/)]
 2. The USGS DEMSs:
    - `ned1`:  Ned 1 arc-second (deprecated by USGS) [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
    - `3dep`: 3Dep 1 arc-second[[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)]
 3. `srtm_v3`: SRTM v3 [[link](https://dwtkns.com/srtm30m/)]
 4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
+5. `glo_90_missing`: these are tiles that are in `glo_90` but not in `glo_30`. They are over the countries Armenia and Azerbaijan. Used internally to help fill in gaps in coverage of `glo_30`.
 
 # Transformations
 

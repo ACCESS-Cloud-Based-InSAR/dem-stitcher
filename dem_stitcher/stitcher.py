@@ -16,6 +16,7 @@ from tqdm import tqdm
 
 from .datasets import get_dem_tile_extents
 from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
+from .exceptions import NoDEMCoverage
 from .geoid import remove_geoid
 from .glo_30_missing import (intersect_missing_glo_30_tiles,
                              merge_glo_30_and_90_dems)
@@ -316,7 +317,7 @@ def stitch_dem(bounds: list,
             dem_arr, dem_profile = stitch_dem(**stitcher_kwargs)
             return dem_arr, dem_profile
         else:
-            raise ValueError(f'Extent is not within coverage area in {dem_name}')
+            raise NoDEMCoverage(f'Specified bounds are not within coverage area of {dem_name}')
 
     dem_arr, dem_profile = merge_and_transform_dem_tiles(datasets,
                                                          bounds,
