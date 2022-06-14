@@ -25,4 +25,4 @@ def test_bad_extents():
         bounds = [-119, 34, -120, 35]
 
         X, p = stitch_dem(bounds,
-                          dem_name='glo-30')
+                          dem_name='glo_30')
