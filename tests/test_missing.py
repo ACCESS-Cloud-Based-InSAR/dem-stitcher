@@ -1,10 +1,10 @@
 import pytest
 import rasterio
-from dem_stitcher.glo_30_missing import merge_glo_30_and_90_dems
-from dem_stitcher.stitcher import intersects_missing_glo_30_tiles
-from dem_stitcher import stitch_dem
 from numpy.testing import assert_almost_equal
 
+from dem_stitcher import stitch_dem
+from dem_stitcher.glo_30_missing import merge_glo_30_and_90_dems
+from dem_stitcher.stitcher import intersects_missing_glo_30_tiles
 
 extents = [
            # On boundary of missing tiles (both glo-90, glo-30)
@@ -16,6 +16,7 @@ extents = [
            ]
 
 containment = [True, True, False]
+
 
 def _open_one(path):
     with rasterio.open(path) as ds:
