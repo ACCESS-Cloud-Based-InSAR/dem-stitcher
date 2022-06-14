@@ -14,9 +14,9 @@ from rasterio.merge import merge
 from shapely.geometry import box
 from tqdm import tqdm
 
-from .datasets import get_dem_tile_extents
+from .datasets import DATASETS, get_dem_tile_extents
 from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
-from .exceptions import NoDEMCoverage
+from .exceptions import DEMNotSupported, NoDEMCoverage
 from .geoid import remove_geoid
 from .glo_30_missing import merge_glo_30_and_90_dems
 from .rio_tools import (reproject_arr_to_match_profile,
@@ -44,6 +44,8 @@ PIXEL_CENTER_DEMS = ['srtm_v3', 'nasadem', 'glo_30', 'glo_90', 'glo_90_missing']
 
 
 def get_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
+    if dem_name not in DATASETS:
+        raise DEMNotSupported(f'Please use dem_name in: {", ".join(DATASETS)}')
     box_sh = box(*bounds)
     df_tiles_all = get_dem_tile_extents(dem_name)
     index = df_tiles_all.intersects(box_sh)
@@ -278,6 +280,12 @@ def stitch_dem(bounds: list,
     """
     # Used for filling in glo_30 missing tiles if needed
     stitcher_kwargs = locals()
+
+    if dem_name not in DATASETS:
+        raise DEMNotSupported(f'Please use dem_name in: {", ".join(DATASETS)}')
+
+    if (bounds[0] > bounds[2]) or (bounds[1] > bounds[3]):
+        raise ValueError('Specify bounds as xmin, ymin, xmax, ymax in epsg:4326')
 
     df_tiles = get_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
