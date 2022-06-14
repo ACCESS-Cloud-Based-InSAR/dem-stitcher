@@ -18,8 +18,7 @@ from .datasets import get_dem_tile_extents
 from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
 from .exceptions import NoDEMCoverage
 from .geoid import remove_geoid
-from .glo_30_missing import (intersect_missing_glo_30_tiles,
-                             merge_glo_30_and_90_dems)
+from .glo_30_missing import merge_glo_30_and_90_dems
 from .rio_tools import (reproject_arr_to_match_profile,
                         reproject_arr_to_new_crs, translate_profile,
                         update_profile_resolution)
@@ -54,6 +53,12 @@ def get_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
     df_tiles.sort_values(by='tile_id')
     df_tiles = df_tiles.reset_index(drop=True)
     return df_tiles
+
+
+def intersects_missing_glo_30_tiles(extent: list) -> bool:
+    extent_geo = box(*extent)
+    df_missing = get_dem_tiles(extent, 'glo_90_missing')
+    return df_missing.intersects(extent_geo).sum() > 0
 
 
 def _download_and_write_one_tile(url: str,
@@ -212,14 +217,10 @@ def patch_glo_30_with_glo_90(arr_glo_30: np.ndarray,
                              prof_glo_30: dict,
                              extent: list,
                              stitcher_kwargs: dict) -> Tuple[np.ndarray, dict]:
-    if not intersect_missing_glo_30_tiles(extent):
+    if not intersects_missing_glo_30_tiles(extent):
         return arr_glo_30, prof_glo_30
 
     stitcher_kwargs['dem_name'] = 'glo_90_missing'
-    # if dst_resolution is None, then make sure we upsample to 30 meter resolution
-    dst_resolution = stitcher_kwargs['dst_resolution']
-    stitcher_kwargs['dst_resolution'] = dst_resolution or 0.0002777777777777777775
-
     arr_glo_90, prof_glo_90 = stitch_dem(**stitcher_kwargs)
 
     dem_arr, dem_prof = merge_glo_30_and_90_dems(arr_glo_30,
@@ -306,8 +307,8 @@ def stitch_dem(bounds: list,
         datasets = list(map(rasterio.open, dest_paths))
 
     if not datasets:
-        # This is the case that an extent is entirely contained within glo90
-        if ((dem_name == 'glo_30') and fill_in_glo_30 and intersect_missing_glo_30_tiles(bounds)):
+        # This is the case that an extent is entirely contained within glo_90
+        if ((dem_name == 'glo_30') and fill_in_glo_30 and intersects_missing_glo_30_tiles(bounds)):
 
             stitcher_kwargs['dem_name'] = 'glo_90_missing'
             # if dst_resolution is None, then make sure we upsample to 30 meter resolution

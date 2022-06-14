@@ -4,15 +4,6 @@ import numpy as np
 from rasterio.enums import Resampling
 from rasterio.io import MemoryFile
 from rasterio.merge import merge
-from shapely.geometry import box
-
-from .stitcher import get_dem_tile_extents
-
-
-def intersect_missing_glo_30_tiles(extent: list) -> bool:
-    df_missing = get_dem_tile_extents('glo_90_missing')
-    extent_geo = box(*extent)
-    return df_missing.intersects(extent_geo).sum() > 0
 
 
 def merge_glo_30_and_90_dems(arr_glo_30,
