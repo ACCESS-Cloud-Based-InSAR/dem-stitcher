@@ -13,6 +13,8 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Since AWS registry removed zip, the `glo_30` and `glo_90` geojsons have precisely the tiles that are available (had to traverse bucket)
 - Notebooks to organize data have been updated
 - Demonstration on how to fill in `glo-30` tiles that are missing with `glo-90` tiles.
+- Exceptions that catch: a) no available tiles of specifed DEM, b) badly specified `dem_name` and c) extent/bounds not of the form `xmin, ymin, xmax, ymax`
+- API keyword argument `fill_in_glo_30` to fill in `glo_30` tiles that are missing, but whose corresponding `glo_90` tiles are not.
 
 
 ## [2.2.0]
