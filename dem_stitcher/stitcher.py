@@ -267,8 +267,9 @@ def stitch_dem(bounds: list,
     driver : str, optional
         Output format in profile, by default 'GTiff'
     fill_in_glo_30 : bool, optional
-        If `dem_name` is 'glo_30' then fills in missing glo_30 tiles over Armenia and Azerbaijan with glo_30 tiles by
-        upsampling them to 30 meters, by default True
+        If `dem_name` is 'glo_30' then fills in missing `glo_30` tiles over Armenia and Azerbaijan with available
+        `glo_90` tiles, by default True. If the extent falls inside of the missing `glo_30` tiles, then `glo_90` is
+        upsample to 30 meters unless `dst_resolution` is specified.
 
     Returns
     -------
