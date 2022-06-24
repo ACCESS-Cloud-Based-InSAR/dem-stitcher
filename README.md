@@ -109,7 +109,12 @@ Currently, as a performance note, when merging tiles, we merge the all needed ti
 
 # Contributing
 
+1. Create an GitHub issue ticket desrcribing what changes you need (e.g. issue-1)
+2. Fork this repo
+3. Make your modifications in your own fork
+4. Make a pull-request in this repo with the code in your fork and tag the repo owner / largest contributor as a reviewer
+
+# Support
+
 1. Create an GitHub issue ticket desrcribing what changes you would like to see or to report a bug
 2. We will work on solving this issue (hopefully with you)
-
-We are not actively taking pull-requests outside of our organization.
