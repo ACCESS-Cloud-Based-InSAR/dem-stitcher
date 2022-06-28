@@ -6,28 +6,24 @@ channels:
 dependencies:
  - python<3.10
  - pip
- - pip:
-    - affine>=2.3.0
-    - Fiona>=1.8.6
-    - geopandas>=0.5.1
-    - numpy>=1.17.2
-    - pandas>=0.25.1
-    - rasterio>=1.0.28
-    - Shapely>=1.6.4
-    - matplotlib
-    - tqdm>=4.32.2
-    - notebook
-    - requests
-    - boto3
-    - setuptools
-    - setuptools_scm
-    - wheel
-    - pytest
-    # for testing and distribution
-    - flake8-blind-except
-    - flake8-builtins
-    - flake8-import-order
-    - pytest
-    - setuptools
-    - setuptools_scm
-    - wheel
+ - affine
+ - boto3
+ - dateparser
+ - Fiona
+ - flake8
+ - flake8-blind-except
+ - flake8-builtins
+ - flake8-import-order
+ - gdal>=3,<3.4
+ - geopandas
+ - jinja2
+ - joblib
+ - jupyter
+ - matplotlib
+ - numpy
+ - pytest
+ - rasterio
+ - setuptools
+ - setuptools_scm
+ - Shapely
+ - tqdm
