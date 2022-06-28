@@ -30,7 +30,7 @@ setup(
 
     install_requires=[
         'affine',
-        'boto3',  # required for rasterio's s3 access
+        'boto3',  # required for rasterio vsis3 support
         'geopandas',
         'importlib_metadata',  # drop when py>=3.8
         'numpy',
