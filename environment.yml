@@ -9,7 +9,7 @@ dependencies:
  - affine
  - boto3
  - dateparser
- - Fiona
+ - fiona
  - flake8
  - flake8-blind-except
  - flake8-builtins
@@ -25,5 +25,5 @@ dependencies:
  - rasterio
  - setuptools
  - setuptools_scm
- - Shapely
+ - shapely
  - tqdm
