@@ -58,21 +58,21 @@ __pycache__/
 .envrc
 
 # Gdal and other image formats
-*.tif
+notebooks/*.tif
 *.xml
-*.shp
-*.sbx
-*.sbn
-*.shx
-*.prj
-*.qpj
-*.dbf
-*.cpg
-*.msk
-*.kmz
-*.jpg
-*.wld
-*.geojson
+notebooks/*.shp
+notebooks/*.sbx
+notebooks/*.sbn
+notebooks/*.shx
+notebooks/*.prj
+notebooks/*.qpj
+notebooks/*.dbf
+notebooks/*.cpg
+notebooks/*.msk
+notebooks/*.kmz
+notebooks/*.jpg
+notebooks/*.wld
+notebooks/*.geojson
 
 # VRT
 *.vrt
@@ -93,9 +93,17 @@ __pycache__/
 # Ignore json
 *.json
 
+# Ignore Experimental Directories
+notebooks/experimental/
+tests/notebooks/
+
 # Notebooks
 *.ipynb
 !notebooks/Basic_Demo.ipynb
 !notebooks/Comparing_DEMs.ipynb
 !notebooks/Staging_a_DEM_for_ISCE2.ipynb
 !notebooks/organize_tile_data/Format_and_Organize_Data.ipynb
+!notebooks/analysis_and_comparison/0_Alignment_with_original_DEM_tiles.ipynb
+!notebooks/analysis_and_comparison/1_Comparison_with_ISCE2_dem.ipynb
+
+notebooks/analysis_and_comparison/la_test/
