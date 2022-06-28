@@ -39,7 +39,7 @@ Currently, python 3.7 - 3.9 is supported.
 
 ## With ISCE2 or gdal
 
-Although the thrust of using this package is for staging DEMs for InSAR, testing and maintaining suitable environments to use with InSAR processors (particularly ISCE2) is beyond the scope of this repository. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package independently. For this notebook, use the `environment.yml` in Dockerized TopsApp [plugin](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
+Although the thrust of using this package is for staging DEMs for InSAR, testing and maintaining suitable environments to use with InSAR processors (particularly ISCE2) is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
 
 
 ## Credentials
@@ -106,7 +106,7 @@ Almost identical to normal installation:
 3. Create a new environment and install requirements using `conda env update --file environment.yml` (or use [`mamba`](https://github.com/mamba-org/mamba) to speed the install up)
 4. Install the package from cloned repo using `python -m pip install -e .`
 
-## Testing
+# Testing
 
 1. Install `pytest`
 2. Run `pytest .`
@@ -115,12 +115,12 @@ Almost identical to normal installation:
 
 # Contributing
 
-We welcome contributions to this open source package. To do so:
+We welcome contributions to this open-source package. To do so:
 
 1. Create an GitHub issue ticket desrcribing what changes you need (e.g. issue-1)
 2. Fork this repo
 3. Make your modifications in your own fork
-4. Make a pull-request in this repo with the code in your fork and tag the repo owner / largest contributor as a reviewer
+4. Make a pull-request in this repo with the code in your fork and tag the repo owner or a relevant contributor.
 
 # Support
 
