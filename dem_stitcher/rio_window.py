@@ -1,35 +1,13 @@
+import math
+from typing import List, Tuple
+
+import numpy as np
 import rasterio
+from affine import Affine
 from pyproj import Transformer
 from rasterio.crs import CRS
-from rasterio.windows import from_bounds as window_from_bounds
-from rasterio.windows import transform as get_window_transform
-
-
-def get_window_profile(window, window_transform, ref_profile):
-    profile = ref_profile.copy()
-    profile['transform'] = window_transform
-    profile['width'] = int(window.width)
-    profile['height'] = int(window.height)
-    profile['crs'] = ref_profile['crs']
-    profile['count'] = 1
-    profile['nodata'] = None
-    return profile
-
-
-def get_bounds_buffer(bounds: list,
-                      buffer=.05,
-                      abs_buffer_min: float = None) -> list:
-    xmin, ymin, xmax, ymax = bounds
-    width = xmax - xmin
-    height = ymax - ymin
-    buffer_length = min(width, height) * buffer
-    if abs_buffer_min is not None:
-        buffer_length = max(abs_buffer_min, buffer_length)
-    return [xmin - buffer_length,
-            ymin - buffer_length,
-            xmax + buffer_length,
-            ymax + buffer_length
-            ]
+from rasterio.transform import rowcol
+from rasterio.windows import Window
 
 
 def transform_bounds(src_bounds: list,
@@ -50,39 +28,111 @@ def transform_bounds(src_bounds: list,
     return dest_bounds
 
 
-def read_raster_from_window(raster_path: str,
-                            window_bounds: list,
-                            window_crs: CRS,
-                            buffer: float = .05,
-                            min_res_buffer=1) -> tuple:
-    """
-    Get subset of large GIS raster.
+def get_indices_from_extent(transform: Affine,
+                            extent: List[float],
+                            shape: tuple = None,
+                            res_buffer: int = 0) -> Tuple[tuple]:
+    """Obtain Upper left corner and bottom right corner from extents based on
+    geo-transform that specifies resolution and upper left corner of a coordinate
+    system
 
-    Assume single channel
+    Parameters
+    ----------
+    transform : Affine
+        Affine geo transform
+    extent : List[float]
+        (xmin, ymin, xmax, ymax) in the CRS of transform
+    shape : tuple, optional
+        Will bound the indices by (height, width), by default None
+    res_buffer : int, optional
+        Additional resolution buffer, by default 0
+
+    Returns
+    -------
+    Tuple[tuple]
+        (Coordinates of upper left corner, Coordinates of bottom right corner) where
+        coordinates are (row, col) coordinates
+
+    Notes
+    -----
+
+    Can use to slice geo-reference arrays based on extents
     """
+    xmin, ymin, xmax, ymax = extent
+    row_ul, col_ll = rowcol(transform, xmin, ymax, op=math.floor)
+    row_br, col_br = rowcol(transform, xmax, ymin, op=math.ceil)
+
+    corner_ul = (max(row_ul - res_buffer, 0),
+                 max(col_ll - res_buffer, 0))
+
+    height, width = (np.inf, np.inf)
+    if shape is not None:
+        height, width = shape
+
+    corner_br = (min(row_br + res_buffer, height),
+                 min(col_br + res_buffer, width))
+
+    return corner_ul, corner_br
+
+
+def read_raster_from_window(raster_path: str,
+                            window_extent: list,
+                            window_crs: CRS,
+                            res_buffer: int = 0) -> tuple:
+    """Obtains minimum pixels from original raster (specified by raster_path) that contain
+    window extent. Does not reproject into window extent! Returns only 1st channel.
+
+    Parameters
+    ----------
+    raster_path : str
+        Path or url to raster
+    window_extent : list
+        (xmin, ymin, xmax, ymax) in specified CRS
+    window_crs : CRS
+        CRS of window extent
+    res_buffer : int, optional
+        Additional pixel buffer in raster_path resolution, by default 0.
+        Note that we specify box by pixel that contains upper left corner and
+        lower right corner.
+
+    Returns
+    -------
+    tuple
+        (array, profile) where profile is rasterio profile and array is the first channel of the image
+
+    Raises
+    ------
+    ValueError
+       Extent is not properly specified
+    """
+    if (window_extent[0] >= window_extent[2]) or (window_extent[1] >= window_extent[3]):
+        raise ValueError('Extents must be in the form of (xmin, ymin, xmax, ymax)')
+
     with rasterio.open(raster_path) as ds:
         src_profile = ds.profile
         src_crs = ds.crs
-        res = max(ds.res)
 
-    w_bounds_src = list(window_bounds)
-    if window_crs != src_crs:
-        w_bounds_src = transform_bounds(window_bounds, window_crs, src_crs)
+    src_shape = src_profile['height'], src_profile['width']
+    window_extent_r = transform_bounds(window_extent, window_crs, src_crs)
 
-    abs_min_buffer = min_res_buffer * res
-    w_bounds_src = get_bounds_buffer(w_bounds_src,
-                                     buffer,
-                                     abs_buffer_min=abs_min_buffer)
-
-    window = window_from_bounds(*w_bounds_src,
-                                transform=src_profile['transform'])
-    window_transform = get_window_transform(window,
-                                            src_profile['transform'])
+    corner_ul, corner_br = get_indices_from_extent(src_profile['transform'],
+                                                   window_extent_r,
+                                                   shape=src_shape,
+                                                   res_buffer=res_buffer
+                                                   )
+    row_start, col_start = corner_ul
+    row_stop, col_stop = corner_br
+    window = Window.from_slices((row_start, row_stop),
+                                (col_start, col_stop))
 
     with rasterio.open(raster_path) as ds:
-        window_arr = ds.read(1, window=window)
+        arr_window = ds.read(1, window=window)
+        t_window = ds.window_transform(window)
 
-    window_profile = get_window_profile(window,
-                                        window_transform,
-                                        src_profile)
-    return window_arr, window_profile
+    profile_window = src_profile.copy()
+    profile_window['transform'] = t_window
+
+    profile_window['height'] = arr_window.shape[0]
+    profile_window['width'] = arr_window.shape[1]
+
+    return arr_window, profile_window

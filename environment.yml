@@ -4,28 +4,27 @@ channels:
  - anaconda
  - defaults
 dependencies:
- - python
+ - python<3.10
  - pip
  - affine
  - boto3
+ - dateparser
  - fiona
- - gdal
- - geopandas
- - importlib_metadata  # drop when py>=3.8
- - jupyter
- - matplotlib
- - numpy
- - pandas
- - pyproj
- - rasterio
- - requests
- - shapely
- - tqdm
- # for testing and distribution
+ - flake8
  - flake8-blind-except
  - flake8-builtins
  - flake8-import-order
+ - gdal>=3,<3.4
+ - geopandas
+ - jinja2
+ - joblib
+ - jupyter
+ - matplotlib
+ - numpy
  - pytest
+ - rasterio
  - setuptools
  - setuptools_scm
+ - shapely
+ - tqdm
  - wheel

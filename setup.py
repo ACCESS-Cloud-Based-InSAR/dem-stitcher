@@ -24,16 +24,13 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
     ],
 
     python_requires='>=3.7',
 
     install_requires=[
         'affine',
-        'boto3',
-        'fiona',
-        'gdal',
+        'boto3',  # required for rasterio vsis3 support
         'geopandas',
         'importlib_metadata',  # drop when py>=3.8
         'numpy',

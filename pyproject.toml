@@ -1,2 +1,7 @@
 [build-system]
 requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as (slow) integration and requiring internet (deselect with '-m \"not integration\"')",
+]
