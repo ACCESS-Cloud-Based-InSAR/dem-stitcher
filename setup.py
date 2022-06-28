@@ -34,8 +34,10 @@ setup(
         'geopandas',
         'importlib_metadata',  # drop when py>=3.8
         'numpy',
+        'pyproj',
         'rasterio',
         'requests',
+        'shapely',
         'tqdm',
     ],
 
