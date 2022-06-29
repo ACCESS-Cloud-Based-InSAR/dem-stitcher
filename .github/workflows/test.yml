@@ -16,10 +16,6 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.7", "3.8", "3.9"]
-        environment-file: ["environment.yml", "environments/environment-isce.yml"]
-        exclude:
-        - python-version: "3.7"
-          environment-file: "environments/environment-isce.yml"
 
     steps:
       - uses: actions/checkout@v2
@@ -35,7 +31,7 @@ jobs:
           mamba-version: "*"
           python-version: ${{ matrix.python-version }}
           activate-environment: dem-stitcher
-          environment-file: ${{ matrix.environment-file }}
+          environment-file: environment.yml
 
       - name: Pytest in conda environment
         shell: bash -l {0}

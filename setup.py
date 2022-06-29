@@ -30,12 +30,14 @@ setup(
 
     install_requires=[
         'affine',
-        'boto3',
+        'boto3',  # required for rasterio vsis3 support
         'geopandas',
         'importlib_metadata',  # drop when py>=3.8
         'numpy',
+        'pyproj',
         'rasterio',
         'requests',
+        'shapely',
         'tqdm',
     ],
 

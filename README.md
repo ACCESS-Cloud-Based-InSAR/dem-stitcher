@@ -27,22 +27,19 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
 ```
 
 
-# Installation with pip
+# Installation
 
-To install dem stitcher: `pip install dem-stitcher`
+To install `dem-stitcher`:
 
-Currently python 3.7 - 3.9 is supported. Python 3.10 requires a pre-release of `rasterio` (see `environments/environment-310.yml`).
+1. Clone this repository and navigate to it.
+2. Install the envrionment in `environment.yml` i.e. `conda env update -f environment.yml`
+3. Install with `pip` from PyPI: `python -m pip install dem-stitcher`
+
+Currently, python 3.7 - 3.9 is supported.
 
 ## With ISCE2 or gdal
 
-If you plan to use this stitcher with ISCE2 or require `gdal` (not just `rasterio`), then the environment will be more complicated. Currently, we have an example environment for use with staging a DEM with `isce2` in `environments/environment-isce.yml` and an associated notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb), which requires older versions of `gdal` and `Proj`. The most up-to-date environment is in the Dockerized TopsApp [workflow](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml).
-
-## For Development
-
-1. Clone this repo `git clone https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher.git`
-2. Navigate with your terminal to the repo.
-3. Create a new environment and install requirements using `conda env update --file environment.yml` (or use [`mamba`](https://github.com/mamba-org/mamba) to speed the install up)
-4. Install the package from cloned repo using `python -m pip install -e .`
+Although the thrust of using this package is for staging DEMs for InSAR, testing and maintaining suitable environments to use with InSAR processors (particularly ISCE2) is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
 
 
 ## Credentials
@@ -101,6 +98,15 @@ There are some [notebooks](notebooks/analysis_and_comparison) that illustrate ho
 
 Currently, as a performance note, when merging tiles, we merge the all needed tiles into memory and this creates overhead on this front. Of course, one may elect to physically download the tiles and use virtual warping. Ultimately, the accuracy of the final DEM is our prime focus.
 
+# For Development
+
+Almost identical to normal installation:
+
+1. Clone this repo `git clone https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher.git`
+2. Navigate with your terminal to the repo.
+3. Create a new environment and install requirements using `conda env update --file environment.yml` (or use [`mamba`](https://github.com/mamba-org/mamba) to speed the install up)
+4. Install the package from cloned repo using `python -m pip install -e .`
+
 # Testing
 
 1. Install `pytest`
@@ -110,7 +116,14 @@ Currently, as a performance note, when merging tiles, we merge the all needed ti
 
 # Contributing
 
+We welcome contributions to this open-source package. To do so:
+
+1. Create an GitHub issue ticket desrcribing what changes you need (e.g. issue-1)
+2. Fork this repo
+3. Make your modifications in your own fork
+4. Make a pull-request in this repo with the code in your fork and tag the repo owner or a relevant contributor.
+
+# Support
+
 1. Create an GitHub issue ticket desrcribing what changes you would like to see or to report a bug
 2. We will work on solving this issue (hopefully with you)
-
-We are not actively taking pull-requests outside of our organization.

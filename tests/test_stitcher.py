@@ -115,7 +115,8 @@ src_tags = ['Area',
 dst_tags = ['Area',
             'Point',
             'Point',
-            'Area']
+            'Area'
+            ]
 
 t = Affine(1, 0, 10, 0, -1, 0)
 transforms = [
