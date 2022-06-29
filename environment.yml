@@ -4,7 +4,7 @@ channels:
  - anaconda
  - defaults
 dependencies:
- - python
+ - python>=3.7,<3.11
  - pip
  - affine
  - boto3
