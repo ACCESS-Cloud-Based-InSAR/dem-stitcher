@@ -180,8 +180,12 @@ def test_no_change_when_no_transformations_to_tile(get_los_angeles_tile_dataset,
 @pytest.mark.integration
 @pytest.mark.parametrize("dem_name", DATASETS)
 def test_download_dem(dem_name):
-    # Within the Los Angeles tile
-    bounds = [-118.8, 34.6, -118.5, 34.8]
+    if dem_name == 'glo_90_missing':
+        # Missing area
+        bounds = [45.5, 39.5, 46.5, 40.5]
+    else:
+        # Within the Los Angeles tile
+        bounds = [-118.8, 34.6, -118.5, 34.8]
 
     dem_arr, _ = stitch_dem(bounds,
                             dem_name,
