@@ -31,9 +31,9 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
 
 To install `dem-stitcher`:
 
-1. Clone this repository and navigate to it.
-2. Install the envrionment in `environment.yml` i.e. `conda env update -f environment.yml`
-3. Install with `pip` from PyPI: `python -m pip install dem-stitcher`
+```
+conda install -c conda-forge dem_stitcher
+```
 
 Currently, python 3.7 - 3.9 is supported.
 
