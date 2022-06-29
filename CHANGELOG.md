@@ -8,13 +8,19 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.2.1]
 
-## Changed
+### Added
 - Included Copernicus GLO-90 (as `glo_90`) and the missing GLO-30 tiles that are available as GLO-90 tiles as `glo_90_missing`
+- Demonstration on how to fill in `glo-30` tiles that are missing with `glo-90` tiles.
+- Exceptions that catch: a) no available tiles of specifed DEM as a `NoDEMCoverage` exception, b) badly specified `dem_name` as a `DEMNotSupported` exception and c) extent/bounds not of the form `xmin, ymin, xmax, ymax` as a `ValueError`
+- API keyword argument `fill_in_glo_30` to fill in `glo_30` tiles that are missing, but whose corresponding `glo_90` tiles are not.
+- Tests for Exceptions and added datasets
+
+### Changed
 - Since AWS registry removed zip, the `glo_30` and `glo_90` geojsons have precisely the tiles that are available (had to traverse bucket)
 - Notebooks to organize data have been updated
-- Demonstration on how to fill in `glo-30` tiles that are missing with `glo-90` tiles.
-- Exceptions that catch: a) no available tiles of specifed DEM, b) badly specified `dem_name` and c) extent/bounds not of the form `xmin, ymin, xmax, ymax`
-- API keyword argument `fill_in_glo_30` to fill in `glo_30` tiles that are missing, but whose corresponding `glo_90` tiles are not.
+
+### Fixed
+- Fixed #33 i.e. missing `glo_30` rasters over Azerbaijan and Armenia by filling in with available `glo_90`.
 
 
 ## [2.2.0]
