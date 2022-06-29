@@ -4,7 +4,7 @@ This tool aims to (a) provide a continuous raster of Digital Elevation Raster ov
 + converting the vertical datum from a reference geoid to the WGS84 ellipsoidal
 + ensuring a coordinate reference system centered at either the upper-left corner (`Area` tag) or center of the pixel (`Point` tag).
 
-We utilize the GIS formats from `rasterio`. This tool was developed to support cloud SAR processing using ISCE2 and various research. The early work of this repository was done by Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard.
+We utilize the GIS formats from `rasterio`. This tool was developed to support cloud SAR processing using ISCE2 and various research. The early work of this repository was done by Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard. Since, the ACCESS team, including Joseph Kennedy, Simran Sangha, Grace Bato, and Andrew Johnston, have improved this repository greatly. In particular, Joseph Kennedy has lead the inclusion/development of actions, tests, packaging, distribution (including PyPI and `conda-forge`) and all the things to make this package more reliable, accessible, readable, etc.
 
 The API can be summarized as
 
