@@ -1,6 +1,5 @@
 class NoDEMCoverage(Exception):
-    "Throw this exception if extent/bounds does not cover any available DEM tiles"
-    pass
+    """Throw this exception if extent/bounds does not cover any available DEM tiles"""
 
 
 class DEMNotSupported(Exception):
