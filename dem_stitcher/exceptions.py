@@ -3,5 +3,4 @@ class NoDEMCoverage(Exception):
 
 
 class DEMNotSupported(Exception):
-    "Throw this exception if DEM Name is not supported"
-    pass
+    """Throw this exception if DEM Name is not supported"""
