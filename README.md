@@ -34,7 +34,7 @@ To install `dem-stitcher`:
 2. Install the envrionment in `environment.yml` i.e. `conda env update -f environment.yml`
 3. Install with `pip` from PyPI: `python -m pip install dem-stitcher`
 
-Currently, python 3.7 - 3.9 is supported.
+Currently, python versions 3.7 - 3.10 are supported.
 
 
 ## Credentials
