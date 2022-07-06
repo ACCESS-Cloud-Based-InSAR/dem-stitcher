@@ -6,14 +6,14 @@ from setuptools import find_packages, setup
 setup(
     name='dem_stitcher',
     use_scm_version=True,
-    description='Download and merge DEM tiles for processing interferograms with ISCE2.',
+    description='Download and merge DEM tiles',
     long_description=(Path(__file__).parent / 'README.md').read_text(),
     long_description_content_type='text/markdown',
 
     url='https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher',
 
-    author='Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard',
-    author_email='charlie.z.marshak@jpl.nasa.gov',
+    author='Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard, Joe Kennedy, Simran Sangha, Grace Bato',
+    author_email='access-cloud-based-insar@jpl.nasa.gov',
 
     keywords='dem',
     classifiers=[
