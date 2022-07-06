@@ -12,7 +12,7 @@ setup(
 
     url='https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher',
 
-    author='Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard, Joe Kennedy, Simran Sangha, Grace Bato',
+    author='Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard, Joseph H. Kennedy, Simran Sangha, Grace Bato',
     author_email='access-cloud-based-insar@jpl.nasa.gov',
 
     keywords='dem',
