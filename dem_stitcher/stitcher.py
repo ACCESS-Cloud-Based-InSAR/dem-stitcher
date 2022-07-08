@@ -14,9 +14,11 @@ from rasterio.merge import merge
 from shapely.geometry import box
 from tqdm import tqdm
 
-from .datasets import get_dem_tile_extents
-from .dem_readers import read_dem, read_glo, read_nasadem, read_ned1, read_srtm
+from .datasets import DATASETS, get_dem_tile_extents
+from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
+from .exceptions import DEMNotSupported, NoDEMCoverage
 from .geoid import remove_geoid
+from .glo_30_missing import merge_glo_30_and_90_dems
 from .rio_tools import (reproject_arr_to_match_profile,
                         reproject_arr_to_new_crs, translate_profile,
                         update_profile_resolution)
@@ -24,18 +26,26 @@ from .rio_window import get_indices_from_extent
 
 RASTER_READERS = {'ned1': read_ned1,
                   '3dep': read_dem,
-                  'glo_30': read_glo,
+                  'glo_30': read_dem,
+                  'glo_90': read_dem,
+                  'glo_90_missing': read_dem,
                   'srtm_v3': read_srtm,
                   'nasadem': read_nasadem}
 
 DEM2GEOID = {'ned1': 'geoid_18',
              '3dep': 'geoid_18',
              'glo_30': 'egm_08',
+             'glo_90': 'egm_08',
+             'glo_90_missing': 'egm_08',
              'srtm_v3': 'egm_96',
              'nasadem': 'egm_96'}
 
+PIXEL_CENTER_DEMS = ['srtm_v3', 'nasadem', 'glo_30', 'glo_90', 'glo_90_missing']
+
 
 def get_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
+    if dem_name not in DATASETS:
+        raise DEMNotSupported(f'Please use dem_name in: {", ".join(DATASETS)}')
     box_sh = box(*bounds)
     df_tiles_all = get_dem_tile_extents(dem_name)
     index = df_tiles_all.intersects(box_sh)
@@ -45,6 +55,12 @@ def get_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
     df_tiles.sort_values(by='tile_id')
     df_tiles = df_tiles.reset_index(drop=True)
     return df_tiles
+
+
+def intersects_missing_glo_30_tiles(extent: list) -> bool:
+    extent_geo = box(*extent)
+    df_missing = get_dem_tiles(extent, 'glo_90_missing')
+    return df_missing.intersects(extent_geo).sum() > 0
 
 
 def _download_and_write_one_tile(url: str,
@@ -60,7 +76,7 @@ def _download_and_write_one_tile(url: str,
     dem_profile['driver'] = 'GTiff'
     with rasterio.open(dest_path, 'w', **dem_profile) as ds:
         ds.write(dem_arr, 1)
-        if dem_name in ['srtm_v3', 'nasadem', 'glo_30']:
+        if dem_name in PIXEL_CENTER_DEMS:
             ds.update_tags(AREA_OR_POINT='Point')
     return dem_profile
 
@@ -199,6 +215,25 @@ def merge_and_transform_dem_tiles(datasets: list,
     return dem_arr, dem_profile
 
 
+def patch_glo_30_with_glo_90(arr_glo_30: np.ndarray,
+                             prof_glo_30: dict,
+                             extent: list,
+                             stitcher_kwargs: dict) -> Tuple[np.ndarray, dict]:
+    if not intersects_missing_glo_30_tiles(extent):
+        return arr_glo_30, prof_glo_30
+
+    stitcher_kwargs['dem_name'] = 'glo_90_missing'
+    arr_glo_90, prof_glo_90 = stitch_dem(**stitcher_kwargs)
+
+    dem_arr, dem_prof = merge_glo_30_and_90_dems(arr_glo_30,
+                                                 prof_glo_30,
+                                                 arr_glo_90,
+                                                 prof_glo_90
+                                                 )
+
+    return dem_arr, dem_prof
+
+
 def stitch_dem(bounds: list,
                dem_name: str,
                dst_ellipsoidal_height: bool = True,
@@ -206,7 +241,8 @@ def stitch_dem(bounds: list,
                dst_resolution: Union[float, Tuple[float]] = None,
                n_threads_reproj: int = 5,
                n_threads_downloading=5,
-               driver: str = 'GTiff'
+               driver: str = 'GTiff',
+               fill_in_glo_30: bool = True
                ) -> Tuple[np.ndarray, dict]:
     """This is API for stitching DEMs
 
@@ -230,6 +266,10 @@ def stitch_dem(bounds: list,
         Threads for downloading tiles, by default 5
     driver : str, optional
         Output format in profile, by default 'GTiff'
+    fill_in_glo_30 : bool, optional
+        If `dem_name` is 'glo_30' then fills in missing `glo_30` tiles over Armenia and Azerbaijan with available
+        `glo_90` tiles, by default True. If the extent falls inside of the missing `glo_30` tiles, then `glo_90` is
+        upsample to 30 meters unless `dst_resolution` is specified.
 
     Returns
     -------
@@ -239,6 +279,14 @@ def stitch_dem(bounds: list,
         [notebooks](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/tree/dev/notebooks)
         for demonstrations.
     """
+    # Used for filling in glo_30 missing tiles if needed
+    stitcher_kwargs = locals()
+
+    if dem_name not in DATASETS:
+        raise DEMNotSupported(f'Please use dem_name in: {", ".join(DATASETS)}')
+
+    if (bounds[0] > bounds[2]) or (bounds[1] > bounds[3]):
+        raise ValueError('Specify bounds as xmin, ymin, xmax, ymax in epsg:4326')
 
     df_tiles = get_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
@@ -249,7 +297,7 @@ def stitch_dem(bounds: list,
 
     # Datasets that permit virtual warping
     # The readers return DatasetReader rather than (Array, Profile)
-    if dem_name in ['glo_30', '3dep']:
+    if dem_name in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']:
         def reader(url):
             return RASTER_READERS[dem_name](url)
         with ThreadPoolExecutor(max_workers=n_threads_downloading) as executor:
@@ -266,6 +314,20 @@ def stitch_dem(bounds: list,
                                     tile_dir,
                                     max_workers=n_threads_downloading)
         datasets = list(map(rasterio.open, dest_paths))
+
+    if not datasets:
+        # This is the case that an extent is entirely contained within glo_90
+        if ((dem_name == 'glo_30') and fill_in_glo_30 and intersects_missing_glo_30_tiles(bounds)):
+
+            stitcher_kwargs['dem_name'] = 'glo_90_missing'
+            # if dst_resolution is None, then make sure we upsample to 30 meter resolution
+            dst_resolution = stitcher_kwargs['dst_resolution']
+            stitcher_kwargs['dst_resolution'] = dst_resolution or 0.0002777777777777777775
+
+            dem_arr, dem_profile = stitch_dem(**stitcher_kwargs)
+            return dem_arr, dem_profile
+        else:
+            raise NoDEMCoverage(f'Specified bounds are not within coverage area of {dem_name}')
 
     dem_arr, dem_profile = merge_and_transform_dem_tiles(datasets,
                                                          bounds,
@@ -285,5 +347,11 @@ def stitch_dem(bounds: list,
 
     # Set driver in profile
     dem_profile['driver'] = driver
+
+    if (dem_name == 'glo_30') and fill_in_glo_30:
+        dem_arr, dem_profile = patch_glo_30_with_glo_90(dem_arr,
+                                                        dem_profile,
+                                                        bounds,
+                                                        stitcher_kwargs)
 
     return dem_arr, dem_profile
