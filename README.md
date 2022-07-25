@@ -1,5 +1,11 @@
 # dem-stitcher
 
+[![PyPI license](https://img.shields.io/pypi/l/dem_stitcher.svg)](https://pypi.python.org/pypi/dem_stitcher/)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/dem_stitcher.svg)](https://pypi.python.org/pypi/dem_stitcher/)
+[![PyPI version](https://img.shields.io/pypi/v/dem_stitcher.svg)](https://pypi.python.org/pypi/dem_stitcher/)
+[![Conda version](https://img.shields.io/conda/vn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
+[![Conda platforms](https://img.shields.io/conda/pn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
+
 This tool aims to (a) provide a continuous raster of Digital Elevation Raster over an area of interest and (b) perform some standard transformations for processing. Such transformations include:
 + converting the vertical datum from a reference geoid to the WGS84 ellipsoidal
 + ensuring a coordinate reference system centered at either the upper-left corner (`Area` tag) or center of the pixel (`Point` tag).
@@ -29,10 +35,20 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
 
 # Installation
 
-To install `dem-stitcher`:
+In order to easily manage dependencies, we recommend using dedicated project environments
+via [Anaconda/Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
+or [Python virtual environments](https://docs.python.org/3/tutorial/venv.html).
+
+`dem_stitcher` can be installed into a conda environment with
 
 ```
 conda install -c conda-forge dem_stitcher
+```
+
+or into a virtual environment with
+
+```
+python -m pip install dem_stitcher
 ```
 
 Currently, python 3.7+ is supported.
