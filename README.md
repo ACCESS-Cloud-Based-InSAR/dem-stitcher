@@ -35,7 +35,7 @@ To install `dem-stitcher`:
 conda install -c conda-forge dem_stitcher
 ```
 
-Currently, python 3.7 - 3.9 is supported.
+Currently, python 3.7+ is supported.
 
 ## With ISCE2 or gdal
 
@@ -60,7 +60,7 @@ We have notebooks to demonstrate common usage:
 + [Comparing DEMs](notebooks/Comparing_DEMs.ipynb)
 + [Staging a DEM for ISCE2](notebooks/Staging_a_DEM_for_ISCE2.ipynb) - this notebook requires the installation of a few extra libraries including ISCE2 via `conda-forge`
 
-We also demonstrate how the tiles used to organize the urls for the DEMs were generated for this tool were generated in this [notebook](notebooks/organize_tile_data/Format_and_Organize_Data.ipynb).
+We also demonstrate how the tiles used to organize the urls for the DEMs were generated for this tool were generated in this [notebook](notebooks/organize_tile_data/).
 
 # DEMs
 
