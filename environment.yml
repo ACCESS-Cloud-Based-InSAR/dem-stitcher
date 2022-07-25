@@ -14,7 +14,7 @@ dependencies:
  - flake8-blind-except
  - flake8-builtins
  - flake8-import-order
- - gdal>=3,<3.4
+ - gdal
  - geopandas
  - jinja2
  - joblib
