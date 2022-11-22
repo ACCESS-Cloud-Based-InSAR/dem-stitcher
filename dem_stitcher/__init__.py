@@ -3,6 +3,7 @@ import warnings
 # FIXME: Python 3.8+ this should be `from importlib.metadata...`
 from importlib_metadata import PackageNotFoundError, version
 
+from .datasets import get_global_dem_tile_extents, get_overlapping_dem_tiles
 from .stitcher import stitch_dem
 
 try:
@@ -15,6 +16,8 @@ except PackageNotFoundError:
 
 
 __all__ = [
+    'get_global_dem_tile_extents',
+    'get_overlapping_dem_tiles',
     'stitch_dem',
     '__version__',
 ]
