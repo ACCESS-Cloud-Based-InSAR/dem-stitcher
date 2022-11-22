@@ -47,14 +47,15 @@ def get_dateline_crossing(bounds: list) -> int:
     check_4326_bounds(bounds)
 
     # This logic assumes there is intersection within the standard 4326 CRS.
-    if (xmin >= -180) and (xmax <= 180):
+    # There are exactly 2 * 2 = 4 conditions
+    if (xmin > -180) and (xmax < 180):
         return 0
 
-    elif (xmin < -180) and (xmax < 180):
+    elif (xmin <= -180) and (xmax < 180):
         return -180
 
-    elif (xmin > -180) and (xmax > 180):
+    elif (xmin > -180) and (xmax >= 180):
         return 180
 
-    elif (xmin < -180) and (xmax > 180):
+    elif (xmin <= -180) and (xmax >= 180):
         raise DoubleDatelineCrossing('Shrink your bounding area')

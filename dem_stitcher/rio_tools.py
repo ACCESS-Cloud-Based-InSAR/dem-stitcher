@@ -3,8 +3,10 @@ from typing import Tuple, Union
 import numpy as np
 from affine import Affine
 from rasterio.crs import CRS
-from rasterio.warp import (Resampling, aligned_target,
-                           calculate_default_transform, reproject)
+from rasterio.warp import (Resampling,
+                           aligned_target,
+                           calculate_default_transform,
+                           reproject)
 
 
 def translate_profile(profile: dict,
