@@ -10,7 +10,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 - Fixed tile urls for `glo*` and `srtm_v3`.
-- Include directions in readme for future updates.
+- Include directions in readme for future dem tile updates.
 
 
 ## [2.3.0]
