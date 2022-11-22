@@ -4,19 +4,18 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, List, Tuple, Union
 
-import geopandas as gpd
 import numpy as np
 import rasterio
 from affine import Affine
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
 from rasterio.merge import merge
-from shapely.geometry import box
 from tqdm import tqdm
 
-from .datasets import DATASETS, get_dem_tile_extents
+from .datasets import (get_overlapping_dem_tiles,
+                       intersects_missing_glo_30_tiles)
 from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
-from .exceptions import DEMNotSupported, NoDEMCoverage
+from .exceptions import NoDEMCoverage
 from .geoid import remove_geoid
 from .glo_30_missing import merge_glo_30_and_90_dems
 from .rio_tools import (reproject_arr_to_match_profile,
@@ -41,26 +40,6 @@ DEM2GEOID = {'ned1': 'geoid_18',
              'nasadem': 'egm_96'}
 
 PIXEL_CENTER_DEMS = ['srtm_v3', 'nasadem', 'glo_30', 'glo_90', 'glo_90_missing']
-
-
-def get_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
-    if dem_name not in DATASETS:
-        raise DEMNotSupported(f'Please use dem_name in: {", ".join(DATASETS)}')
-    box_sh = box(*bounds)
-    df_tiles_all = get_dem_tile_extents(dem_name)
-    index = df_tiles_all.intersects(box_sh)
-    df_tiles = df_tiles_all[index].copy()
-
-    # Merging is order dependent - ensures consistency
-    df_tiles.sort_values(by='tile_id')
-    df_tiles = df_tiles.reset_index(drop=True)
-    return df_tiles
-
-
-def intersects_missing_glo_30_tiles(extent: list) -> bool:
-    extent_geo = box(*extent)
-    df_missing = get_dem_tiles(extent, 'glo_90_missing')
-    return df_missing.intersects(extent_geo).sum() > 0
 
 
 def _download_and_write_one_tile(url: str,
@@ -282,13 +261,7 @@ def stitch_dem(bounds: list,
     # Used for filling in glo_30 missing tiles if needed
     stitcher_kwargs = locals()
 
-    if dem_name not in DATASETS:
-        raise DEMNotSupported(f'Please use dem_name in: {", ".join(DATASETS)}')
-
-    if (bounds[0] > bounds[2]) or (bounds[1] > bounds[3]):
-        raise ValueError('Specify bounds as xmin, ymin, xmax, ymax in epsg:4326')
-
-    df_tiles = get_dem_tiles(bounds, dem_name)
+    df_tiles = get_overlapping_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
 
     # Random unique identifier
