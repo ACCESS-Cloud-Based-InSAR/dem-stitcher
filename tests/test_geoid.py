@@ -52,7 +52,7 @@ def test_remove_geoid(get_los_angeles_dummy_profile, dem_res):
             _ = remove_geoid(Y, p_ref, 'geoid_18')
 
         res_buffer_updated = (int(np.ceil(dem_res / geoid_res)))
-        assert(res_buffer_default < res_buffer_updated)
+        assert res_buffer_default < res_buffer_updated
 
         X_sub_2 = remove_geoid(Y, p_ref, 'geoid_18', res_buffer=res_buffer_updated)
 

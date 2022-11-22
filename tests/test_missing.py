@@ -27,7 +27,7 @@ def _open_one(path):
 
 @pytest.mark.parametrize('extent, containment', zip(extents, containment))
 def test_intersects_missing_tiles(extent, containment):
-    assert(intersects_missing_glo_30_tiles(extent) == containment)
+    assert intersects_missing_glo_30_tiles(extent) == containment
 
 
 def test_merge_glo30_and_glo_90(test_data_dir):
