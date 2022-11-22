@@ -11,7 +11,7 @@ def test_update_resolution(test_data_dir):
     """
 
     data_dir = test_data_dir / 'rio_tools' / 'update_resolution'
-    assert(data_dir.exists())
+    assert data_dir.exists()
 
     with rasterio.open(data_dir / 'res_one_deg.tif') as ds:
         p_one_deg = ds.profile
