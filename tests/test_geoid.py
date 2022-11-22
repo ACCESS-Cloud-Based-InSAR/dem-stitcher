@@ -25,7 +25,7 @@ def test_read_geoid():
     data_all = X_all[~mask]
 
     assert_array_equal(data_sub, data_all)
-    assert(p_r['transform'] == p_all['transform'])
+    assert p_r['transform'] == p_all['transform']
 
 
 @pytest.mark.parametrize("dem_res", [.001, .01, .1, 1])

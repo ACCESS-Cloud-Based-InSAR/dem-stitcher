@@ -25,9 +25,9 @@ def test_update_resolution(test_data_dir):
 
     t_one_deg = p_one_deg['transform']
     t_quarter_deg = p_quarter_deg['transform']
-    assert((t_one_deg * (0, 0)) == (t_quarter_deg * (0, 0)))
-    assert(res_one_deg == (1, 1))
-    assert(res_quarter_deg == (.25, .25))
+    assert (t_one_deg * (0, 0)) == (t_quarter_deg * (0, 0))
+    assert res_one_deg == (1, 1)
+    assert res_quarter_deg == (.25, .25)
 
     p_higher_res = update_profile_resolution(p_one_deg, .25)
     X_quarter_deg_reprj, _ = reproject_arr_to_match_profile(X_one_deg,
@@ -37,4 +37,4 @@ def test_update_resolution(test_data_dir):
     X_quarter_deg_reprj = X_quarter_deg_reprj[0, ...]
 
     assert_almost_equal(X_quarter_deg_reprj, X_quarter_deg, 5)
-    assert(t_quarter_deg == p_higher_res['transform'])
+    assert t_quarter_deg == p_higher_res['transform']
