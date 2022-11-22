@@ -6,7 +6,7 @@
 [![Conda version](https://img.shields.io/conda/vn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
 [![Conda platforms](https://img.shields.io/conda/pn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
 
-This tool aims to (a) provide a continuous raster of Digital Elevation Raster over an area of interest and (b) perform some standard transformations for processing. Such transformations include:
+This tool aims to (a) provide a continuous raster of global Digital Elevation Raster over an area of interest and (b) perform some standard transformations for processing. Such transformations include:
 
 + converting the vertical datum from a reference geoid to the WGS84 ellipsoidal
 + ensuring a coordinate reference system centered at either the upper-left corner (`Area` tag) or center of the pixel (`Point` tag).
@@ -14,7 +14,9 @@ This tool aims to (a) provide a continuous raster of Digital Elevation Raster ov
 We utilize the GIS formats from `rasterio`. The API can be summarized as
 
 ```
+# as xmin, ymin, xmax, ymax in epsg:4326
 bounds = [-119.085, 33.402, -118.984, 35.435]
+
 X, p = stitch_dem(bounds,
                   dem_name='glo_30',
                   dst_ellipsoidal_height=False,
@@ -30,7 +32,7 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
    ds.write(X, 1)
    ds.update_tags(AREA_OR_POINT='Point')
 ```
-
+Global DEMs supported are tiled in lat/lon (`epsg:4326`) and the API assumes that bounds are supplied in this format.
 
 # Installation
 
@@ -86,6 +88,8 @@ In [1]: from dem_stitcher.datasets import DATASETS; DATASETS
 Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90', 'ned1']
 ```
 
+All the tiles are given in lat/lon CRS (i.e. `epsg:4326`). A notable omission is the Artic DEM [here](https://www.pgc.umn.edu/data/arcticdem/), which is suitable for DEMs at the northern pole of the globe due to lat/lon distortion.
+
 1. `glo_30`/`glo_90`: Copernicus GLO-30/GLO-90 DEM. They are the 30 and 90 meter resolution, respectively [[link](https://registry.opendata.aws/copernicus-dem/)].
 2. The USGS DEMSs:
    - `ned1`:  Ned 1 arc-second (deprecated by USGS) [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
@@ -114,6 +118,10 @@ Wherever possible, we do not resample the original DEMs unless specified by the 
 There are some [notebooks](notebooks/analysis_and_comparison) that illustrate how tiles are merged by comparing the output of our stitcher with the original tiles.
 
 As a performance note, when merging DEM tiles, we merge the all needed tiles in memory and this process has an associated overhead. An alternative approach would be to download the tiles to disk and use virtual warping. Ultimately, the accuracy of the final DEM is our prime focus and these minor performance tradeoffs are sidelined.
+
+# Dateline support
+
+We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e.longitudes between -/+ 180 longitude and -/+ latitude. If there is a dateline crossing by the supplied bounds, then the tiles are wrapped and translated to provide a continuous raster over the area provided.
 
 # For Development
 
