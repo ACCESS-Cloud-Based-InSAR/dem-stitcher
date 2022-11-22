@@ -78,7 +78,7 @@ def test_read_window_4326(test_data_dir, extent, array, transform):
                                             CRS.from_epsg(4326),
                                             res_buffer=0)
     assert_array_equal(array, window_arr)
-    assert(transform == p['transform'])
+    assert transform == p['transform']
 
 
 @pytest.mark.parametrize("geojson_index, array, transform", zip([0, 1, 2, 3], arrays, transforms))
@@ -97,7 +97,7 @@ def test_read_window_utm(test_data_dir, geojson_index, array, transform):
                                             crs,
                                             res_buffer=0)
     assert_array_equal(array, window_arr)
-    assert(transform == p['transform'])
+    assert transform == p['transform']
 
 
 """
@@ -123,7 +123,7 @@ def test_get_indices(extent, arr_index):
     """
     t = Affine(1, 0, 10, 0, -1, 0)
     ul, br = get_indices_from_extent(t, extent)
-    assert(arr_index == (ul, br))
+    assert arr_index == (ul, br)
 
 
 # Indices
@@ -141,7 +141,7 @@ def test_get_indices_buffered(extent, arr_index):
     """
     t = Affine(1, 0, 10, 0, -1, 0)
     ul, br = get_indices_from_extent(t, extent, res_buffer=1)
-    assert(arr_index == (ul, br))
+    assert arr_index == (ul, br)
 
 
 # Indices
@@ -159,7 +159,7 @@ def test_get_indices_shape(extent, arr_index):
     """
     t = Affine(1, 0, 10, 0, -1, 0)
     ul, br = get_indices_from_extent(t, extent, res_buffer=1, shape=(12, 10))
-    assert(arr_index == (ul, br))
+    assert arr_index == (ul, br)
 
 
 # Additional tests for unequal dimensions
@@ -202,4 +202,4 @@ def test_read_window_4326_unequal_dims(test_data_dir, extent, array, transform):
                                             CRS.from_epsg(4326),
                                             res_buffer=0)
     assert_array_equal(array, window_arr)
-    assert(transform == p['transform'])
+    assert transform == p['transform']

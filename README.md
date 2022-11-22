@@ -54,7 +54,7 @@ Currently, python 3.7+ is supported.
 
 ## With ISCE2 or gdal
 
-Although the thrust of using this package is for staging DEMs for InSAR, testing and maintaining suitable environments to use with InSAR processors (particularly ISCE2) is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
+Although the thrust of using this package is for staging DEMs for InSAR (particularly ISCE2), testing and maintaining suitable environments to use with InSAR processors is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own and additionally requires python version `<3.10`. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
 
 ## Credentials
 
@@ -66,10 +66,6 @@ machine urs.earthdata.nasa.gov
     login <username>
     password <password>
 ```
-
-## Using with ISCE2 or gdal
-
-Although the thrust of using this package is for staging DEMs for InSAR, testing and maintaining suitable environments to use with InSAR processors (particularly ISCE2) is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
 
 # Notebooks
 
@@ -98,6 +94,8 @@ Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90', 'ne
 4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
 5. `glo_90_missing`: these are tiles that are in `glo_90` but not in `glo_30`. They are over the countries Armenia and Azerbaijan. Used internally to help fill in gaps in coverage of `glo_30`.
 
+If there are issues with obtaining dem tiles from urls embedded within the geojson tiles (e.g. a `404` error as [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/48)), please see the [Development](#for-development) section below and/or open an issue ticket.
+
 # DEM Transformations
 
 Wherever possible, we do not resample the original DEMs unless specified by the user to do so. When extents are specified, we obtain the the minimum  pixel extent within the merged tile DEMs that contain that extent. Any required resampling (e.g. updating the CRS or updating the resolution because the tiles have non-square resolution at high latitudes) is done after these required translations. We importantly note that order in which these transformations are done is crucial, i.e. first translating the DEM (to either pixel- or area-center coordinates) and then resampling is different than first resampling and then translation (as affine transformations are not commutative). Here are some notes/discussions:
@@ -125,6 +123,15 @@ This is almost identical to normal installation:
 2. Navigate with your terminal to the repo.
 3. Create a new environment and install requirements using `conda env update --file environment.yml` (or use [`mamba`](https://github.com/mamba-org/mamba) to speed the install up)
 4. Install the package from cloned repo using `python -m pip install -e .`
+
+## DEM Urls
+
+If urls or readers need to be updated (they consistently do) or you want to add a new global or large DEM, then there are two points of contact:
+
+1. The notebooks that format the geojsons used for this library are [here](notebooks/organize_tile_data/)
+2. The readers are [here](dem_stitcher/dem_readers.py)
+
+The former is the more likely. When re-generating tiles, make sure to run all tests including integration tests (i.e. `pytest tests`). For example, if regenerating `glo` tiles, `glo-30` requires both resolution parameters (30 meters and 90 meters) and an additional notebook for filling in missing 30 meter tiles. These should be clearly spelled out in the notebook linked above.
 
 # Testing
 

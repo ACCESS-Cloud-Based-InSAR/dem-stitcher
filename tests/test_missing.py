@@ -27,7 +27,7 @@ def _open_one(path):
 
 @pytest.mark.parametrize('extent, containment', zip(extents, containment))
 def test_intersects_missing_tiles(extent, containment):
-    assert(intersects_missing_glo_30_tiles(extent) == containment)
+    assert intersects_missing_glo_30_tiles(extent) == containment
 
 
 def test_merge_glo30_and_glo_90(test_data_dir):
@@ -44,7 +44,7 @@ def test_merge_glo30_and_glo_90(test_data_dir):
                                                           X_glo_90, p_glo_90)
 
     assert_almost_equal(X_merged, X_merged_out, decimal=6)
-    assert(p_merged_out['transform'] == p_merged['transform'])
+    assert p_merged_out['transform'] == p_merged['transform']
 
 
 @pytest.mark.integration
@@ -69,4 +69,4 @@ def test_glo_90_filling(test_data_dir):
     X_merged, p_merged = _open_one(glo_merged_path)
 
     assert_almost_equal(X_merged, X_filled, decimal=6)
-    assert(p_filled['transform'] == p_merged['transform'])
+    assert p_filled['transform'] == p_merged['transform']
