@@ -2,7 +2,7 @@ import pytest
 
 from dem_stitcher.dateline import get_dateline_crossing, split_extent_across_dateline
 from dem_stitcher.exceptions import DoubleDatelineCrossing, Incorrect4326Bounds
-from dem_stitcher.stitcher import get_overlapping_dem_tiles
+from dem_stitcher.stitcher import get_overlapping_dem_tiles, stitch_dem
 
 bounds_list = [[179, 52, 181, 53],
                [179.1, -13, 180.001, -12.1],
@@ -59,5 +59,13 @@ def test_split_extent(bounds, split_extent_known):
     assert split_extent_output == split_extent_known
 
 
-def test_stitcher_across_dateline():
-    assert True
+bounds_list = [[-181, 51, -179, 52],
+               # [179, 51, 181, 52]
+               ]
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("bounds", bounds_list)
+def test_stithcer_across_dateline(bounds):
+    X, p = stitch_dem(bounds, 'glo_30', dst_ellipsoidal_height=True)
+    assert len(X.shape) == 2

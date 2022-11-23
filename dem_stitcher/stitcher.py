@@ -16,7 +16,7 @@ from .dateline import get_dateline_crossing
 from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
 from .exceptions import NoDEMCoverage
 from .geoid import remove_geoid
-from .merge import merge_tile_datasets, merge_arrays_with_geometadata
+from .merge import merge_arrays_with_geometadata, merge_tile_datasets
 from .rio_tools import (reproject_arr_to_match_profile,
                         reproject_arr_to_new_crs, translate_dataset,
                         translate_profile, update_profile_resolution)
