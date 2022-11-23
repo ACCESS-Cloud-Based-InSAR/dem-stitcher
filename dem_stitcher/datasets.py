@@ -35,11 +35,11 @@ def get_global_dem_tile_extents(dataset: str) -> gpd.GeoDataFrame:
 
     Raises
     ------
-    ValueError
-        _description_
+    DEMNotSupported
+        Dataset is not supported.
     """
     if dataset not in DATASETS:
-        raise ValueError(f'{dataset} must be in {", ".join(DATASETS)}')
+        raise DEMNotSupported(f'{dataset} must be in {", ".join(DATASETS)}')
     df = read_geojson_gzip(DATA_PATH/f'{dataset}.geojson.zip')
     df['dem_name'] = dataset
     df.crs = CRS.from_epsg(4326)
