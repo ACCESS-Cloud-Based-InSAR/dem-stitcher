@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0]
+
+### Added
+- Included feature for extracting DEMs across datelines
+- Updated merge apis for more general usage
+- Exceptions to determine valid extents and ensure single dateline crossing
+
+### Changed
+- Moved functions into more logical python file including merge into `merge.py` and tile functions into `datasets.py`
+
+
 ## [2.3.1]
 
 ### Fixed
