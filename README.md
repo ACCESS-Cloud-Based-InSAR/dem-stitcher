@@ -121,7 +121,7 @@ As a performance note, when merging DEM tiles, we merge the all needed tiles in 
 
 # Dateline support
 
-We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e.longitudes between -/+ 180 longitude and -/+ latitude. If there is a dateline crossing by the supplied bounds, then the tiles are wrapped and translated to provide a continuous raster over the area provided.
+We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e.longitudes between -/+ 180 longitude and within -/+ 90 latitude. If there is a dateline crossing by the supplied bounds, then the tiles are wrapped and translated to provide a continuous raster over the area provided. No wrapping around poles (i.e. at -/+ 90 latitude) is supported.
 
 # For Development
 
