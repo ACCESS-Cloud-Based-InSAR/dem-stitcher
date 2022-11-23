@@ -8,7 +8,7 @@ from rasterio import default_gtiff_profile
 from dem_stitcher import stitch_dem
 from dem_stitcher.datasets import DATASETS
 from dem_stitcher.rio_tools import reproject_arr_to_match_profile
-from dem_stitcher.stitcher import (merge_and_transform_dem_tiles, merge_tiles,
+from dem_stitcher.stitcher import (merge_and_transform_dem_tiles, merge_tile_datasets,
                                    shift_profile_for_pixel_loc)
 
 # from dem_stitcher.datasets import DATASETS
@@ -90,7 +90,7 @@ def test_merge_tiles(test_data_dir, extent, array, transform):
     tile_datasets = [rasterio.open(path)
                      for path in [upper_left, upper_right, bottom_left]]
 
-    X, p = merge_tiles(tile_datasets, extent)
+    X, p = merge_tile_datasets(tile_datasets, extent)
 
     list(map(lambda x: x.close, tile_datasets))
 

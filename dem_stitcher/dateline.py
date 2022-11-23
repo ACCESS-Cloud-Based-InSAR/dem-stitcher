@@ -1,3 +1,6 @@
+from typing import List, Tuple
+
+from shapely.affinity import translate
 from shapely.geometry import box
 
 from .exceptions import DoubleDatelineCrossing, Incorrect4326Bounds
@@ -59,3 +62,41 @@ def get_dateline_crossing(bounds: list) -> int:
 
     elif (xmin <= -180) and (xmax >= 180):
         raise DoubleDatelineCrossing('Shrink your bounding area')
+
+
+def split_extent_across_dateline(extent: list) -> Tuple[List]:
+    """If extent crosses the dateline, then we return tuple of left and right hemispheres
+    assuming lat/lon CRS. Otherwise, just returns, extent and empty list
+
+    Parameters
+    ----------
+    extent : list
+        minx, miny, maxx, maxy
+
+    Returns
+    -------
+    Tuple[List]
+        (bounds_of_extent_on_left_hemisphere,
+         bounds_of_extent_on_right_hemisphere) if corsses dateline
+
+         Otherwise,
+         (extent, [])
+    """
+    crossing = get_dateline_crossing(extent)
+
+    if crossing:
+        left_hemisphere = box(-180, -90, 0, 90)
+        right_hemisphere = box(0, -90, 180, 90)
+
+        extent_box = box(*extent)
+        translation_x = - crossing * 2
+
+        extent_box_t = translate(extent_box, translation_x, 0)
+        multipolygon = extent_box.union(extent_box_t)
+
+        bounds_l = list(multipolygon.intersection(left_hemisphere).bounds)
+        bounds_r = list(multipolygon.intersection(right_hemisphere).bounds)
+        return (bounds_l, bounds_r)
+
+    else:
+        return extent, []

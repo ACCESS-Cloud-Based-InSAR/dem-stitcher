@@ -1,6 +1,6 @@
 import pytest
 
-from dem_stitcher.dateline import get_dateline_crossing
+from dem_stitcher.dateline import get_dateline_crossing, split_extent_across_dateline
 from dem_stitcher.exceptions import DoubleDatelineCrossing, Incorrect4326Bounds
 from dem_stitcher.stitcher import get_overlapping_dem_tiles
 
@@ -42,12 +42,21 @@ tiles_ids_list = [['Copernicus_DSM_COG_10_N51_00_E179_00_DEM', 'Copernicus_DSM_C
 def test_get_tiles_across_dateline(bounds, tile_ids):
     df_tiles_overlapping = get_overlapping_dem_tiles(bounds, 'glo_30')
     tile_ids_stitcher = df_tiles_overlapping.tile_id.tolist()
-    # Stitcher should sort by tile id as our the static lists above
+    # Stitcher should sort by tile id as is the case with the static tile lists above are
     assert tile_ids_stitcher == tile_ids
 
 
-def test_dataset_translation():
-    assert True
+bounds_list = [[-181, 51, -179, 52],
+               [-171, 51, -169, 52]]
+
+outputs = [([-180.0, 51.0, -179.0, 52.0], [179.0, 51.0, 180.0, 52.0]),
+           ([-171, 51, -169, 52], [])]
+
+
+@pytest.mark.parametrize("bounds, split_extent_known", zip(bounds_list, outputs))
+def test_split_extent(bounds, split_extent_known):
+    split_extent_output = split_extent_across_dateline(bounds)
+    assert split_extent_output == split_extent_known
 
 
 def test_stitcher_across_dateline():

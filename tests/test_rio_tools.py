@@ -2,6 +2,7 @@ import rasterio
 from numpy.testing import assert_almost_equal
 
 from dem_stitcher.rio_tools import (reproject_arr_to_match_profile,
+                                    translate_dataset,
                                     update_profile_resolution)
 
 
@@ -38,3 +39,22 @@ def test_update_resolution(test_data_dir):
 
     assert_almost_equal(X_quarter_deg_reprj, X_quarter_deg, 5)
     assert t_quarter_deg == p_higher_res['transform']
+
+
+def test_dataset_translation(test_data_dir):
+    data_dir = test_data_dir / 'dateline' / 'translate_datasets'
+
+    assert data_dir.exists()
+
+    ds_left = rasterio.open(data_dir / 'left.tif')
+    ds_right = rasterio.open(data_dir / 'right.tif')
+
+    res_x = ds_left.res[0]
+    mfile, ds_left_t = translate_dataset(ds_left, 360 / res_x, 0)
+
+    assert ds_left_t.transform == ds_right.transform
+    assert_almost_equal(ds_left_t.read(), ds_right.read(), 5)
+
+    ds_left_t.close()
+    ds_right.close()
+    mfile.close()
