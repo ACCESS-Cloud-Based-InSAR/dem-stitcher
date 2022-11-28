@@ -1,8 +1,12 @@
 import pytest
 from numpy.testing import assert_almost_equal
 
-from dem_stitcher.dateline import get_dateline_crossing, split_extent_across_dateline
+from dem_stitcher.dateline import (get_dateline_crossing,
+                                   split_extent_across_dateline)
 from dem_stitcher.exceptions import DoubleDatelineCrossing, Incorrect4326Bounds
+from dem_stitcher.geoid import read_geoid
+from dem_stitcher.merge import merge_arrays_with_geometadata
+from dem_stitcher.rio_tools import translate_profile
 from dem_stitcher.stitcher import get_overlapping_dem_tiles, stitch_dem
 
 bounds_list = [[179, 52, 181, 53],
@@ -87,3 +91,23 @@ def test_stitcher_array_across_dateline():
     X_r, _ = stitch_dem(bounds_r, 'glo_30', dst_ellipsoidal_height=False)
 
     assert_almost_equal(X_r, X_l, 5)
+
+
+@pytest.mark.integration
+def test_read_geoid_across_dateline():
+    bounds = [-181, 51.25, -179, 51.75]
+    geoid_arr_dateline, p = read_geoid('egm_08', bounds, res_buffer=1)
+
+    bounds_l = [-179.999, 51.25, -179, 51.75]
+    geoid_arr_l, p_l = read_geoid('egm_08', bounds_l, res_buffer=1)
+
+    bounds_r = [179, 51.25, 179.999, 51.75]
+    geoid_arr_r, p_r = read_geoid('egm_08', bounds_r, res_buffer=1)
+
+    res_x = p_r['transform'].a
+    p_r_t = translate_profile(p_r, -360 / res_x, 0)
+
+    geoid_merged, _ = merge_arrays_with_geometadata([geoid_arr_l, geoid_arr_r],
+                                                    [p_l, p_r_t])
+
+    assert_almost_equal(geoid_merged, geoid_arr_dateline, 5)

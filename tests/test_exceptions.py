@@ -1,6 +1,7 @@
 import pytest
 
 from dem_stitcher import stitch_dem
+from dem_stitcher.geoid import read_geoid
 from dem_stitcher.exceptions import (DEMNotSupported,
                                      Incorrect4326Bounds,
                                      NoDEMCoverage)
@@ -28,3 +29,12 @@ def test_bad_extents():
 
         X, p = stitch_dem(bounds,
                           dem_name='glo_30')
+
+
+def test_bad_extents_for_window():
+    with pytest.raises(ValueError):
+        '''Outside of Geoid Bounds'''
+        bounds = [-180, 34, -179, 35]
+
+        X, p = read_geoid('geoid_18',
+                          bounds)

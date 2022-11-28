@@ -1,5 +1,6 @@
 import math
 from typing import List, Tuple
+from warnings import warn
 
 import numpy as np
 import rasterio
@@ -8,6 +9,7 @@ from pyproj import Transformer
 from rasterio.crs import CRS
 from rasterio.transform import rowcol
 from rasterio.windows import Window
+from shapely.geometry import box
 
 
 def transform_bounds(src_bounds: list,
@@ -111,9 +113,21 @@ def read_raster_from_window(raster_path: str,
     with rasterio.open(raster_path) as ds:
         src_profile = ds.profile
         src_crs = ds.crs
+        src_bounds = list(ds.bounds)
 
     src_shape = src_profile['height'], src_profile['width']
     window_extent_r = transform_bounds(window_extent, window_crs, src_crs)
+
+    src_bbox_geo = box(*src_bounds)
+    win_bbox_geo = box(*window_extent_r)
+
+    intersection_geo = src_bbox_geo.intersection(win_bbox_geo)
+    if not intersection_geo.is_empty:
+        window_extent_r = intersection_geo.bounds
+        warn(f'Requesting extent beyond raster bounds of {list(src_bounds)}. '
+             f'Shrinking bounds in raster crs to {window_extent_r}')
+    else:
+        raise ValueError('The extent you specified does not overlap the specified raster.')
 
     corner_ul, corner_br = get_indices_from_extent(src_profile['transform'],
                                                    window_extent_r,
