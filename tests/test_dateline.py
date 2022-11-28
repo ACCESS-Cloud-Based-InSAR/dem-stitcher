@@ -1,4 +1,5 @@
 import pytest
+from numpy.testing import assert_almost_equal
 
 from dem_stitcher.dateline import get_dateline_crossing, split_extent_across_dateline
 from dem_stitcher.exceptions import DoubleDatelineCrossing, Incorrect4326Bounds
@@ -66,12 +67,23 @@ def test_split_extent(bounds, split_extent_known):
 
 
 bounds_list = [[-181, 51.25, -179, 51.75],
-               # [179, 51, 181, 52]
+               [179, 51, 181, 52]
                ]
 
 
 @pytest.mark.integration
 @pytest.mark.parametrize("bounds", bounds_list)
 def test_stithcer_across_dateline(bounds):
-    X, p = stitch_dem(bounds, 'glo_30', dst_ellipsoidal_height=True)
+    X, _ = stitch_dem(bounds, 'glo_30', dst_ellipsoidal_height=True)
     assert len(X.shape) == 2
+
+
+@pytest.mark.integration
+def test_stitcher_array_across_dateline():
+    bounds_l = [-181, 51.25, -179, 51.75]
+    X_l, _ = stitch_dem(bounds_l, 'glo_30', dst_ellipsoidal_height=False)
+
+    bounds_r = [179, 51.25, 181, 51.75]
+    X_r, _ = stitch_dem(bounds_r, 'glo_30', dst_ellipsoidal_height=False)
+
+    assert_almost_equal(X_r, X_l, 5)
