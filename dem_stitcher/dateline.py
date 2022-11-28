@@ -20,6 +20,12 @@ def check_4326_bounds(bounds: list) -> bool:
         raise Incorrect4326Bounds('Make sure bounds have intersection over standard 4326 CRS i.e. '
                                   'between longitude -180 and 180 and latitude -90 and 90.')
 
+    extended_4326_box = box(-380, -90, 380, 90)
+    bounds_box = box(*bounds)
+
+    if not (extended_4326_box.contains(bounds_box)):
+        raise Incorrect4326Bounds('Do not support boxes beyond the North/South Pole at +/- 90 Latitude')
+
     return True
 
 

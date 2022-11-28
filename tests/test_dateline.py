@@ -22,8 +22,14 @@ def test_dateline_crossing(bounds, crossing):
 bounds_list = [[-181, 0, 181, 1],
                [-200, 0, -181, 1],
                [180.01, 0, 200, 1],
+               [52, 89, 53, 91],
+               [52, -91, 53, -89],
                ]
-exceptions = [DoubleDatelineCrossing, Incorrect4326Bounds, Incorrect4326Bounds]
+exceptions = [DoubleDatelineCrossing,
+              Incorrect4326Bounds,
+              Incorrect4326Bounds,
+              Incorrect4326Bounds,
+              Incorrect4326Bounds]
 
 
 @pytest.mark.parametrize("bounds, exception", zip(bounds_list, exceptions))
@@ -59,7 +65,7 @@ def test_split_extent(bounds, split_extent_known):
     assert split_extent_output == split_extent_known
 
 
-bounds_list = [[-181, 51, -179, 52],
+bounds_list = [[-181, 51.25, -179, 51.75],
                # [179, 51, 181, 52]
                ]
 
