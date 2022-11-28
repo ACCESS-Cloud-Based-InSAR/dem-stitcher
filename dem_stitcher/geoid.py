@@ -55,7 +55,7 @@ def remove_geoid(dem_arr: np.ndarray,
                  dem_area_or_point: str = 'Area',
                  res_buffer: int = 2) -> np.ndarray:
 
-    assert(dem_area_or_point in ['Point', 'Area'])
+    assert dem_area_or_point in ['Point', 'Area']
 
     extent = array_bounds(dem_profile['height'],
                           dem_profile['width'],

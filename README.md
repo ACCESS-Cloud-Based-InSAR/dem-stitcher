@@ -1,5 +1,11 @@
 # dem-stitcher
 
+[![PyPI license](https://img.shields.io/pypi/l/dem_stitcher.svg)](https://pypi.python.org/pypi/dem_stitcher/)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/dem_stitcher.svg)](https://pypi.python.org/pypi/dem_stitcher/)
+[![PyPI version](https://img.shields.io/pypi/v/dem_stitcher.svg)](https://pypi.python.org/pypi/dem_stitcher/)
+[![Conda version](https://img.shields.io/conda/vn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
+[![Conda platforms](https://img.shields.io/conda/pn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
+
 This tool aims to (a) provide a continuous raster of Digital Elevation Raster over an area of interest and (b) perform some standard transformations for processing. Such transformations include:
 
 + converting the vertical datum from a reference geoid to the WGS84 ellipsoidal
@@ -28,14 +34,27 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
 
 # Installation
 
-To install `dem-stitcher`:
+In order to easily manage dependencies, we recommend using dedicated project environments
+via [Anaconda/Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
+or [Python virtual environments](https://docs.python.org/3/tutorial/venv.html).
 
-1. Clone this repository and navigate to it.
-2. Install the envrionment in `environment.yml` i.e. `conda env update -f environment.yml`
-3. Install with `pip` from PyPI: `python -m pip install dem-stitcher`
+`dem_stitcher` can be installed into a conda environment with
 
-Currently, python versions 3.7 - 3.10 are supported.
+```
+conda install -c conda-forge dem_stitcher
+```
 
+or into a virtual environment with
+
+```
+python -m pip install dem_stitcher
+```
+
+Currently, python 3.7+ is supported.
+
+## With ISCE2 or gdal
+
+Although the thrust of using this package is for staging DEMs for InSAR (particularly ISCE2), testing and maintaining suitable environments to use with InSAR processors is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own and additionally requires python version `<3.10`. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
 
 ## Credentials
 
@@ -48,10 +67,6 @@ machine urs.earthdata.nasa.gov
     password <password>
 ```
 
-## Using with ISCE2 or gdal
-
-Although the thrust of using this package is for staging DEMs for InSAR, testing and maintaining suitable environments to use with InSAR processors (particularly ISCE2) is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
-
 # Notebooks
 
 We have notebooks to demonstrate common usage:
@@ -60,7 +75,7 @@ We have notebooks to demonstrate common usage:
 + [Comparing DEMs](notebooks/Comparing_DEMs.ipynb)
 + [Staging a DEM for ISCE2](notebooks/Staging_a_DEM_for_ISCE2.ipynb) - this notebook requires the installation of a few extra libraries including ISCE2 via `conda-forge`
 
-We also demonstrate how the tile database used by this package were generated in this [notebook](notebooks/organize_tile_data/Format_and_Organize_Data.ipynb).
+We also demonstrate how the tiles used to organize the urls for the DEMs were generated for this tool were generated in this [notebook](notebooks/organize_tile_data/).
 
 # DEMs Supported
 
@@ -78,6 +93,8 @@ Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90', 'ne
 3. `srtm_v3`: SRTM v3 [[link](https://dwtkns.com/srtm30m/)]
 4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
 5. `glo_90_missing`: these are tiles that are in `glo_90` but not in `glo_30`. They are over the countries Armenia and Azerbaijan. Used internally to help fill in gaps in coverage of `glo_30`.
+
+If there are issues with obtaining dem tiles from urls embedded within the geojson tiles (e.g. a `404` error as [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/48)), please see the [Development](#for-development) section below and/or open an issue ticket.
 
 # DEM Transformations
 
@@ -106,6 +123,15 @@ This is almost identical to normal installation:
 2. Navigate with your terminal to the repo.
 3. Create a new environment and install requirements using `conda env update --file environment.yml` (or use [`mamba`](https://github.com/mamba-org/mamba) to speed the install up)
 4. Install the package from cloned repo using `python -m pip install -e .`
+
+## DEM Urls
+
+If urls or readers need to be updated (they consistently do) or you want to add a new global or large DEM, then there are two points of contact:
+
+1. The notebooks that format the geojsons used for this library are [here](notebooks/organize_tile_data/)
+2. The readers are [here](dem_stitcher/dem_readers.py)
+
+The former is the more likely. When re-generating tiles, make sure to run all tests including integration tests (i.e. `pytest tests`). For example, if regenerating `glo` tiles, `glo-30` requires both resolution parameters (30 meters and 90 meters) and an additional notebook for filling in missing 30 meter tiles. These should be clearly spelled out in the notebook linked above.
 
 # Testing
 

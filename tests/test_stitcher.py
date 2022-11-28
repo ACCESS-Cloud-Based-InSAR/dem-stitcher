@@ -95,7 +95,7 @@ def test_merge_tiles(test_data_dir, extent, array, transform):
     list(map(lambda x: x.close, tile_datasets))
 
     assert_array_equal(X, array)
-    assert(p['transform'] == transform)
+    assert p['transform'] == transform
 
 
 """
@@ -140,7 +140,7 @@ def test_shift_pixel_loc(src_tag, dst_tag, transform_expected):
     t_new = p_new['transform']
 
     # Check the transform is what we expect
-    assert(transform_expected == t_new)
+    assert transform_expected == t_new
 
 
 @pytest.mark.parametrize("dem_name", ['glo_30', 'nasadem'])
@@ -193,4 +193,4 @@ def test_download_dem(dem_name):
                             dst_ellipsoidal_height=True,
                             dst_resolution=0.0002777777777777777775
                             )
-    assert(len(dem_arr.shape) == 2)
+    assert len(dem_arr.shape) == 2

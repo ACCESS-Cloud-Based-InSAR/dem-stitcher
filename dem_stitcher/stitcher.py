@@ -153,8 +153,8 @@ def merge_tiles(datasets: List[rasterio.DatasetReader],
 def shift_profile_for_pixel_loc(src_profile: dict,
                                 src_area_or_point: str,
                                 dst_area_or_point: str) -> dict:
-    assert(dst_area_or_point in ['Area', 'Point'])
-    assert(src_area_or_point in ['Area', 'Point'])
+    assert dst_area_or_point in ['Area', 'Point']
+    assert src_area_or_point in ['Area', 'Point']
     if dst_area_or_point == 'Point' and src_area_or_point == 'Area':
         shift = -.5
         profile_shifted = translate_profile(src_profile, shift, shift)
@@ -210,7 +210,7 @@ def merge_and_transform_dem_tiles(datasets: list,
         dem_arr = dem_arr[0, ...]
 
     # Ensure dem_arr has correct shape
-    assert(len(dem_arr.shape) == 2)
+    assert len(dem_arr.shape) == 2
 
     return dem_arr, dem_profile
 
