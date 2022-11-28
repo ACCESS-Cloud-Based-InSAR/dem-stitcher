@@ -1,10 +1,9 @@
 import pytest
 
 from dem_stitcher import stitch_dem
-from dem_stitcher.geoid import read_geoid
-from dem_stitcher.exceptions import (DEMNotSupported,
-                                     Incorrect4326Bounds,
+from dem_stitcher.exceptions import (DEMNotSupported, Incorrect4326Bounds,
                                      NoDEMCoverage)
+from dem_stitcher.geoid import read_geoid
 
 
 def test_dem_not_supported():
