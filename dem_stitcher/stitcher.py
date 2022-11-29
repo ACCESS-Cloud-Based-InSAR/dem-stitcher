@@ -299,7 +299,7 @@ def stitch_dem(bounds: list,
 
     # Creates in memory file containers if there is a dateline crossing for translation
     if crossing:
-        list(map(lambda mf: mf.close, memory_files))
+        list(map(lambda mf: mf.close(), memory_files))
 
     # Set driver in profile
     dem_profile['driver'] = driver
