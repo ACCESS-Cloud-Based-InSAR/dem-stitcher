@@ -193,7 +193,7 @@ def stitch_dem(bounds: list,
                dst_area_or_point: str = 'Area',
                dst_resolution: Union[float, Tuple[float]] = None,
                n_threads_reproj: int = 5,
-               n_threads_downloading=5,
+               n_threads_downloading: int =5,
                driver: str = 'GTiff',
                fill_in_glo_30: bool = True
                ) -> Tuple[np.ndarray, dict]:
