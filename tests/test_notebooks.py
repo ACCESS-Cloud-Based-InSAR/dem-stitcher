@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import papermill as pm
 import pytest
 
 notebooks = ['Basic_Demo.ipynb',
@@ -14,6 +13,8 @@ notebooks = ['Basic_Demo.ipynb',
 def test_read_geoid_across_dateline(notebooks_dir,
                                     test_data_dir,
                                     notebook_file_name):
+
+    import papermill as pm
 
     test_dir = test_data_dir.parent
     out_dir = test_dir / 'out_test_nb'
