@@ -73,6 +73,7 @@ notebooks/*.kmz
 notebooks/*.jpg
 notebooks/*.wld
 notebooks/*.geojson
+notebooks/**/*.tif
 
 # VRT
 *.vrt

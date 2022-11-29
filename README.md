@@ -143,10 +143,15 @@ The former is the more likely. When re-generating tiles, make sure to run all te
 
 # Testing
 
-1. Install `pytest`
-2. Run `pytest .`
+For unit tests,
 
- We have an integration test (marked as `integration`) which ensures all the datasets are downloaded and can be transformed (not validated for correctness at this time). Otherwise, all tests have basic tests with mock data to illustrate how the DEM stitcher is working. The non-integration tests are as github actions via `pytest tests -m "not integration"`.
+1. Install `pytest` via `conda-forge`
+2. Run `pytest tests -m 'not integration'`
+
+ We also have a number integration test (marked as `integration` within pytest) to ensures all the DEM tile datasets can be downloaded and transformed successfully (though in most cases, correctness is not verified, that is the domain of the non-integration unit tests). Integration tests will quickly indicate if urls for DEM tiles are working correctly. Integration tests are not checked within the github actions currently. Additionally, to ensure the documentation of this repository, in the form of notebooks, utilize the correct functional API, we utilize `papermill`. Thus for integration tests please install `papermill` via:
+
+ 1. `mamba install -c conda forge papermill`
+ 2. `pytest tests -m 'integration'`
 
 # Contributing
 
