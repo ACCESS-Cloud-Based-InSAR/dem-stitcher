@@ -276,6 +276,10 @@ def stitch_dem(bounds: list,
         else:
             raise NoDEMCoverage(f'Specified bounds are not within coverage area of {dem_name}')
 
+    # Preserve tile metadata data not used for geo-referencing
+    profile_tile = datasets[0].profile.copy()
+    [profile_tile.pop(key) for key in ['transform', 'dtype', 'height', 'width', 'nodata', 'crs']]
+
     crossing = get_dateline_crossing(bounds)
     if crossing:
         zipped_data = list(map(lambda ds: _translate_one_tile_across_dateline(ds, crossing), datasets))
@@ -310,4 +314,5 @@ def stitch_dem(bounds: list,
                                                         bounds,
                                                         stitcher_kwargs)
 
+    dem_profile.update(**profile_tile)
     return dem_arr, dem_profile
