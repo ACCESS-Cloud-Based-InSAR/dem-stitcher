@@ -83,7 +83,7 @@ def test_stithcer_across_dateline(bounds):
 
 
 @pytest.mark.integration
-def test_stitcher_array_across_dateline():
+def test_stitcher_across_dateline_approaching_from_left_and_right():
     bounds_l = [-181, 51.25, -179, 51.75]
     X_l, p_l = stitch_dem(bounds_l, 'glo_30', dst_ellipsoidal_height=False, dst_area_or_point='Point')
 
