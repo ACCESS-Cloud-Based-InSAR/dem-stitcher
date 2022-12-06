@@ -3,6 +3,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, List, Tuple, Union
+from warnings import warn
 
 import numpy as np
 import rasterio
@@ -223,7 +224,7 @@ def stitch_dem(bounds: list,
     n_threads_downloading : int, optional
         Threads for downloading tiles, by default 5
     driver : str, optional
-        Output format in profile, by default 'GTiff'
+        Output format in profile, by default 'GTiff'. Other drivers are not recommended.
     fill_in_glo_30 : bool, optional
         If `dem_name` is 'glo_30' then fills in missing `glo_30` tiles over Armenia and Azerbaijan with available
         `glo_90` tiles, by default True. If the extent falls inside of the missing `glo_30` tiles, then `glo_90` is
@@ -239,6 +240,11 @@ def stitch_dem(bounds: list,
     """
     # Used for filling in glo_30 missing tiles if needed
     stitcher_kwargs = locals()
+
+    if driver != 'GTiff':
+        warn('A non-geotiff driver may not be valid with tile creation options during rasterio write. '
+             'This feature will be removed in a future release and the driver will be fixed to GeoTiff.',
+             category=UserWarning)
 
     df_tiles = get_overlapping_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
