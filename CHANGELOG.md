@@ -15,6 +15,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added functions for dateline in `dateline.py`
 - Tests for added and changed functionality.
 - Integration tests for notebooks.
+- Clarity about driver keyword in `stitch_dem` in readme, docstrings
 
 ### Changed
 - Moved functions into more logical python file including merge calls into `merge.py` and tile functions into `datasets.py`
