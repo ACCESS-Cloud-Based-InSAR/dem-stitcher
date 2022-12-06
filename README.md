@@ -58,6 +58,10 @@ Currently, python 3.7+ is supported.
 
 Although the thrust of using this package is for staging DEMs for InSAR (particularly ISCE2), testing and maintaining suitable environments to use with InSAR processors is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own and additionally requires python version `<3.10`. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
 
+## About the raster metadata
+
+The creation metadata unrelated to georeferencing (e.g. `compress` key, see [here](https://rasterio.readthedocs.io/en/latest/topics/image_options.html#creation-options)) returned from the `stitch_dem` API is copied from the tiles being used. Although a driver can be specified through this API, we recommend using the default `GTiff`. We caution that the other creation metadata from a dem tile set may not be valid with the various types of drivers. Furthermore, different distributions of `rasterio` support different drivers. These rasterio metadata creation is beyond the scope of this library.
+
 ## Credentials
 
 The accessing of NASADEM and SRTM require earthdata login credentials to be put into the `~/.netrc` file. If these are not present, the stitcher will
@@ -121,7 +125,7 @@ As a performance note, when merging DEM tiles, we merge the all needed tiles in 
 
 # Dateline support
 
-We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e.longitudes between -/+ 180 longitude and within -/+ 90 latitude. If there is a dateline crossing by the supplied bounds, then the tiles are wrapped and translated to provide a continuous raster over the area provided. No wrapping around poles (i.e. at -/+ 90 latitude) is supported.
+We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e.longitudes between -/+ 180 longitude and within -/+ 90 latitude. If there is a dateline crossing by the supplied bounds, then the tiles are wrapped and translated to provide a continuous raster over the area provided. Wrapping around poles (i.e. at -/+ 90 latitude) is *not* supported.
 
 # For Development
 
@@ -171,4 +175,4 @@ We use `flake8` and associated linting packages to ensure some basic code qualit
 
 # Acknowledgements
 
-This tool was developed to support cloud SAR processing using ISCE2 and various research. The early work of this repository was done by Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard. Since the utilization of this package for GUNW generation (see this [repo](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp)), a subset of the ACCESS team, including Joseph (Joe) H. Kennedy, Simran Sangha, Grace Bato, Andrew Johnston, and Charlie Marshak, have improved this repository greatly. In particular, Joe Kennedy has lead the inclusion/development of actions, tests, packaging, distribution (including PyPI and `conda-forge`) and all the things to make this package more reliable, accessible, readable, etc. Simran Sangha has helped make sure output rasters are compatible with ISCE2 and other important bug-fixes.
+This tool was developed to support cloud SAR processing using ISCE2 and various research projects at JPL. The early work of this repository was done by Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard. Since the utilization of this package for GUNW generation (see this [repo](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp)), a subset of the ACCESS team, including Joseph (Joe) H. Kennedy, Simran Sangha, Grace Bato, Andrew Johnston, and Charlie Marshak, have improved this repository greatly. In particular, Joe Kennedy has lead the inclusion/development of actions, tests, packaging, distribution (including PyPI and `conda-forge`) and all the things to make this package more reliable, accessible, readable, etc. Simran Sangha has helped make sure output rasters are compatible with ISCE2 and other important bug-fixes.
