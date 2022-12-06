@@ -125,7 +125,7 @@ As a performance note, when merging DEM tiles, we merge the all needed tiles in 
 
 # Dateline support
 
-We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e.longitudes between -/+ 180 longitude and within -/+ 90 latitude. If there is a dateline crossing by the supplied bounds, then the tiles are wrapped and translated to provide a continuous raster over the area provided. Wrapping around poles (i.e. at -/+ 90 latitude) is *not* supported.
+We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e. longitudes between -/+ 180 longitude and are within -/+ 90 latitude. If there is a single dateline crossing by the supplied bounds, then the tiles are wrapped and translated to provide a continuous raster over the area provided. We assume a maximum of one dateline crossing (if you have multiple dateline crossing, you should not being using the `stitch_dem` API directly). Wrapping around poles (i.e. at -/+ 90 latitude) is *not* supported and an exception will be raised.
 
 # For Development
 
