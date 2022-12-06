@@ -10,14 +10,14 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - Included feature for extracting DEMs across datelines
-- Updated merge apis for more general usage
+- Updated merge apis with more descriptive names for more general usage
 - Exceptions to determine valid extents and ensure single dateline crossing
 - Added functions for dateline in `dateline.py`
 - Tests for added and changed functionality.
 - Integration tests for notebooks.
 
 ### Changed
-- Moved functions into more logical python file including merge into `merge.py` and tile functions into `datasets.py`
+- Moved functions into more logical python file including merge calls into `merge.py` and tile functions into `datasets.py`
 - Renamed internal functions for greater clarity and better description of tasks
 - Ensures window reading checks bounds of src raster and does intersection if required to ensure no unexpected rasterio errors. Further, raises error if no overlap.
 
