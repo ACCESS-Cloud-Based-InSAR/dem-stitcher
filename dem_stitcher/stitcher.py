@@ -93,7 +93,7 @@ def shift_profile_for_pixel_loc(src_profile: dict,
                                 dst_area_or_point: str) -> dict:
     assert dst_area_or_point in ['Area', 'Point']
     assert src_area_or_point in ['Area', 'Point']
-    if dst_area_or_point == 'Point' and src_area_or_point == 'Area':
+    if (dst_area_or_point == 'Point') and (src_area_or_point == 'Area'):
         shift = -.5
         profile_shifted = translate_profile(src_profile, shift, shift)
     elif (dst_area_or_point == 'Area') and (src_area_or_point == 'Point'):
@@ -176,10 +176,15 @@ def _translate_one_tile_across_dateline(dataset: rasterio.DatasetReader, crossin
     res_x = dataset.res[0]
     xmin, _, xmax, _ = dataset.bounds
 
+    tags = dataset.tags()
     if crossing == 180 and xmax <= 0:
         memfile, dataset_new = translate_dataset(dataset, 360 / res_x, 0)
+        # Ensures area or point are correctly stored!
+        dataset_new.update_tags(**tags)
     elif crossing == -180 and xmin >= 0:
         memfile, dataset_new = translate_dataset(dataset, -360 / res_x, 0)
+        # Ensures area or point are correctly stored!
+        dataset_new.update_tags(**tags)
     else:
         memfile = MemoryFile()
         dataset_new = dataset

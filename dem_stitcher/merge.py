@@ -40,13 +40,13 @@ def merge_tile_datasets(datasets: List[rasterio.DatasetReader],
     merged_transform_final = merged_transform_final * Affine.scale(merged_transform.a,
                                                                    merged_transform.e)
 
-    profile = datasets[0].profile.copy()
-    profile['height'] = merged_arr.shape[0]
-    profile['width'] = merged_arr.shape[1]
-    profile['nodata'] = np.nan
-    profile['dtype'] = 'float32'
-    profile['transform'] = merged_transform_final
-    return merged_arr, profile
+    merged_profile = datasets[0].profile.copy()
+    merged_profile['height'] = merged_arr.shape[0]
+    merged_profile['width'] = merged_arr.shape[1]
+    merged_profile['nodata'] = np.nan
+    merged_profile['dtype'] = 'float32'
+    merged_profile['transform'] = merged_transform_final
+    return merged_arr, merged_profile
 
 
 def merge_arrays_with_geometadata(arrays: List[np.ndarray],

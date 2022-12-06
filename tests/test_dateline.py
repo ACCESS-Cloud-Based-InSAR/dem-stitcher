@@ -85,11 +85,20 @@ def test_stithcer_across_dateline(bounds):
 @pytest.mark.integration
 def test_stitcher_array_across_dateline():
     bounds_l = [-181, 51.25, -179, 51.75]
-    X_l, _ = stitch_dem(bounds_l, 'glo_30', dst_ellipsoidal_height=False)
+    X_l, p_l = stitch_dem(bounds_l, 'glo_30', dst_ellipsoidal_height=False, dst_area_or_point='Point')
 
     bounds_r = [179, 51.25, 181, 51.75]
-    X_r, _ = stitch_dem(bounds_r, 'glo_30', dst_ellipsoidal_height=False)
+    X_r, p_r = stitch_dem(bounds_r, 'glo_30', dst_ellipsoidal_height=False, dst_area_or_point='Point')
 
+    # Metadata should be the same after translation
+    res_x = p_r['transform'].a
+    p_r_t = translate_profile(p_r, -360 / res_x, 0)
+
+    # Georefernencing
+    assert p_r_t['crs'] == p_l['crs']
+    assert p_r_t['transform'] == p_l['transform']
+
+    # Arrays should be the same as well
     assert_almost_equal(X_r, X_l, 5)
 
 
