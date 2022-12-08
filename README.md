@@ -22,7 +22,7 @@ X, p = stitch_dem(bounds,
                   dst_ellipsoidal_height=False,
                   dst_area_or_point='Point')
 # X is an m x n numpy array
-# p is a dictionary (or a rasterio profile) including relevant GIS metadata
+# p is a dictionary (or a rasterio profile) including relevant GIS metadata; CRS is epsg:4326
 ```
 Then, to save the DEM:
 ```
@@ -32,7 +32,7 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
    ds.write(X, 1)
    ds.update_tags(AREA_OR_POINT='Point')
 ```
-Global DEMs supported are tiled in lat/lon (`epsg:4326`) and the API assumes that bounds are supplied in this format.
+The rasters are returned in a global lat/lon projection (`epsg:4326`) and the API assumes that bounds are supplied in this format.
 
 # Installation
 
@@ -101,7 +101,7 @@ These shortnames are the strings required when requesting `stitch_dem` to utiliz
 4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
 5. `glo_90_missing`: these are tiles that are in `glo_90` but not in `glo_30`. They are over the countries Armenia and Azerbaijan. Used internally to help fill in gaps in coverage of `glo_30`.
 
- All the tiles are given in lat/lon CRS (i.e. `epsg:4326` or `epsg:4269`). A notable omission to the tile sets is the Artic DEM [here](https://www.pgc.umn.edu/data/arcticdem/), which is suitable for DEMs merged at the north pole of the globe due to lat/lon distortion.
+ All the tiles are given in lat/lon CRS (i.e. `epsg:4326` for global tiles or `epsg:4269` for USGS tiles in North America). A notable omission to the tile sets is the Artic DEM [here](https://www.pgc.umn.edu/data/arcticdem/), which is suitable for DEMs merged at the north pole of the globe due to lat/lon distortion.
 
  If there are issues with obtaining dem tiles from urls embedded within the geojson tiles (e.g. a `404` error as [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/48)), please see the [Development](#for-development) section below and/or open an issue ticket.
 
@@ -109,7 +109,7 @@ These shortnames are the strings required when requesting `stitch_dem` to utiliz
 
 Wherever possible, we do not resample the original DEMs unless specified by the user to do so. When extents are specified, we obtain the the minimum  pixel extent within the merged tile DEMs that contain that extent. Any required resampling (e.g. updating the CRS or updating the resolution because the tiles have non-square resolution at high latitudes) is done after these required translations. We importantly note that order in which these transformations are done is crucial, i.e. first translating the DEM (to either pixel- or area-center coordinates) and then resampling is different than first resampling and then translation (as affine transformations are not commutative). Here are some notes/discussions:
 
-1. All DEMs are resampled to `epsg:4326` (most DEMs are in this CRS except some of the USGS DEMs, which are in `epsg:4269` and is an almost identical CRS over North America).
+1. All DEMs are resampled to `epsg:4326`. Most DEMs are already in this CRS except the USGS DEMs over North America, which are in `epsg:4269`, whose `xy` projection is also `lon/lat` but has different vertical data. For our purposes, these two CRSs are almost identical. The nuanced differences between these CRS's is noted [here](https://gis.stackexchange.com/a/170854).
 2. All DEM outputs will have origin and pixel spacing aligning with the original DEM tiles unless a resolution for the final product is specified, which will alter the pixel spacing.
 3. Georeferenced rasters can be tied to map coordintaes using either (a) upper-left corners of pixels or (b) the pixel centers i.e. `Point` and `Area` tags in `gdal`, respectively, and seen as `{'AREA_OR_POINT: 'Point'}`. Note that tying a pixel to the upper-left cortner (i.e. `Area` tag) is the *default* pixel reference for `gdal` as indicated [here](https://gdal.org/tutorials/geotransforms_tut.html). Some helpful resources in reference to DEMs about this book-keeping are below.
    + SRTM v3, NASADEM, and TDX are [Pixel-centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904), i.e. `{'AREA_OR_POINT: 'Point'}`.
