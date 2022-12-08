@@ -6,10 +6,10 @@
 [![Conda version](https://img.shields.io/conda/vn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
 [![Conda platforms](https://img.shields.io/conda/pn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
 
-This tool aims to (a) provide a continuous raster of global Digital Elevation Raster over an area of interest and (b) perform some standard transformations for processing. Such transformations include:
+This tool aims to provide a continuous raster of a Digital Elevation Model (DEM) raster over an area of interest utilizing tile sets such as the Global Copernicus Digital Elevation Model at 30 meter resolution, often dubbed `glo_30` elsewhere and below. See the [Datasets](#dems-supported) section below for all the tiles supported and their shortnames. This tool also performs some standard transformations for processing including:
 
-+ converting the vertical datum from a reference geoid to the WGS84 ellipsoidal
-+ ensuring a coordinate reference system centered at either the upper-left corner (`Area` tag) or center of the pixel (`Point` tag).
++ the conversion of the vertical datum from a reference geoid to the WGS84 ellipsoidal
++ the accounting of a coordinate reference system centered at either the upper-left corner (`Area` tag) or center of the pixel (`Point` tag).
 
 We utilize the GIS formats from `rasterio`. The API can be summarized as
 
@@ -18,7 +18,7 @@ We utilize the GIS formats from `rasterio`. The API can be summarized as
 bounds = [-119.085, 33.402, -118.984, 35.435]
 
 X, p = stitch_dem(bounds,
-                  dem_name='glo_30',
+                  dem_name='glo_30',  # Global Copernicus 30 meter DEM
                   dst_ellipsoidal_height=False,
                   dst_area_or_point='Point')
 # X is an m x n numpy array
@@ -91,18 +91,19 @@ The [DEMs](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/tree/main/de
 In [1]: from dem_stitcher.datasets import DATASETS; DATASETS
 Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90', 'ned1']
 ```
+These shortnames are the strings required when requesting `stitch_dem` to utilize each respective tile sets. Below we describe the DEMs and link to their data repositories.
 
-All the tiles are given in lat/lon CRS (i.e. `epsg:4326`). A notable omission is the Artic DEM [here](https://www.pgc.umn.edu/data/arcticdem/), which is suitable for DEMs at the northern pole of the globe due to lat/lon distortion.
-
-1. `glo_30`/`glo_90`: Copernicus GLO-30/GLO-90 DEM. They are the 30 and 90 meter resolution, respectively [[link](https://registry.opendata.aws/copernicus-dem/)].
+1. `glo_30`/`glo_90`: Copernicus GLO-30/GLO-90 DEM. The tile sets are the 30 and 90 meter resolution, respectively [[link](https://registry.opendata.aws/copernicus-dem/)].
 2. The USGS DEMSs:
    - `ned1`:  Ned 1 arc-second (deprecated by USGS) [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
-   - `3dep`: 3Dep 1 arc-second[[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)]
+   - `3dep`: 3Dep 1 arc-second[[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)] - the successor of NED1
 3. `srtm_v3`: SRTM v3 [[link](https://dwtkns.com/srtm30m/)]
 4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
 5. `glo_90_missing`: these are tiles that are in `glo_90` but not in `glo_30`. They are over the countries Armenia and Azerbaijan. Used internally to help fill in gaps in coverage of `glo_30`.
 
-If there are issues with obtaining dem tiles from urls embedded within the geojson tiles (e.g. a `404` error as [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/48)), please see the [Development](#for-development) section below and/or open an issue ticket.
+ All the tiles are given in lat/lon CRS (i.e. `epsg:4326` or `epsg:4269`). A notable omission to the tile sets is the Artic DEM [here](https://www.pgc.umn.edu/data/arcticdem/), which is suitable for DEMs merged at the north pole of the globe due to lat/lon distortion.
+
+ If there are issues with obtaining dem tiles from urls embedded within the geojson tiles (e.g. a `404` error as [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/48)), please see the [Development](#for-development) section below and/or open an issue ticket.
 
 # DEM Transformations
 
