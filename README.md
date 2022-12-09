@@ -6,19 +6,19 @@
 [![Conda version](https://img.shields.io/conda/vn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
 [![Conda platforms](https://img.shields.io/conda/pn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
 
-This tool aims to provide a continuous raster of a Digital Elevation Model (DEM) raster over an area of interest utilizing tile sets such as the Global Copernicus Digital Elevation Model at 30 meter resolution, often dubbed `glo_30` elsewhere and below. See the [Datasets](#dems-supported) section below for all the tiles supported and their shortnames. This tool also performs some standard transformations for processing including:
+This tool provides a raster of a Digital Elevation Model (DEM) over an area of interest utilizing global or continental, publicly available tile sets such as the [Global Copernicus Digital Elevation Model at 30 meter resolution](https://registry.opendata.aws/copernicus-dem/). See the [Datasets](#dems-supported) section below for all the tiles supported and their shortnames. This tool also performs some standard transformations for processing such as:
 
 + the conversion of the vertical datum from a reference geoid to the WGS84 ellipsoidal
 + the accounting of a coordinate reference system centered at either the upper-left corner (`Area` tag) or center of the pixel (`Point` tag).
 
-We utilize the GIS formats from `rasterio`. The API can be summarized as
+We rely on the GIS formats from `rasterio`. The API can be summarized as
 
 ```
 # as xmin, ymin, xmax, ymax in epsg:4326
 bounds = [-119.085, 33.402, -118.984, 35.435]
 
 X, p = stitch_dem(bounds,
-                  dem_name='glo_30',  # Global Copernicus 30 meter DEM
+                  dem_name='glo_30',  # Global Copernicus 30 meter resolution DEM
                   dst_ellipsoidal_height=False,
                   dst_area_or_point='Point')
 # X is an m x n numpy array
@@ -60,7 +60,7 @@ Although the thrust of using this package is for staging DEMs for InSAR (particu
 
 ## About the raster metadata
 
-The creation metadata unrelated to georeferencing (e.g. `compress` key, see [here](https://rasterio.readthedocs.io/en/latest/topics/image_options.html#creation-options)) returned from the `stitch_dem` API is copied from the tiles being used. Although a driver can be specified through this API, we recommend using the default `GTiff`. We caution that the other creation metadata from a dem tile set may not be valid with the various types of drivers. Furthermore, different distributions of `rasterio` support different drivers. These rasterio metadata creation is beyond the scope of this library.
+The creation metadata unrelated to georeferencing (e.g. the `compress` key, see [here](https://rasterio.readthedocs.io/en/latest/topics/image_options.html#creation-options) for various other options) returned from the `stitch_dem` API is copied from the source tiles being used. Although a `driver` keyword can be specified through this API directly, we recommend using the default `GTiff` option. We caution that the  creation metadata copied from the source DEM tile set may not be valid with the other possible drivers and has not been tested. Furthermore, different distributions of `rasterio` support different of subsets drivers; however, `GTiff` is the default driver in `rasterio` and supported across all distributions. Such metadata creation options are beyond the scope of this library.
 
 ## Credentials
 
@@ -85,18 +85,18 @@ We also demonstrate how the tiles used to organize the urls for the DEMs were ge
 
 # DEMs Supported
 
-The [DEMs](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/tree/main/dem_stitcher/data) that can currently be used with this tool are:
+The [DEMs](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/tree/main/dem_stitcher/data) that are currently supported are:
 
 ```
 In [1]: from dem_stitcher.datasets import DATASETS; DATASETS
 Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90', 'ned1']
 ```
-These shortnames are the strings required when requesting `stitch_dem` to utilize each respective tile sets. Below we describe the DEMs and link to their data repositories.
+The shortnames aboves are the strings required to use `stitch_dem`. Below, we expound upon these DEM shortnames and link to their respective data repositories.
 
 1. `glo_30`/`glo_90`: Copernicus GLO-30/GLO-90 DEM. The tile sets are the 30 and 90 meter resolution, respectively [[link](https://registry.opendata.aws/copernicus-dem/)].
 2. The USGS DEMSs:
-   - `ned1`:  Ned 1 arc-second (deprecated by USGS) [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
-   - `3dep`: 3Dep 1 arc-second[[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)] - the successor of NED1
+   - `ned1`:  Ned 1 arc-second (deprecated by USGS) over North America [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
+   - `3dep`: 3Dep 1 arc-second over North America - the successor of NED1 [[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)]
 3. `srtm_v3`: SRTM v3 [[link](https://dwtkns.com/srtm30m/)]
 4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
 5. `glo_90_missing`: these are tiles that are in `glo_90` but not in `glo_30`. They are over the countries Armenia and Azerbaijan. Used internally to help fill in gaps in coverage of `glo_30`.
