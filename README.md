@@ -118,7 +118,7 @@ Wherever possible, we do not resample the original DEMs unless specified by the 
    + Adjust the geoid to pixel/area coordinates
    + resample the geoids into the DEM reference frame
    + Adjust the vertical datum
-5. All DEMs are converted to `float32` and have nodata `np.nan`. Although this can increase data size of certain rasters (SRTM is distributed as integers), this ensures (a) easy comparison across DEMs and (b) no side-effects of the stitcher due to unusual nodata values. Note, this datatype is done in `merge_tile_datasets` in `merge.py`. Other nodata values can be specified outside the stitcher as is frequently done (e.g. ISCE2 requires nodata to be filled as `0`).
+5. All DEMs are converted to `float32` and have nodata `np.nan`. Although this can increase data size of certain rasters (SRTM is distributed as integers), this ensures (a) easy comparison across DEMs and (b) no side-effects of the stitcher due to unusual nodata values. Note, this datatype is specified in `merge_tile_datasets` in `merge.py`. Other nodata values can be specified outside the stitcher as is frequently done (e.g. ISCE2 requires nodata to be filled as `0`).
 
 There are some [notebooks](notebooks/analysis_and_comparison) that illustrate how tiles are merged by comparing the output of our stitcher with the original tiles.
 
@@ -126,7 +126,7 @@ As a performance note, when merging DEM tiles, we merge the all needed tiles in 
 
 # Dateline support
 
-We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e. longitudes between -/+ 180 longitude and are within -/+ 90 latitude. If there is a single dateline crossing by the supplied bounds, then the tiles are wrapped and translated to provide a continuous raster over the area provided. We assume a maximum of one dateline crossing (if you have multiple dateline crossing, you should not being using the `stitch_dem` API directly). Wrapping around poles (i.e. at -/+ 90 latitude) is *not* supported and an exception will be raised.
+We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e. longitudes between -/+ 180 longitude and are within -/+ 90 latitude. If there is a single dateline crossing by the supplied bounds, then the tiles are wrapped the dateline and individually translated to a particular hemisphere dicated by the bounds provided to generate a continuous raster over the area provided. We assume a maximum of one dateline crossing in the bounds you specified (if you have multiple dateline crossings, then `stitch_dem` will run out of memory). Similar wrapping tiles around the North and South poles (i.e. at -/+ 90 latitude) is *not* supported (a different CRS is what's required) and an exception will be raised.
 
 # For Development
 
