@@ -24,7 +24,7 @@ X, p = stitch_dem(bounds,
 # X is an m x n numpy array
 # p is a dictionary (or a rasterio profile) including relevant GIS metadata; CRS is epsg:4326
 ```
-Then, to save the DEM:
+Then, to save the DEM raster to disk:
 ```
 import rasterio
 
@@ -32,7 +32,7 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
    ds.write(X, 1)
    ds.update_tags(AREA_OR_POINT='Point')
 ```
-The rasters are returned in a global lat/lon projection (`epsg:4326`) and the API assumes that bounds are supplied in this format.
+The rasters are returned in the global lat/lon projection `epsg:4326` and the API assumes that bounds are supplied in this format.
 
 # Installation
 
