@@ -60,7 +60,7 @@ Although the thrust of using this package is for staging DEMs for InSAR (particu
 
 ## About the raster metadata
 
-The creation metadata unrelated to georeferencing (e.g. the `compress` key, see [here](https://rasterio.readthedocs.io/en/latest/topics/image_options.html#creation-options) for various other options) returned from the `stitch_dem` API is copied from the source tiles being used. Although a `driver` keyword can be specified through this API directly, we recommend using the default `GTiff` option. We caution that the  creation metadata copied from the source DEM tile set may not be valid with the other possible drivers and has not been tested. Furthermore, different distributions of `rasterio` support different of subsets drivers; however, `GTiff` is the default driver in `rasterio` and supported across all distributions. Such metadata creation options are beyond the scope of this library.
+The creation metadata unrelated to georeferencing (e.g. the `compress` key or various other options [here](https://rasterio.readthedocs.io/en/latest/topics/image_options.html#creation-options)) returned in the dictionary `profile` from the `stitch_dem` API is copied directly from the source tiles being used. Although a `driver` keyword can be specified through this API directly, we recommend using the default `GTiff` option. We caution that the creation metadata copied from the source DEM tile set may not be valid with the other possible drivers and has not been tested in this library. Furthermore, different distributions of `rasterio` support different of subsets drivers; however, `GTiff` is the default driver in `rasterio` and supported across all distributions. Such metadata creation options are beyond the scope of this library.
 
 ## Credentials
 
@@ -165,9 +165,9 @@ We welcome contributions to this open-source package. To do so:
 1. Create an GitHub issue ticket desrcribing what changes you need (e.g. issue-1)
 2. Fork this repo
 3. Make your modifications in your own fork
-4. Make a pull-request in this repo with the code in your fork and tag the repo owner or a relevant contributor.
+4. Make a pull-request (PR) in this repo with the code in your fork and tag the repo owner or a relevant contributor.
 
-We use `flake8` and associated linting packages to ensure some basic code quality (see the `environment.yml`). These will be checked upon pull request.
+We use `flake8` and associated linting packages to ensure some basic code quality (see the `environment.yml`). These will be checked for each commit in a PR.
 
 # Support
 
