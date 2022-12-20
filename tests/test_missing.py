@@ -3,7 +3,7 @@ import rasterio
 from numpy.testing import assert_almost_equal
 
 from dem_stitcher import stitch_dem
-from dem_stitcher.glo_30_missing import merge_glo_30_and_90_dems
+from dem_stitcher.merge import merge_arrays_with_geometadata
 from dem_stitcher.stitcher import intersects_missing_glo_30_tiles
 
 extents = [
@@ -40,8 +40,8 @@ def test_merge_glo30_and_glo_90(test_data_dir):
     X_glo_90, p_glo_90 = _open_one(glo_90_right_path)
     X_merged, p_merged = _open_one(glo_merged_path)
 
-    X_merged_out, p_merged_out = merge_glo_30_and_90_dems(X_glo_30, p_glo_30,
-                                                          X_glo_90, p_glo_90)
+    X_merged_out, p_merged_out = merge_arrays_with_geometadata([X_glo_30, X_glo_90],
+                                                               [p_glo_30, p_glo_90])
 
     assert_almost_equal(X_merged, X_merged_out, decimal=6)
     assert p_merged_out['transform'] == p_merged['transform']

@@ -6,23 +6,25 @@
 [![Conda version](https://img.shields.io/conda/vn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
 [![Conda platforms](https://img.shields.io/conda/pn/conda-forge/dem_stitcher)](https://anaconda.org/conda-forge/dem_stitcher)
 
-This tool aims to (a) provide a continuous raster of Digital Elevation Raster over an area of interest and (b) perform some standard transformations for processing. Such transformations include:
+This tool provides a raster of a Digital Elevation Model (DEM) over an area of interest utilizing global or continental, publicly available tile sets such as the [Global Copernicus Digital Elevation Model at 30 meter resolution](https://registry.opendata.aws/copernicus-dem/). See the [Datasets](#dems-supported) section below for all the tiles supported and their shortnames. This tool also performs some standard transformations for processing such as:
 
-+ converting the vertical datum from a reference geoid to the WGS84 ellipsoidal
-+ ensuring a coordinate reference system centered at either the upper-left corner (`Area` tag) or center of the pixel (`Point` tag).
++ the conversion of the vertical datum from a reference geoid to the WGS84 ellipsoidal
++ the accounting of a coordinate reference system centered at either the upper-left corner (`Area` tag) or center of the pixel (`Point` tag).
 
-We utilize the GIS formats from `rasterio`. The API can be summarized as
+We rely on the GIS formats from `rasterio`. The API can be summarized as
 
 ```
+# as xmin, ymin, xmax, ymax in epsg:4326
 bounds = [-119.085, 33.402, -118.984, 35.435]
+
 X, p = stitch_dem(bounds,
-                  dem_name='glo_30',
+                  dem_name='glo_30',  # Global Copernicus 30 meter resolution DEM
                   dst_ellipsoidal_height=False,
                   dst_area_or_point='Point')
 # X is an m x n numpy array
-# p is a dictionary (or a rasterio profile) including relevant GIS metadata
+# p is a dictionary (or a rasterio profile) including relevant GIS metadata; CRS is epsg:4326
 ```
-Then, to save the DEM:
+Then, to save the DEM raster to disk:
 ```
 import rasterio
 
@@ -30,7 +32,7 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
    ds.write(X, 1)
    ds.update_tags(AREA_OR_POINT='Point')
 ```
-
+The rasters are returned in the global lat/lon projection `epsg:4326` and the API assumes that bounds are supplied in this format.
 
 # Installation
 
@@ -56,6 +58,10 @@ Currently, python 3.7+ is supported.
 
 Although the thrust of using this package is for staging DEMs for InSAR (particularly ISCE2), testing and maintaining suitable environments to use with InSAR processors is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own and additionally requires python version `<3.10`. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
 
+## About the raster metadata
+
+The creation metadata unrelated to georeferencing (e.g. the `compress` key or various other options [here](https://rasterio.readthedocs.io/en/latest/topics/image_options.html#creation-options)) returned in the dictionary `profile` from the `stitch_dem` API is copied directly from the source tiles being used. Although a `driver` keyword can be specified through this API directly, we recommend using the default `GTiff` option. We caution that the creation metadata copied from the source DEM tile set may not be valid with the other possible drivers and has not been tested in this library. Furthermore, different distributions of `rasterio` support different of subsets drivers; however, `GTiff` is the default driver in `rasterio` and supported across all distributions. Such metadata creation options are beyond the scope of this library.
+
 ## Credentials
 
 The accessing of NASADEM and SRTM require earthdata login credentials to be put into the `~/.netrc` file. If these are not present, the stitcher will
@@ -79,28 +85,31 @@ We also demonstrate how the tiles used to organize the urls for the DEMs were ge
 
 # DEMs Supported
 
-The [DEMs](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/tree/main/dem_stitcher/data) that can currently be used with this tool are:
+The [DEMs](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/tree/main/dem_stitcher/data) that are currently supported are:
 
 ```
 In [1]: from dem_stitcher.datasets import DATASETS; DATASETS
 Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90', 'ned1']
 ```
+The shortnames aboves are the strings required to use `stitch_dem`. Below, we expound upon these DEM shortnames and link to their respective data repositories.
 
-1. `glo_30`/`glo_90`: Copernicus GLO-30/GLO-90 DEM. They are the 30 and 90 meter resolution, respectively [[link](https://registry.opendata.aws/copernicus-dem/)].
+1. `glo_30`/`glo_90`: Copernicus GLO-30/GLO-90 DEM. The tile sets are the 30 and 90 meter resolution, respectively [[link](https://registry.opendata.aws/copernicus-dem/)].
 2. The USGS DEMSs:
-   - `ned1`:  Ned 1 arc-second (deprecated by USGS) [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
-   - `3dep`: 3Dep 1 arc-second[[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)]
+   - `ned1`:  Ned 1 arc-second (deprecated by USGS) over North America [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
+   - `3dep`: 3Dep 1 arc-second over North America - the successor of NED1 [[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)]
 3. `srtm_v3`: SRTM v3 [[link](https://dwtkns.com/srtm30m/)]
 4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
 5. `glo_90_missing`: these are tiles that are in `glo_90` but not in `glo_30`. They are over the countries Armenia and Azerbaijan. Used internally to help fill in gaps in coverage of `glo_30`.
 
-If there are issues with obtaining dem tiles from urls embedded within the geojson tiles (e.g. a `404` error as [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/48)), please see the [Development](#for-development) section below and/or open an issue ticket.
+ All the tiles are given in lat/lon CRS (i.e. `epsg:4326` for global tiles or `epsg:4269` for USGS tiles in North America). A notable omission to the tile sets is the Artic DEM [here](https://www.pgc.umn.edu/data/arcticdem/), which is suitable for DEMs merged at the north pole of the globe due to lat/lon distortion.
+
+ If there are issues with obtaining dem tiles from urls embedded within the geojson tiles (e.g. a `404` error as [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/48)), please see the [Development](#for-development) section below and/or open an issue ticket.
 
 # DEM Transformations
 
 Wherever possible, we do not resample the original DEMs unless specified by the user to do so. When extents are specified, we obtain the the minimum  pixel extent within the merged tile DEMs that contain that extent. Any required resampling (e.g. updating the CRS or updating the resolution because the tiles have non-square resolution at high latitudes) is done after these required translations. We importantly note that order in which these transformations are done is crucial, i.e. first translating the DEM (to either pixel- or area-center coordinates) and then resampling is different than first resampling and then translation (as affine transformations are not commutative). Here are some notes/discussions:
 
-1. All DEMs are resampled to `epsg:4326` (most DEMs are in this CRS except some of the USGS DEMs, which are in `epsg:4269` and is an almost identical CRS over North America).
+1. All DEMs are resampled to `epsg:4326`. Most DEMs are already in this CRS except the USGS DEMs over North America, which are in `epsg:4269`, whose `xy` projection is also `lon/lat` but has different vertical data. For our purposes, these two CRSs are almost identical. The nuanced differences between these CRS's is noted [here](https://gis.stackexchange.com/a/170854).
 2. All DEM outputs will have origin and pixel spacing aligning with the original DEM tiles unless a resolution for the final product is specified, which will alter the pixel spacing.
 3. Georeferenced rasters can be tied to map coordintaes using either (a) upper-left corners of pixels or (b) the pixel centers i.e. `Point` and `Area` tags in `gdal`, respectively, and seen as `{'AREA_OR_POINT: 'Point'}`. Note that tying a pixel to the upper-left cortner (i.e. `Area` tag) is the *default* pixel reference for `gdal` as indicated [here](https://gdal.org/tutorials/geotransforms_tut.html). Some helpful resources in reference to DEMs about this book-keeping are below.
    + SRTM v3, NASADEM, and TDX are [Pixel-centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904), i.e. `{'AREA_OR_POINT: 'Point'}`.
@@ -109,11 +118,15 @@ Wherever possible, we do not resample the original DEMs unless specified by the 
    + Adjust the geoid to pixel/area coordinates
    + resample the geoids into the DEM reference frame
    + Adjust the vertical datum
-5. All DEMs are converted to `float32` and have nodata `np.nan`. Although this can increase data size of certain rasters (SRTM is distributed as integers), this ensures (a) easy comparison across DEMs and (b) no side-effects of the stitcher due to unusual nodata values. Note, this datatype is done in `merge_tiles` in the `stitcher.py`. Other nodata values can be specified outside the stitcher as is frequently done (e.g. ISCE2 requires nodata to be filled as `0`).
+5. All DEMs are converted to `float32` and have nodata `np.nan`. Although this can increase data size of certain rasters (SRTM is distributed as integers), this ensures (a) easy comparison across DEMs and (b) no side-effects of the stitcher due to unusual nodata values. Note, this datatype is specified in `merge_tile_datasets` in `merge.py`. Other nodata values can be specified outside the stitcher as is frequently done (e.g. ISCE2 requires nodata to be filled as `0`).
 
 There are some [notebooks](notebooks/analysis_and_comparison) that illustrate how tiles are merged by comparing the output of our stitcher with the original tiles.
 
 As a performance note, when merging DEM tiles, we merge the all needed tiles in memory and this process has an associated overhead. An alternative approach would be to download the tiles to disk and use virtual warping. Ultimately, the accuracy of the final DEM is our prime focus and these minor performance tradeoffs are sidelined.
+
+# Dateline support
+
+We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e. longitudes between -/+ 180 longitude and are within -/+ 90 latitude. If there is a single dateline crossing by the supplied bounds, then the tiles are wrapped the dateline and individually translated to a particular hemisphere dicated by the bounds provided to generate a continuous raster over the area provided. We assume a maximum of one dateline crossing in the bounds you specified (if you have multiple dateline crossings, then `stitch_dem` will run out of memory). Similar wrapping tiles around the North and South poles (i.e. at -/+ 90 latitude) is *not* supported (a different CRS is what's required) and an exception will be raised.
 
 # For Development
 
@@ -135,10 +148,15 @@ The former is the more likely. When re-generating tiles, make sure to run all te
 
 # Testing
 
-1. Install `pytest`
-2. Run `pytest .`
+For unit tests,
 
- We have an integration test (marked as `integration`) which ensures all the datasets are downloaded and can be transformed (not validated for correctness at this time). Otherwise, all tests have basic tests with mock data to illustrate how the DEM stitcher is working. The non-integration tests are as github actions via `pytest tests -m "not integration"`.
+1. Install `pytest` via `conda-forge`
+2. Run `pytest tests -m 'not integration'`
+
+ We also have a number integration test (marked as `integration` within pytest) to ensures all the DEM tile datasets can be downloaded and transformed successfully (though in most cases, correctness is not verified, that is the domain of the non-integration unit tests). Integration tests will quickly indicate if urls for DEM tiles are working correctly. Integration tests are not checked within the github actions currently. Additionally, to ensure the documentation of this repository, in the form of notebooks, utilize the correct functional API, we utilize `papermill`. Thus for integration tests please install `papermill` via:
+
+ 1. `mamba install -c conda forge papermill`
+ 2. `pytest tests -m 'integration'`
 
 # Contributing
 
@@ -147,9 +165,9 @@ We welcome contributions to this open-source package. To do so:
 1. Create an GitHub issue ticket desrcribing what changes you need (e.g. issue-1)
 2. Fork this repo
 3. Make your modifications in your own fork
-4. Make a pull-request in this repo with the code in your fork and tag the repo owner or a relevant contributor.
+4. Make a pull-request (PR) in this repo with the code in your fork and tag the repo owner or a relevant contributor.
 
-We use `flake8` and associated linting packages to ensure some basic code quality (see the `environment.yml`). These will be checked upon pull request.
+We use `flake8` and associated linting packages to ensure some basic code quality (see the `environment.yml`). These will be checked for each commit in a PR.
 
 # Support
 
@@ -158,4 +176,4 @@ We use `flake8` and associated linting packages to ensure some basic code qualit
 
 # Acknowledgements
 
-This tool was developed to support cloud SAR processing using ISCE2 and various research. The early work of this repository was done by Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard. Since the utilization of this package for GUNW generation (see this [repo](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp)), a subset of the ACCESS team, including Joseph (Joe) H. Kennedy, Simran Sangha, Grace Bato, Andrew Johnston, and Charlie Marshak, have improved this repository greatly. In particular, Joe Kennedy has lead the inclusion/development of actions, tests, packaging, distribution (including PyPI and `conda-forge`) and all the things to make this package more reliable, accessible, readable, etc. Simran Sangha has helped make sure output rasters are compatible with ISCE2 and other important bug-fixes.
+This tool was developed to support cloud SAR processing using ISCE2 and various research projects at JPL. The early work of this repository was done by Charlie Marshak, David Bekaert, Michael Denbina, and Marc Simard. Since the utilization of this package for GUNW generation (see this [repo](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp)), a subset of the ACCESS team, including Joseph (Joe) H. Kennedy, Simran Sangha, Grace Bato, Andrew Johnston, and Charlie Marshak, have improved this repository greatly. In particular, Joe Kennedy has lead the inclusion/development of actions, tests, packaging, distribution (including PyPI and `conda-forge`) and all the things to make this package more reliable, accessible, readable, etc. Simran Sangha has helped make sure output rasters are compatible with ISCE2 and other important bug-fixes.

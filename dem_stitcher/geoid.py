@@ -6,6 +6,8 @@ from rasterio.crs import CRS
 from rasterio.transform import array_bounds
 
 from .datasets import DATA_PATH
+from .dateline import get_dateline_crossing, split_extent_across_dateline
+from .merge import merge_arrays_with_geometadata
 from .rio_tools import reproject_arr_to_match_profile, translate_profile
 from .rio_window import read_raster_from_window
 
@@ -24,10 +26,6 @@ def read_geoid(geoid_name: str,
                extent: list = None,
                res_buffer: int = 1) -> tuple:
 
-    if ((extent is not None) and
-       ((extent[0] < -180) or (extent[2] > 180) or (extent[1] < -90) or (extent[3] > 90))):
-        raise ValueError('Extent should be in lon/lat as xmin, ymin, xmax, ymax')
-
     geoid_dict = get_geoid_dict()
     geoid_path = geoid_dict[geoid_name]
 
@@ -37,10 +35,31 @@ def read_geoid(geoid_name: str,
             geoid_profile = ds.profile
     else:
         extent_crs = CRS.from_epsg(4326)
-        geoid_arr, geoid_profile = read_raster_from_window(geoid_path,
-                                                           extent,
-                                                           extent_crs,
-                                                           res_buffer=res_buffer)
+
+        crossing = get_dateline_crossing(extent)
+        if crossing == 0:
+            geoid_arr, geoid_profile = read_raster_from_window(geoid_path,
+                                                               extent,
+                                                               extent_crs,
+                                                               res_buffer=res_buffer)
+        else:
+            extent_l, extent_r = split_extent_across_dateline(extent)
+            geoid_arr_l, geoid_profile_l = read_raster_from_window(geoid_path,
+                                                                   extent_l,
+                                                                   extent_crs,
+                                                                   res_buffer=res_buffer)
+            geoid_arr_r, geoid_profile_r = read_raster_from_window(geoid_path,
+                                                                   extent_r,
+                                                                   extent_crs,
+                                                                   res_buffer=res_buffer)
+            res_x = geoid_profile_l['transform'].a
+            if crossing == 180:
+                geoid_profile_l = translate_profile(geoid_profile_l, 360 / res_x, 0)
+            else:
+                geoid_profile_r = translate_profile(geoid_profile_r, -360 / res_x, 0)
+            geoid_arr, geoid_profile = merge_arrays_with_geometadata([geoid_arr_l, geoid_arr_r],
+                                                                     [geoid_profile_l, geoid_profile_r])
+
     # Transform nodata to nan
     geoid_arr = geoid_arr.astype('float32')
     geoid_arr[geoid_profile['nodata'] == geoid_arr] = np.nan
