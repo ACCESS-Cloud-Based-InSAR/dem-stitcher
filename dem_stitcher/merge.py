@@ -19,7 +19,7 @@ def merge_tile_datasets(datasets: List[rasterio.DatasetReader],
     merged_arr, merged_transform = merge(datasets,
                                          resampling=Resampling[resampling],
                                          # This fixes the nodata values
-                                         nodata=np.nan,
+                                         nodata=nodata,
                                          # This fixes the float32 output
                                          dtype='float32',
                                          )
