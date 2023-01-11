@@ -16,6 +16,8 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Tests for added and changed functionality.
 - Integration tests for notebooks.
 - Clarity about driver keyword in `stitch_dem` in readme, docstrings
+- Add nodata argument to `merge_tile_datasets`  `merge_and_transform_dem_tiles` and `stitch_dem` to change default value.
+
 
 ### Changed
 - Moved functions into more logical python file including merge calls into `merge.py` and tile functions into `datasets.py`
