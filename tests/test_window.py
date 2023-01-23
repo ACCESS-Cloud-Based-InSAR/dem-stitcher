@@ -245,6 +245,17 @@ def test_rio_window_warning(test_data_dir, warn_extent):
                                        res_buffer=0)
 
 
+def test_riow_window_get_one_pixel(test_data_dir):
+    raster_path = test_data_dir / 'rio_window' / 'warning_exception_data.tif'
+    X, p = read_raster_from_window(raster_path,
+                                   [0, -25, 0.01, -24.999],
+                                   CRS.from_epsg(4326),
+                                   res_buffer=0)
+    assert X.shape == (1, 1)
+    assert p['width'] == p['height']
+    assert p['width'] == 1
+
+
 def test_bad_extents_for_window():
     with pytest.raises(RuntimeError):
         '''Outside of Geoid Bounds'''
