@@ -241,6 +241,10 @@ def stitch_dem(bounds: list,
     # Used for filling in glo_30 missing tiles if needed
     stitcher_kwargs = locals()
 
+    # This variable is used later to determine if there is intersection
+    if fill_in_glo_30:
+        glo_90_missing_intersection = intersects_missing_glo_30_tiles(bounds)
+
     if driver != 'GTiff':
         warn('A non-geotiff driver may not be valid with tile creation options during rasterio write. '
              'This feature will be removed in a future release and the driver will be fixed to GeoTiff.',
@@ -275,7 +279,7 @@ def stitch_dem(bounds: list,
 
     if not datasets:
         # This is the case that an extent is entirely contained within glo_90
-        if ((dem_name == 'glo_30') and fill_in_glo_30 and intersects_missing_glo_30_tiles(bounds)):
+        if ((dem_name == 'glo_30') and fill_in_glo_30 and glo_90_missing_intersection):
 
             stitcher_kwargs['dem_name'] = 'glo_90_missing'
             # if dst_resolution is None, then make sure we upsample to 30 meter resolution
@@ -319,7 +323,7 @@ def stitch_dem(bounds: list,
     # Set driver in profile
     dem_profile['driver'] = driver
 
-    if (dem_name == 'glo_30') and fill_in_glo_30:
+    if (dem_name == 'glo_30') and fill_in_glo_30 and glo_90_missing_intersection:
         dem_arr, dem_profile = patch_glo_30_with_glo_90(dem_arr,
                                                         dem_profile,
                                                         bounds,

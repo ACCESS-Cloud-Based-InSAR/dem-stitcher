@@ -5,9 +5,9 @@ from affine import Affine
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 
+from dem_stitcher.geoid import read_geoid
 from dem_stitcher.rio_window import (get_indices_from_extent,
                                      read_raster_from_window)
-
 """
 This does a simple test of window reading over an extent of the following area:
 
@@ -203,3 +203,52 @@ def test_read_window_4326_unequal_dims(test_data_dir, extent, array, transform):
                                             res_buffer=0)
     assert_array_equal(array, window_arr)
     assert transform == p['transform']
+
+
+# The dummy data is a 100 x 200 (.25 deg resolution) raster with origin at
+# (0, 0). So it's bounds are [0, -25, 50, 0] (xmin, ymin, xmax, ymax)
+bad_extents = [
+                # intersection along left of
+                # box i.e. line from (0, 0) to (0, -25)
+                [-10, -25, 0, 0],
+                # intersection along top of box i.e. from (0, 0) to
+                # (50, 0)
+                [0, 0, 50, 10]
+              ]
+
+
+@pytest.mark.parametrize("bad_extent", bad_extents)
+def test_rio_window_exception(test_data_dir, bad_extent):
+    raster_path = test_data_dir / 'rio_window' / 'warning_exception_data.tif'
+    with pytest.raises(RuntimeError):
+        X, p = read_raster_from_window(raster_path,
+                                       bad_extent,
+                                       CRS.from_epsg(4326),
+                                       res_buffer=0)
+
+
+# The dummy data is a 100 x 200 (.25 deg resolution) raster with origin at
+# (0, 0). So it's bounds are [0, -25, 50, 0] (xmin, ymin, xmax, ymax)
+warn_extents = [
+                [-1, -27, 1, -23],
+                [49, -1, 51, 1]
+                ]
+
+
+@pytest.mark.parametrize("warn_extent", warn_extents)
+def test_rio_window_warning(test_data_dir, warn_extent):
+    raster_path = test_data_dir / 'rio_window' / 'warning_exception_data.tif'
+    with pytest.warns(RuntimeWarning):
+        X, p = read_raster_from_window(raster_path,
+                                       warn_extent,
+                                       CRS.from_epsg(4326),
+                                       res_buffer=0)
+
+
+def test_bad_extents_for_window():
+    with pytest.raises(RuntimeError):
+        '''Outside of Geoid Bounds'''
+        bounds = [-180, 34, -179, 35]
+
+        X, p = read_geoid('geoid_18',
+                          bounds)

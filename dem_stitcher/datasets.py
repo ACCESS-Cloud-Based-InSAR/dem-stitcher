@@ -40,7 +40,7 @@ def get_global_dem_tile_extents(dataset: str) -> gpd.GeoDataFrame:
     """
     if dataset not in DATASETS:
         raise DEMNotSupported(f'{dataset} must be in {", ".join(DATASETS)}')
-    df = read_geojson_gzip(DATA_PATH/f'{dataset}.geojson.zip')
+    df = read_geojson_gzip(DATA_PATH / f'{dataset}.geojson.zip')
     df['dem_name'] = dataset
     df.crs = CRS.from_epsg(4326)
     return df
@@ -70,7 +70,7 @@ def get_overlapping_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
 
     if dem_name not in DATASETS:
         raise DEMNotSupported(f'Please use dem_name in: {", ".join(DATASETS)}')
-    box_sh = box(*bounds)
+    box_geo = box(*bounds)
     df_tiles_all = get_global_dem_tile_extents(dem_name)
 
     crossing = get_dateline_crossing(bounds)
@@ -80,8 +80,16 @@ def get_overlapping_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
         df_tiles_all_translated.geometry = df_tiles_all.geometry.translate(xoff=x_translation)
         df_tiles_all = pd.concat([df_tiles_all, df_tiles_all_translated], axis=0).reset_index(drop=True)
 
-    index = df_tiles_all.intersects(box_sh)
-    df_tiles = df_tiles_all[index].copy()
+    overlap_index = df_tiles_all.intersects(box_geo)
+    df_tiles = df_tiles_all[overlap_index].copy()
+
+    # This removes de-generate instances when the bounds overlap is a Point or LineString
+    # If empty, then additional intersection removes column names so addition this conditional flow
+    # so subsequent sorting does not fail
+    if not df_tiles.empty:
+        df_tiles_intersection = df_tiles.geometry.intersection(box_geo)
+        geo_type_index = df_tiles_intersection.geometry.map(lambda geo: geo.geom_type == 'Polygon')
+        df_tiles = df_tiles[geo_type_index].copy()
 
     # Merging is order dependent - ensures consistency
     df_tiles = df_tiles.sort_values(by='tile_id')
