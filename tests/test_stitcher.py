@@ -190,13 +190,14 @@ def test_download_dem(dem_name):
         # Within the Los Angeles tile
         bounds = [-118.8, 34.6, -118.5, 34.8]
 
-    dem_arr, _ = stitch_dem(bounds,
+    dem_arr, p = stitch_dem(bounds,
                             dem_name,
                             n_threads_downloading=5,
                             dst_ellipsoidal_height=True,
                             dst_resolution=0.0002777777777777777775
                             )
     assert len(dem_arr.shape) == 2
+    assert np.isnan(p['nodata'])
 
 
 @pytest.mark.integration
@@ -218,6 +219,7 @@ def test_mask_differences_with_merge_nodata_values_without_ellipsoidal():
 
     assert X_zero.shape == X_nan.shape
     assert p_nan['transform'] == p_zero['transform']
+    assert np.isnan(p_zero['nodata'])
 
     mask_nan = np.isnan(X_nan)
     mask_zero = (X_zero == 0)
