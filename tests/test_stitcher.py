@@ -2,13 +2,16 @@ import numpy as np
 import pytest
 import rasterio
 from affine import Affine
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_almost_equal, assert_array_equal
 from rasterio import default_gtiff_profile
 
 from dem_stitcher import stitch_dem
 from dem_stitcher.datasets import DATASETS
-from dem_stitcher.rio_tools import reproject_arr_to_match_profile
-from dem_stitcher.stitcher import (merge_and_transform_dem_tiles, merge_tile_datasets,
+from dem_stitcher.geoid import read_geoid
+from dem_stitcher.rio_tools import (reproject_arr_to_match_profile,
+                                    translate_profile)
+from dem_stitcher.stitcher import (merge_and_transform_dem_tiles,
+                                   merge_tile_datasets,
                                    shift_profile_for_pixel_loc)
 
 # from dem_stitcher.datasets import DATASETS
@@ -194,3 +197,69 @@ def test_download_dem(dem_name):
                             dst_resolution=0.0002777777777777777775
                             )
     assert len(dem_arr.shape) == 2
+
+
+@pytest.mark.integration
+def test_mask_differences_with_merge_nodata_values_without_ellipsoidal():
+    # Aleutian tiles follow chain so there is lots of nodata
+    aleutian_bounds = [-167.5, 53.5, -164.5, 54.5]
+
+    X_nan, p_nan = stitch_dem(aleutian_bounds,
+                              dem_name='glo_30',
+                              dst_ellipsoidal_height=False,
+                              dst_area_or_point='Point',
+                              merge_nodata_value=np.nan)
+
+    X_zero, p_zero = stitch_dem(aleutian_bounds,
+                                dem_name='glo_30',
+                                dst_ellipsoidal_height=False,
+                                dst_area_or_point='Point',
+                                merge_nodata_value=0)
+
+    assert X_zero.shape == X_nan.shape
+    assert p_nan['transform'] == p_zero['transform']
+
+    mask_nan = np.isnan(X_nan)
+    mask_zero = (X_zero == 0)
+
+    # There may be zeros within the tiles so we check a containment of masks
+    # Checks if all elements in mask_zero are True where mask_nan
+    assert (mask_zero[mask_nan]).all()
+    assert_array_equal(X_zero[~mask_nan], X_nan[~mask_nan])
+
+
+@pytest.mark.integration
+def test_mask_differences_with_merge_nodata_values_with_ellipsoidal():
+    """Checks that when using merge_nodata_value it provides geoid values in missing data areas
+    """
+    # Aleutian tiles follow chain so there is lots of nodata
+    aleutian_bounds = [-167.5, 53.5, -164.5, 54.5]
+
+    X_nan, p_nan = stitch_dem(aleutian_bounds,
+                              dem_name='glo_30',
+                              dst_ellipsoidal_height=True,
+                              dst_area_or_point='Point',
+                              merge_nodata_value=np.nan)
+    # Need to use nan mask to get all nodata areas with respect to tiles
+    mask_nan = np.isnan(X_nan)
+
+    X_zero, _ = stitch_dem(aleutian_bounds,
+                           dem_name='glo_30',
+                           dst_ellipsoidal_height=True,
+                           dst_area_or_point='Point',
+                           merge_nodata_value=0)
+
+    X_geoid, p_geoid = read_geoid('egm_08', aleutian_bounds, res_buffer=5)
+    p_geoid = translate_profile(p_geoid, -.5, -.5)
+
+    X_geoid_r, _ = reproject_arr_to_match_profile(X_geoid, p_geoid, p_nan)
+    X_geoid_r = X_geoid_r[0, ...]
+
+    assert_almost_equal(X_zero[mask_nan], X_geoid_r[mask_nan], decimal=6)
+
+
+def test_bad_merge_nodata_value():
+    with pytest.raises(ValueError):
+        stitch_dem([-118.8, 34.6, -118.5, 34.8],
+                   dem_name='glo_30',
+                   merge_nodata_value=3)
