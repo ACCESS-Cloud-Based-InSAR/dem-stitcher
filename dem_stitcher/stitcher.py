@@ -206,7 +206,9 @@ def stitch_dem(bounds: list,
                fill_in_glo_30: bool = True,
                merge_nodata_value: float = np.nan
                ) -> Tuple[np.ndarray, dict]:
-    """This is API for stitching DEMs
+    """This is API for stitching DEMs. Specify bounds and various options to obtain a continuous raster.
+    The output raster will be determined by availability of tiles. If no tiles are available over bounds,
+    then NoDEMCoverage is raised.
 
     Parameters
     ----------
@@ -233,7 +235,10 @@ def stitch_dem(bounds: list,
         `glo_90` tiles, by default True. If the extent falls inside of the missing `glo_30` tiles, then `glo_90` is
         upsample to 30 meters unless `dst_resolution` is specified.
     merge_nodata_value: float, optional
-        for missing tile (oceanfor instance) change the default value, default np.nan
+        When merging tiles, utilize a different nodata value. A value other than 0 or np.nan will raise a ValueError.
+        When set to np.nan (default), all areas with nodata in tiles are consistently marked in output as such.
+        When set to 0 and converting to ellipsoidal heights, all nodata areas will be filled in with geoid.
+        When set to 0 and not converting to ellipsoidal heights, all nodata areas will be 0.
 
     Returns
     -------
@@ -245,6 +250,9 @@ def stitch_dem(bounds: list,
     """
     # Used for filling in glo_30 missing tiles if needed
     stitcher_kwargs = locals()
+
+    if merge_nodata_value not in [np.nan, 0]:
+        raise ValueError('np.nan and 0 are only acceptable merge_nodata_value')
 
     if driver != 'GTiff':
         warn('A non-geotiff driver may not be valid with tile creation options during rasterio write. '
