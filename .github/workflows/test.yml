@@ -26,12 +26,13 @@ jobs:
           username: ${{ secrets.EARTHDATA_USERNAME }}
           password: ${{ secrets.EARTHDATA_PASSWORD }}
 
-       - uses: mamba-org/provision-with-micromamba@main
+      - uses: mamba-org/provision-with-micromamba@main
         with:
           environment-name: dem-stitcher
           environment-file: environment.yml
           extra-specs: |
             python=${{ matrix.python-version }}
+
 
       - name: Pytest in conda environment
         shell: bash -l {0}

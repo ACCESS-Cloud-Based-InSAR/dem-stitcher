@@ -111,9 +111,11 @@ def merge_and_transform_dem_tiles(datasets: list,
                                   dst_ellipsoidal_height: bool = True,
                                   dst_area_or_point: str = 'Area',
                                   dst_resolution: Union[float, Tuple[float]] = None,
-                                  num_threads_reproj: int = 5) -> Tuple[np.ndarray, dict]:
+                                  num_threads_reproj: int = 5,
+                                  merge_nodata_value: float = np.nan) -> Tuple[np.ndarray, dict]:
     dem_arr, dem_profile = merge_tile_datasets(datasets,
-                                               bounds=bounds)
+                                               bounds=bounds,
+                                               nodata=merge_nodata_value)
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
 
     dem_profile = shift_profile_for_pixel_loc(dem_profile,
@@ -201,9 +203,12 @@ def stitch_dem(bounds: list,
                n_threads_reproj: int = 5,
                n_threads_downloading: int = 5,
                driver: str = 'GTiff',
-               fill_in_glo_30: bool = True
+               fill_in_glo_30: bool = True,
+               merge_nodata_value: float = np.nan
                ) -> Tuple[np.ndarray, dict]:
-    """This is API for stitching DEMs
+    """This is API for stitching DEMs. Specify bounds and various options to obtain a continuous raster.
+    The output raster will be determined by availability of tiles. If no tiles are available over bounds,
+    then NoDEMCoverage is raised.
 
     Parameters
     ----------
@@ -229,6 +234,11 @@ def stitch_dem(bounds: list,
         If `dem_name` is 'glo_30' then fills in missing `glo_30` tiles over Armenia and Azerbaijan with available
         `glo_90` tiles, by default True. If the extent falls inside of the missing `glo_30` tiles, then `glo_90` is
         upsample to 30 meters unless `dst_resolution` is specified.
+    merge_nodata_value: float, optional
+        When merging tiles, utilize a different nodata value. A value other than 0 or np.nan will raise a ValueError.
+        When set to np.nan (default), all areas with nodata in tiles are consistently marked in output as such.
+        When set to 0 and converting to ellipsoidal heights, all nodata areas will be filled in with geoid.
+        When set to 0 and not converting to ellipsoidal heights, all nodata areas will be 0.
 
     Returns
     -------
@@ -244,6 +254,9 @@ def stitch_dem(bounds: list,
     # This variable is used later to determine if there is intersection
     if fill_in_glo_30:
         glo_90_missing_intersection = intersects_missing_glo_30_tiles(bounds)
+
+    if merge_nodata_value not in [np.nan, 0]:
+        raise ValueError('np.nan and 0 are only acceptable merge_nodata_value')
 
     if driver != 'GTiff':
         warn('A non-geotiff driver may not be valid with tile creation options during rasterio write. '
@@ -307,6 +320,7 @@ def stitch_dem(bounds: list,
                                                          dst_area_or_point=dst_area_or_point,
                                                          dst_resolution=dst_resolution,
                                                          num_threads_reproj=n_threads_reproj,
+                                                         merge_nodata_value=merge_nodata_value
                                                          )
 
     # Close datasets
