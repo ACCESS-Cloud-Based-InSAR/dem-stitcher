@@ -200,6 +200,19 @@ def test_download_dem(dem_name):
     assert np.isnan(p['nodata'])
 
 
+def test_boundary_of_missing_glo_30_data():
+    # See https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/issues/89#issuecomment-1399142499
+    bounds = [42.0, 37.0, 44.0, 39.0]
+    dem_arr, p = stitch_dem(bounds,
+                            'glo_30',
+                            n_threads_downloading=5,
+                            dst_ellipsoidal_height=True,
+                            dst_resolution=0.0002777777777777777775
+                            )
+    assert len(dem_arr.shape) == 2
+    assert np.isnan(p['nodata'])
+
+
 @pytest.mark.integration
 def test_mask_differences_with_merge_nodata_values_without_ellipsoidal():
     # Aleutian tiles follow chain so there is lots of nodata
@@ -232,7 +245,8 @@ def test_mask_differences_with_merge_nodata_values_without_ellipsoidal():
 
 @pytest.mark.integration
 def test_mask_differences_with_merge_nodata_values_with_ellipsoidal():
-    """Checks that when using merge_nodata_value it provides geoid values in missing data areas
+    """Checks that when using merge_nodata_value it
+    provides geoid values in missing data areas
     """
     # Aleutian tiles follow chain so there is lots of nodata
     aleutian_bounds = [-167.5, 53.5, -164.5, 54.5]
