@@ -2,7 +2,9 @@ from typing import Tuple, Union
 
 import numpy as np
 from affine import Affine
+from rasterio import DatasetReader
 from rasterio.crs import CRS
+from rasterio.io import MemoryFile
 from rasterio.warp import (Resampling, aligned_target,
                            calculate_default_transform, reproject)
 
@@ -38,6 +40,36 @@ def translate_profile(profile: dict,
     p_new['transform'] = new_transform
 
     return p_new
+
+
+def translate_dataset(dataset: DatasetReader,
+                      x_shift: float,
+                      y_shift: float) -> Tuple[MemoryFile, DatasetReader]:
+    """Creates a new in-memory dataset and translates this. Closes the input dataset.
+
+    Parameters
+    ----------
+    dataset : DatasetReader
+        Input dataset in read mode. Will be closed after function is run.
+    x_shift : float
+        Number of *pixels* to be translated
+    y_shift : float
+        Number of *pixels* to be translated
+
+    Returns
+    -------
+    Tuple[MemoryFile, DatasetReader]
+        Memory file and DatasetReader in Rasterio
+    """
+
+    memfile = MemoryFile()
+    profile = dataset.profile
+    profile_translated = translate_profile(profile, x_shift=x_shift, y_shift=y_shift)
+    dataset_new = memfile.open(**profile_translated)
+    dataset_new.write(dataset.read())
+    dataset.close()
+
+    return memfile, dataset_new
 
 
 def reproject_arr_to_match_profile(src_array: np.ndarray,

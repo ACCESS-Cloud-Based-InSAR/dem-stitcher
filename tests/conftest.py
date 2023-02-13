@@ -14,6 +14,12 @@ def test_data_dir():
 
 
 @pytest.fixture(scope='session')
+def notebooks_dir():
+    notebook_directory = Path(__file__).resolve().parents[1] / 'notebooks'
+    return notebook_directory
+
+
+@pytest.fixture(scope='session')
 def get_los_angeles_tile_dataset():
     tiles_dir = Path(__file__).resolve().parent / 'data' / 'tiles'
 

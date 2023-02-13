@@ -3,26 +3,24 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, List, Tuple, Union
+from warnings import warn
 
-import geopandas as gpd
 import numpy as np
 import rasterio
-from affine import Affine
 from rasterio.crs import CRS
-from rasterio.enums import Resampling
-from rasterio.merge import merge
-from shapely.geometry import box
+from rasterio.io import MemoryFile
 from tqdm import tqdm
 
-from .datasets import DATASETS, get_dem_tile_extents
+from .datasets import (get_overlapping_dem_tiles,
+                       intersects_missing_glo_30_tiles)
+from .dateline import get_dateline_crossing
 from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
-from .exceptions import DEMNotSupported, NoDEMCoverage
+from .exceptions import NoDEMCoverage
 from .geoid import remove_geoid
-from .glo_30_missing import merge_glo_30_and_90_dems
+from .merge import merge_arrays_with_geometadata, merge_tile_datasets
 from .rio_tools import (reproject_arr_to_match_profile,
-                        reproject_arr_to_new_crs, translate_profile,
-                        update_profile_resolution)
-from .rio_window import get_indices_from_extent
+                        reproject_arr_to_new_crs, translate_dataset,
+                        translate_profile, update_profile_resolution)
 
 RASTER_READERS = {'ned1': read_ned1,
                   '3dep': read_dem,
@@ -41,26 +39,6 @@ DEM2GEOID = {'ned1': 'geoid_18',
              'nasadem': 'egm_96'}
 
 PIXEL_CENTER_DEMS = ['srtm_v3', 'nasadem', 'glo_30', 'glo_90', 'glo_90_missing']
-
-
-def get_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
-    if dem_name not in DATASETS:
-        raise DEMNotSupported(f'Please use dem_name in: {", ".join(DATASETS)}')
-    box_sh = box(*bounds)
-    df_tiles_all = get_dem_tile_extents(dem_name)
-    index = df_tiles_all.intersects(box_sh)
-    df_tiles = df_tiles_all[index].copy()
-
-    # Merging is order dependent - ensures consistency
-    df_tiles.sort_values(by='tile_id')
-    df_tiles = df_tiles.reset_index(drop=True)
-    return df_tiles
-
-
-def intersects_missing_glo_30_tiles(extent: list) -> bool:
-    extent_geo = box(*extent)
-    df_missing = get_dem_tiles(extent, 'glo_90_missing')
-    return df_missing.intersects(extent_geo).sum() > 0
 
 
 def _download_and_write_one_tile(url: str,
@@ -111,51 +89,12 @@ def download_tiles(urls: list,
     return dest_paths_f
 
 
-def merge_tiles(datasets: List[rasterio.DatasetReader],
-                bounds: list = None,
-                resampling: str = 'nearest',
-                res_buffer: int = 0
-                ) -> Tuple[np.ndarray, dict]:
-    merged_arr, merged_transform = merge(datasets,
-                                         resampling=Resampling[resampling],
-                                         # This fixes the nodata values
-                                         nodata=np.nan,
-                                         # This fixes the float32 output
-                                         dtype='float32',
-                                         )
-    merged_arr = merged_arr[0, ...]
-
-    # each pair is in (row, col) format
-    corner_ul, corner_br = get_indices_from_extent(merged_transform,
-                                                   bounds,
-                                                   shape=merged_arr.shape,
-                                                   res_buffer=res_buffer)
-    sy = np.s_[corner_ul[0]: corner_br[0]]
-    sx = np.s_[corner_ul[1]: corner_br[1]]
-    merged_arr = merged_arr[sy, sx]
-
-    # We swap row and columns because Affine expects (x, y) or (col, row)
-    origin_affine = corner_ul[1], corner_ul[0]
-    new_origin = merged_transform * origin_affine
-    merged_transform_final = Affine.translation(*new_origin)
-    merged_transform_final = merged_transform_final * Affine.scale(merged_transform.a,
-                                                                   merged_transform.e)
-
-    profile = datasets[0].profile.copy()
-    profile['height'] = merged_arr.shape[0]
-    profile['width'] = merged_arr.shape[1]
-    profile['nodata'] = np.nan
-    profile['dtype'] = 'float32'
-    profile['transform'] = merged_transform_final
-    return merged_arr, profile
-
-
 def shift_profile_for_pixel_loc(src_profile: dict,
                                 src_area_or_point: str,
                                 dst_area_or_point: str) -> dict:
     assert dst_area_or_point in ['Area', 'Point']
     assert src_area_or_point in ['Area', 'Point']
-    if dst_area_or_point == 'Point' and src_area_or_point == 'Area':
+    if (dst_area_or_point == 'Point') and (src_area_or_point == 'Area'):
         shift = -.5
         profile_shifted = translate_profile(src_profile, shift, shift)
     elif (dst_area_or_point == 'Area') and (src_area_or_point == 'Point'):
@@ -172,9 +111,11 @@ def merge_and_transform_dem_tiles(datasets: list,
                                   dst_ellipsoidal_height: bool = True,
                                   dst_area_or_point: str = 'Area',
                                   dst_resolution: Union[float, Tuple[float]] = None,
-                                  num_threads_reproj: int = 5) -> Tuple[np.ndarray, dict]:
-    dem_arr, dem_profile = merge_tiles(datasets,
-                                       bounds=bounds)
+                                  num_threads_reproj: int = 5,
+                                  merge_nodata_value: float = np.nan) -> Tuple[np.ndarray, dict]:
+    dem_arr, dem_profile = merge_tile_datasets(datasets,
+                                               bounds=bounds,
+                                               nodata=merge_nodata_value)
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
 
     dem_profile = shift_profile_for_pixel_loc(dem_profile,
@@ -225,13 +166,33 @@ def patch_glo_30_with_glo_90(arr_glo_30: np.ndarray,
     stitcher_kwargs['dem_name'] = 'glo_90_missing'
     arr_glo_90, prof_glo_90 = stitch_dem(**stitcher_kwargs)
 
-    dem_arr, dem_prof = merge_glo_30_and_90_dems(arr_glo_30,
-                                                 prof_glo_30,
-                                                 arr_glo_90,
-                                                 prof_glo_90
-                                                 )
+    dem_arr, dem_prof = merge_arrays_with_geometadata([arr_glo_30, arr_glo_90],
+                                                      [prof_glo_30, prof_glo_90]
+                                                      )
 
     return dem_arr, dem_prof
+
+
+def _translate_one_tile_across_dateline(dataset: rasterio.DatasetReader, crossing):
+
+    assert crossing in [180, -180]
+    res_x = dataset.res[0]
+    xmin, _, xmax, _ = dataset.bounds
+
+    tags = dataset.tags()
+    if crossing == 180 and xmax <= 0:
+        memfile, dataset_new = translate_dataset(dataset, 360 / res_x, 0)
+        # Ensures area or point are correctly stored!
+        dataset_new.update_tags(**tags)
+    elif crossing == -180 and xmin >= 0:
+        memfile, dataset_new = translate_dataset(dataset, -360 / res_x, 0)
+        # Ensures area or point are correctly stored!
+        dataset_new.update_tags(**tags)
+    else:
+        memfile = MemoryFile()
+        dataset_new = dataset
+
+    return memfile, dataset_new
 
 
 def stitch_dem(bounds: list,
@@ -240,11 +201,14 @@ def stitch_dem(bounds: list,
                dst_area_or_point: str = 'Area',
                dst_resolution: Union[float, Tuple[float]] = None,
                n_threads_reproj: int = 5,
-               n_threads_downloading=5,
+               n_threads_downloading: int = 5,
                driver: str = 'GTiff',
-               fill_in_glo_30: bool = True
+               fill_in_glo_30: bool = True,
+               merge_nodata_value: float = np.nan
                ) -> Tuple[np.ndarray, dict]:
-    """This is API for stitching DEMs
+    """This is API for stitching DEMs. Specify bounds and various options to obtain a continuous raster.
+    The output raster will be determined by availability of tiles. If no tiles are available over bounds,
+    then NoDEMCoverage is raised.
 
     Parameters
     ----------
@@ -265,11 +229,16 @@ def stitch_dem(bounds: list,
     n_threads_downloading : int, optional
         Threads for downloading tiles, by default 5
     driver : str, optional
-        Output format in profile, by default 'GTiff'
+        Output format in profile, by default 'GTiff'. Other drivers are not recommended.
     fill_in_glo_30 : bool, optional
         If `dem_name` is 'glo_30' then fills in missing `glo_30` tiles over Armenia and Azerbaijan with available
         `glo_90` tiles, by default True. If the extent falls inside of the missing `glo_30` tiles, then `glo_90` is
         upsample to 30 meters unless `dst_resolution` is specified.
+    merge_nodata_value: float, optional
+        When merging tiles, utilize a different nodata value. A value other than 0 or np.nan will raise a ValueError.
+        When set to np.nan (default), all areas with nodata in tiles are consistently marked in output as such.
+        When set to 0 and converting to ellipsoidal heights, all nodata areas will be filled in with geoid.
+        When set to 0 and not converting to ellipsoidal heights, all nodata areas will be 0.
 
     Returns
     -------
@@ -282,13 +251,23 @@ def stitch_dem(bounds: list,
     # Used for filling in glo_30 missing tiles if needed
     stitcher_kwargs = locals()
 
-    if dem_name not in DATASETS:
-        raise DEMNotSupported(f'Please use dem_name in: {", ".join(DATASETS)}')
+    # This variable is used later to determine if there is intersection with
+    # Missing glo_30 tiles. We do not want calling stitch_dem (again)
+    # for filling and/or patching glo_30 tiles with glo_90 to raise coverage
+    # exceptions
+    if fill_in_glo_30:
+        glo_90_missing_intersection = intersects_missing_glo_30_tiles(bounds)
+        fill_in_glo_30 = fill_in_glo_30 and glo_90_missing_intersection
 
-    if (bounds[0] > bounds[2]) or (bounds[1] > bounds[3]):
-        raise ValueError('Specify bounds as xmin, ymin, xmax, ymax in epsg:4326')
+    if merge_nodata_value not in [np.nan, 0]:
+        raise ValueError('np.nan and 0 are only acceptable merge_nodata_value')
 
-    df_tiles = get_dem_tiles(bounds, dem_name)
+    if driver != 'GTiff':
+        warn('A non-geotiff driver may not be valid with tile creation options during rasterio write. '
+             'This feature will be removed in a future release and the driver will be fixed to GeoTiff.',
+             category=UserWarning)
+
+    df_tiles = get_overlapping_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
 
     # Random unique identifier
@@ -317,7 +296,8 @@ def stitch_dem(bounds: list,
 
     if not datasets:
         # This is the case that an extent is entirely contained within glo_90
-        if ((dem_name == 'glo_30') and fill_in_glo_30 and intersects_missing_glo_30_tiles(bounds)):
+        # tiles that are missing from glo_30 (list of datasets is empty)
+        if (dem_name == 'glo_30') and fill_in_glo_30:
 
             stitcher_kwargs['dem_name'] = 'glo_90_missing'
             # if dst_resolution is None, then make sure we upsample to 30 meter resolution
@@ -329,6 +309,15 @@ def stitch_dem(bounds: list,
         else:
             raise NoDEMCoverage(f'Specified bounds are not within coverage area of {dem_name}')
 
+    # Preserve tile metadata data not used for geo-referencing
+    profile_tile = datasets[0].profile.copy()
+    [profile_tile.pop(key) for key in ['transform', 'dtype', 'height', 'width', 'nodata', 'crs']]
+
+    crossing = get_dateline_crossing(bounds)
+    if crossing:
+        zipped_data = list(map(lambda ds: _translate_one_tile_across_dateline(ds, crossing), datasets))
+        memory_files, datasets = zip(*zipped_data)
+
     dem_arr, dem_profile = merge_and_transform_dem_tiles(datasets,
                                                          bounds,
                                                          dem_name,
@@ -336,6 +325,7 @@ def stitch_dem(bounds: list,
                                                          dst_area_or_point=dst_area_or_point,
                                                          dst_resolution=dst_resolution,
                                                          num_threads_reproj=n_threads_reproj,
+                                                         merge_nodata_value=merge_nodata_value
                                                          )
 
     # Close datasets
@@ -345,13 +335,20 @@ def stitch_dem(bounds: list,
     if tile_dir.exists():
         shutil.rmtree(str(tile_dir))
 
+    # Created in memory file containers if there is a dateline crossing for translation
+    if crossing:
+        list(map(lambda mf: mf.close(), memory_files))
+
     # Set driver in profile
     dem_profile['driver'] = driver
 
+    # This is the case when we have overlap of the requested extent and glo_30
+    # and glo_90 tiles that are missing from glo_30.
     if (dem_name == 'glo_30') and fill_in_glo_30:
         dem_arr, dem_profile = patch_glo_30_with_glo_90(dem_arr,
                                                         dem_profile,
                                                         bounds,
                                                         stitcher_kwargs)
 
+    dem_profile.update(**profile_tile)
     return dem_arr, dem_profile

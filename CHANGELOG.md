@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0]
+
+### Added
+- Included feature for extracting DEMs across datelines
+- Updated merge apis with more descriptive names for more general usage
+- Exceptions to determine valid extents and ensure single dateline crossing
+- Added functions for dateline in `dateline.py`
+- Tests for added and changed functionality.
+- Integration tests for notebooks.
+- Clarity about driver keyword in `stitch_dem` in readme, docstrings
+- Ensure overlap of tiles is non-trivial AND polygonal (excludes point and line intersections)
+- Similar check of polygonal type for window reading for better error handling
+- Add `merge_nodata_value` to `merge_tile_datasets`, `merge_and_transform_dem_tiles`, and `stitch_dem` to allow for fill value of 0. As such, nodata areas within DEM tiles when converted to Ellipsoidal height will be filled in with geoid values. No other values outside of `np.nan` or `0` permitted.
+
+
+### Changed
+- Moved functions into more logical python file including merge calls into `merge.py` and tile functions into `datasets.py`
+- Renamed internal functions for greater clarity and better description of tasks
+- Ensures window reading checks bounds of src raster and does intersection if required to ensure no unexpected rasterio errors. Further, raises error if no overlap.
+
+
 ## [2.3.1]
 
 ### Fixed

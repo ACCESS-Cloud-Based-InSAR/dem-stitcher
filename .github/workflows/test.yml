@@ -26,15 +26,16 @@ jobs:
           username: ${{ secrets.EARTHDATA_USERNAME }}
           password: ${{ secrets.EARTHDATA_PASSWORD }}
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: mamba-org/provision-with-micromamba@main
         with:
-          mamba-version: "*"
-          python-version: ${{ matrix.python-version }}
-          activate-environment: dem-stitcher
+          environment-name: dem-stitcher
           environment-file: environment.yml
+          extra-specs: |
+            python=${{ matrix.python-version }}
+
 
       - name: Pytest in conda environment
         shell: bash -l {0}
         run: |
           python -m pip install .
-          pytest . -m 'not integration'
+          pytest . -m 'not notebook'
