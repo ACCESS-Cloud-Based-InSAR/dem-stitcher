@@ -122,12 +122,19 @@ def read_raster_from_window(raster_path: str,
     win_bbox_geo = box(*window_extent_r)
 
     intersection_geo = src_bbox_geo.intersection(win_bbox_geo)
+
+    if intersection_geo.geom_type != 'Polygon':
+        raise RuntimeError('The intersection geometry is degenerate (i.e. a '
+                           f'Point or LineString: {intersection_geo.geom_type}')
     if not intersection_geo.is_empty:
         window_extent_r = intersection_geo.bounds
-        warn(f'Requesting extent beyond raster bounds of {list(src_bounds)}. '
-             f'Shrinking bounds in raster crs to {window_extent_r}')
+        if not src_bbox_geo.contains(win_bbox_geo):
+            warn(f'Requesting extent beyond raster bounds of {list(src_bounds)}'
+                 f'. Shrinking bounds in raster crs to {window_extent_r}.',
+                 category=RuntimeWarning)
     else:
-        raise ValueError('The extent you specified does not overlap the specified raster.')
+        raise RuntimeError('The extent you specified does not overlap'
+                           ' the specified raster as a Polygon.')
 
     corner_ul, corner_br = get_indices_from_extent(src_profile['transform'],
                                                    window_extent_r,

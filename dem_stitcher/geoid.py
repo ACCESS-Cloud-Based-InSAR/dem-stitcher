@@ -35,8 +35,8 @@ def read_geoid(geoid_name: str,
             geoid_profile = ds.profile
     else:
         extent_crs = CRS.from_epsg(4326)
-
         crossing = get_dateline_crossing(extent)
+
         if crossing == 0:
             geoid_arr, geoid_profile = read_raster_from_window(geoid_path,
                                                                extent,

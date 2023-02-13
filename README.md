@@ -56,7 +56,7 @@ Currently, python 3.7+ is supported.
 
 ## With ISCE2 or gdal
 
-Although the thrust of using this package is for staging DEMs for InSAR (particularly ISCE2), testing and maintaining suitable environments to use with InSAR processors is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own and additionally requires python version `<3.10`. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
+Although the thrust of using this package is for staging DEMs for InSAR (particularly ISCE2), testing and maintaining suitable environments to use with InSAR processors is beyond the scope of what we are attempting to accomplish here. We provide an example notebook [here](./notebooks/Staging_a_DEM_for_ISCE2.ipynb) that demonstrates how to stage a DEM for ISCE2, which requires additional packages than required for the package on its own. For the notebook, we use the environment found in `environment.yml` of the Dockerized TopsApp [repository](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/blob/dev/environment.yml), used to generate interferograms (GUNWs) in the cloud.
 
 ## About the raster metadata
 
@@ -118,7 +118,7 @@ Wherever possible, we do not resample the original DEMs unless specified by the 
    + Adjust the geoid to pixel/area coordinates
    + resample the geoids into the DEM reference frame
    + Adjust the vertical datum
-5. All DEMs are converted to `float32` and have nodata `np.nan`. Although this can increase data size of certain rasters (SRTM is distributed as integers), this ensures (a) easy comparison across DEMs and (b) no side-effects of the stitcher due to unusual nodata values. Note, this datatype is specified in `merge_tile_datasets` in `merge.py`. Other nodata values can be specified outside the stitcher as is frequently done (e.g. ISCE2 requires nodata to be filled as `0`).
+5. All DEMs are converted to `float32` and have nodata `np.nan`. Although this can increase data size of certain rasters (SRTM is distributed in which pixels are recorded as integers), this ensures (a) easy comparison across DEMs and (b) no side-effects of the stitcher due to dtypes and/or nodata values. There is one caveat: the user can ensure that DEM nodata pixels are set to `0` using `merge_nodata_value` in `stitch_dem`, in which case `0` is filled in where `np.nan` was. We note specifying this "fill value" via `merge_nodata_value` does *not* change the nodata value of output DEM dataset (i.e. `nodata` in the rasterio profile will remain `np.nan`). When transforming to ellipsoidal heights and setting `0` as `merge_nodata_value`, the geoid values are filled in the DEMs nodata areas; if the geoid has nodata in the bounding box, this will be the source of subsequent no data.  For reference, this datatype and nodata is specified in `merge_tile_datasets` in `merge.py`. Other nodata values can be specified outside the stitcher for the application of choice (e.g. ISCE2 requires nodata to be filled as `0`).
 
 There are some [notebooks](notebooks/analysis_and_comparison) that illustrate how tiles are merged by comparing the output of our stitcher with the original tiles.
 
@@ -148,15 +148,12 @@ The former is the more likely. When re-generating tiles, make sure to run all te
 
 # Testing
 
-For unit tests,
+For the test suite:
 
 1. Install `pytest` via `conda-forge`
-2. Run `pytest tests -m 'not integration'`
+2. Run `pytest tests`
 
- We also have a number integration test (marked as `integration` within pytest) to ensures all the DEM tile datasets can be downloaded and transformed successfully (though in most cases, correctness is not verified, that is the domain of the non-integration unit tests). Integration tests will quickly indicate if urls for DEM tiles are working correctly. Integration tests are not checked within the github actions currently. Additionally, to ensure the documentation of this repository, in the form of notebooks, utilize the correct functional API, we utilize `papermill`. Thus for integration tests please install `papermill` via:
-
- 1. `mamba install -c conda forge papermill`
- 2. `pytest tests -m 'integration'`
+There are two category of tests: unit tests and integration tests. The former can be run using `pytest tests -m 'not integration'` and similarly the latter with `pytest tests -m 'integration'`. Our unit tests are those marked without the `integration` tag (via `pytest`) that use synthetic data or data within the library to verify correct outputs of the library (e.g. that a small input raster is modified correctly). Integration tests ensure the `dem-stitcher` API works as expected, downloading the DEM tiles from their respective servers to ensure the stitcher runs to completion - the integration tests only make very basic checks to ensure the format of the ouptut data is correct (e.g. checking the output raster has a particular shape or that nodata is `np.nan`). Our integration tests also include tests that run the notebooks that serve as documentation via `papermill` (such tests have an additional tag `notebook`). Integration tests will require the `~/.netrc` setup above and working internet. Our testing workflow via Github actions currently runs the entire test suite except those tagged with `notebook`, as these tests take considerably longer to run.
 
 # Contributing
 
@@ -167,7 +164,7 @@ We welcome contributions to this open-source package. To do so:
 3. Make your modifications in your own fork
 4. Make a pull-request (PR) in this repo with the code in your fork and tag the repo owner or a relevant contributor.
 
-We use `flake8` and associated linting packages to ensure some basic code quality (see the `environment.yml`). These will be checked for each commit in a PR.
+We use `flake8` and associated linting packages to ensure some basic code quality (see the `environment.yml`). These will be checked for each commit in a PR. Try to write tests wherever possible.
 
 # Support
 
