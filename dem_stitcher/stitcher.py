@@ -314,6 +314,14 @@ def stitch_dem(bounds: list,
     # Used for filling in glo_30 missing tiles if needed
     stitcher_kwargs = locals()
 
+    # This variable is used later to determine if there is intersection with
+    # Missing glo_30 tiles. We do not want calling stitch_dem (again)
+    # for filling and/or patching glo_30 tiles with glo_90 to raise coverage
+    # exceptions
+    if fill_in_glo_30:
+        glo_90_missing_intersection = intersects_missing_glo_30_tiles(bounds)
+        fill_in_glo_30 = fill_in_glo_30 and glo_90_missing_intersection
+
     if merge_nodata_value not in [np.nan, 0]:
         raise ValueError('np.nan and 0 are only acceptable merge_nodata_value')
 
@@ -334,7 +342,8 @@ def stitch_dem(bounds: list,
 
     if not datasets:
         # This is the case that an extent is entirely contained within glo_90
-        if ((dem_name == 'glo_30') and fill_in_glo_30 and intersects_missing_glo_30_tiles(bounds)):
+        # tiles that are missing from glo_30 (list of datasets is empty)
+        if (dem_name == 'glo_30') and fill_in_glo_30:
 
             stitcher_kwargs['dem_name'] = 'glo_90_missing'
             # if dst_resolution is None, then make sure we upsample to 30 meter resolution
@@ -372,10 +381,12 @@ def stitch_dem(bounds: list,
     if tile_dir.exists():
         shutil.rmtree(str(tile_dir))
 
-    # Creates in memory file containers if there is a dateline crossing for translation
+    # Created in memory file containers if there is a dateline crossing for translation
     if crossing:
         list(map(lambda mf: mf.close(), memory_files))
 
+    # This is the case when we have overlap of the requested extent and glo_30
+    # and glo_90 tiles that are missing from glo_30.
     if (dem_name == 'glo_30') and fill_in_glo_30:
         dem_arr, dem_profile = patch_glo_30_with_glo_90(dem_arr,
                                                         dem_profile,

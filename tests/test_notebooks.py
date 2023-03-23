@@ -10,6 +10,7 @@ notebooks = ['Basic_Demo.ipynb',
 
 
 @pytest.mark.integration
+@pytest.mark.notebook
 @pytest.mark.parametrize('notebook_file_name', notebooks)
 def test_read_geoid_across_dateline(notebooks_dir,
                                     test_data_dir,
