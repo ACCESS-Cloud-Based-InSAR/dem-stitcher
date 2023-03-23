@@ -79,6 +79,7 @@ We have notebooks to demonstrate common usage:
 
 + [Basic Demo](notebooks/Basic_Demo.ipynb)
 + [Comparing DEMs](notebooks/Comparing_DEMs.ipynb)
++ [Generating a VRT from DEM tiles](notebooks/Merging_DEM_Tiles_into_a_VRT.ipynb)
 + [Staging a DEM for ISCE2](notebooks/Staging_a_DEM_for_ISCE2.ipynb) - this notebook requires the installation of a few extra libraries including ISCE2 via `conda-forge`
 
 We also demonstrate how the tiles used to organize the urls for the DEMs were generated for this tool were generated in this [notebook](notebooks/organize_tile_data/).
