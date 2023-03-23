@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1]
+
+## Added
+- The function `get_dem_tile_paths` to extract urls or local paths to dem tiles specifying bounds and dem names.
+- Notebook illustrating how to create a `vrt` file using `get_dem_tile_paths`.
+- Utilizes `get_dem_tile_paths` in main `stitch_dem` for easier testing.
+
+
 ## [2.4.0]
 
 ### Added

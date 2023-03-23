@@ -108,5 +108,6 @@ tests/notebooks/
 !notebooks/analysis_and_comparison/0_Alignment_with_original_DEM_tiles.ipynb
 !notebooks/analysis_and_comparison/1_Comparison_with_ISCE2_dem.ipynb
 !notebooks/Filling_in_missing_glo-30_tiles_with_glo-90_tiles.ipynb
+!notebooks/Merging_DEM_Tiles_into_a_VRT.ipynb
 
 notebooks/analysis_and_comparison/la_test/

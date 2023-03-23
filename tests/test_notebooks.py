@@ -4,7 +4,8 @@ import pytest
 
 notebooks = ['Basic_Demo.ipynb',
              'Comparing_DEMs.ipynb',
-             'Filling_in_missing_glo-30_tiles_with_glo-90_tiles.ipynb'
+             'Filling_in_missing_glo-30_tiles_with_glo-90_tiles.ipynb',
+             'Merging_DEM_Tiles_into_a_VRT.ipynb'
              ]
 
 
