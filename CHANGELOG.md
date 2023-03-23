@@ -8,11 +8,13 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.4.1]
 
-## Added
+### Added
 - The function `get_dem_tile_paths` to extract urls or local paths to dem tiles specifying bounds and dem names.
 - Notebook illustrating how to create a `vrt` file using `get_dem_tile_paths`.
 - Utilizes `get_dem_tile_paths` in main `stitch_dem` for easier testing.
 
+## Removed
+- `driver` keyword in `stitch_dem`.
 
 ## [2.4.0]
 
