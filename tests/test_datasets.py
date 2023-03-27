@@ -1,3 +1,5 @@
+import warnings
+
 import pytest
 
 from dem_stitcher.datasets import get_overlapping_dem_tiles
@@ -16,3 +18,14 @@ dem_names = ['glo_90_missing', 'glo_30']
 def test_empty_tiles(extent, dem_name):
     df_tiles = get_overlapping_dem_tiles(extent, dem_name)
     assert df_tiles.empty
+
+
+def test_dateline_warning():
+    extent_no_dateline = [-121.5, 34.95, -120.2, 36.25]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        get_overlapping_dem_tiles(extent_no_dateline, 'glo_30')
+
+    extent_with_dateline = [-181, 51.25, -179, 51.75]
+    with pytest.warns(UserWarning):
+        get_overlapping_dem_tiles(extent_with_dateline, 'glo_30')
