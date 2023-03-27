@@ -22,7 +22,8 @@ def get_available_datasets():
     return DATASETS
 
 
-@lru_cache
+# TODO: maxsize=None is not needed for 3.8+
+@lru_cache(maxsize=None)
 def get_global_dem_tile_extents(dataset: str) -> gpd.GeoDataFrame:
     """Obtains globally avaialable tiles from DEM names supported.
 
