@@ -9,8 +9,10 @@ from rasterio.io import MemoryFile
 
 
 def read_dem(dem_path: str) -> rasterio.DatasetReader:
-    ds = rasterio.open(dem_path)
-    return ds
+    with rasterio.open(dem_path) as ds:
+        dem_arr = ds.read(1)
+        dem_profile = ds.profile
+    return dem_arr, dem_profile
 
 
 def read_dem_bytes(dem_path: str, suffix: str = '.img') -> bytes:

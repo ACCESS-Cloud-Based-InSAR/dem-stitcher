@@ -60,7 +60,7 @@ Although the thrust of using this package is for staging DEMs for InSAR (particu
 
 ## About the raster metadata
 
-The creation metadata unrelated to georeferencing (e.g. the `compress` key or various other options [here](https://rasterio.readthedocs.io/en/latest/topics/image_options.html#creation-options)) returned in the dictionary `profile` from the `stitch_dem` API is copied directly from the source tiles being used. Although a `driver` keyword can be specified through this API directly, we recommend using the default `GTiff` option. We caution that the creation metadata copied from the source DEM tile set may not be valid with the other possible drivers and has not been tested in this library. Furthermore, different distributions of `rasterio` support different of subsets drivers; however, `GTiff` is the default driver in `rasterio` and supported across all distributions. Such metadata creation options are beyond the scope of this library.
+The creation metadata unrelated to georeferencing (e.g. the `compress` key or various other options [here](https://rasterio.readthedocs.io/en/latest/topics/image_options.html#creation-options)) returned in the dictionary `profile` from the `stitch_dem` API is copied directly from the source tiles being used if they are GeoTiff formatted (such as `glo_30`) else the creation metadata are copied from the GeoTiff Default Profile in `rasterio` (see [here](https://github.com/rasterio/rasterio/blob/0feec999775f3108abf9f50beea044bb3d4756d2/rasterio/profiles.py) excluding `nodata` and `dtype`). Such metadata creation options are beyond the scope of this library.
 
 ## Credentials
 
@@ -79,6 +79,7 @@ We have notebooks to demonstrate common usage:
 
 + [Basic Demo](notebooks/Basic_Demo.ipynb)
 + [Comparing DEMs](notebooks/Comparing_DEMs.ipynb)
++ [Generating a VRT from source DEM tiles](notebooks/Merging_DEM_Tiles_into_a_VRT.ipynb)
 + [Staging a DEM for ISCE2](notebooks/Staging_a_DEM_for_ISCE2.ipynb) - this notebook requires the installation of a few extra libraries including ISCE2 via `conda-forge`
 
 We also demonstrate how the tiles used to organize the urls for the DEMs were generated for this tool were generated in this [notebook](notebooks/organize_tile_data/).
