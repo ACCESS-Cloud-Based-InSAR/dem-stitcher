@@ -3,9 +3,11 @@ import pytest
 import rasterio
 from affine import Affine
 from numpy.testing import assert_almost_equal, assert_array_equal
+from osgeo import gdal
 from rasterio import default_gtiff_profile
+from shapely.geometry import box
 
-from dem_stitcher import stitch_dem
+from dem_stitcher import get_dem_tile_paths, stitch_dem
 from dem_stitcher.datasets import DATASETS
 from dem_stitcher.geoid import read_geoid
 from dem_stitcher.rio_tools import (reproject_arr_to_match_profile,
@@ -279,3 +281,23 @@ def test_bad_merge_nodata_value():
         stitch_dem([-118.8, 34.6, -118.5, 34.8],
                    dem_name='glo_30',
                    merge_nodata_value=3)
+
+
+@pytest.mark.integration
+def test_get_dem_tile_paths_and_output_vrt(test_dir):
+    input_bounds = [-121.5, 34.95, -120.2, 36.25]
+    dem_name = 'glo_30'
+
+    dem_tile_paths = get_dem_tile_paths(bounds=input_bounds,
+                                        dem_name=dem_name,
+                                        localize_tiles_to_gtiff=False
+                                        )
+    vrt_path = str(test_dir / f'test_{dem_name}.vrt')
+    ds = gdal.BuildVRT(vrt_path, dem_tile_paths)
+    ds = None
+
+    input_geo = box(*input_bounds)
+    with rasterio.open(vrt_path) as ds:
+        output_geo = box(*ds.bounds)
+
+    assert output_geo.contains(input_geo)

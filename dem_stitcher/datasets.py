@@ -1,4 +1,6 @@
+from functools import lru_cache
 from pathlib import Path
+from warnings import warn
 
 import geopandas as gpd
 import pandas as pd
@@ -20,6 +22,8 @@ def get_available_datasets():
     return DATASETS
 
 
+# TODO: maxsize=None is not needed for 3.8+
+@lru_cache(maxsize=None)
 def get_global_dem_tile_extents(dataset: str) -> gpd.GeoDataFrame:
     """Obtains globally avaialable tiles from DEM names supported.
 
@@ -75,6 +79,10 @@ def get_overlapping_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
 
     crossing = get_dateline_crossing(bounds)
     if crossing:
+        warn('Getting tiles across dateline on the opposite hemisphere; '
+             f'The source tiles will be {- 2 * crossing} deg along the'
+             'longitudinal axis from the extent requested',
+             category=UserWarning)
         df_tiles_all_translated = df_tiles_all.copy()
         x_translation = 2 * crossing
         df_tiles_all_translated.geometry = df_tiles_all.geometry.translate(xoff=x_translation)

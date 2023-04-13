@@ -8,6 +8,12 @@ from rasterio.crs import CRS
 
 
 @pytest.fixture(scope='session')
+def test_dir():
+    test_dir = Path(__file__).resolve().parent
+    return test_dir
+
+
+@pytest.fixture(scope='session')
 def test_data_dir():
     data_dir = Path(__file__).resolve().parent / 'data'
     return data_dir

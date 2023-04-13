@@ -7,6 +7,7 @@ from warnings import warn
 
 import numpy as np
 import rasterio
+from rasterio import default_gtiff_profile
 from rasterio.crs import CRS
 from rasterio.io import MemoryFile
 from tqdm import tqdm
@@ -39,19 +40,18 @@ DEM2GEOID = {'ned1': 'geoid_18',
              'nasadem': 'egm_96'}
 
 PIXEL_CENTER_DEMS = ['srtm_v3', 'nasadem', 'glo_30', 'glo_90', 'glo_90_missing']
+DEFAULT_GTIFF_PROFILE = default_gtiff_profile.copy()
+DEFAULT_GTIFF_PROFILE.pop('nodata')
+DEFAULT_GTIFF_PROFILE.pop('dtype')
 
 
-def _download_and_write_one_tile(url: str,
-                                 dest_path: Path,
-                                 reader: Callable,
-                                 dem_name: str) -> dict:
+def _download_and_write_one_tile_to_gtiff(url: str,
+                                          dest_path: Path,
+                                          reader: Callable,
+                                          dem_name: str) -> dict:
     dem_arr, dem_profile = reader(url)
-    # if dem_arr is None - the tile does not exist - this is the case
-    # for glo30
-    if dem_arr is None:
-        return
-
-    dem_profile['driver'] = 'GTiff'
+    if dem_profile['driver'] != 'GTiff':
+        dem_profile.update(**DEFAULT_GTIFF_PROFILE)
     with rasterio.open(dest_path, 'w', **dem_profile) as ds:
         ds.write(dem_arr, 1)
         if dem_name in PIXEL_CENTER_DEMS:
@@ -59,34 +59,100 @@ def _download_and_write_one_tile(url: str,
     return dem_profile
 
 
-def download_tiles(urls: list,
-                   dem_name: str,
-                   dest_dir: Path,
-                   max_workers: int = 5
-                   ) -> List[Path]:
+def download_tiles_to_gtiff(urls: list,
+                            dem_name: str,
+                            dest_dir: Path,
+                            max_workers_for_download: int = 5
+                            ) -> List[Path]:
 
     tile_ids = list(map(lambda x: x.split('/')[-1], urls))
-    dest_paths = list(map(lambda tile_id: dest_dir/f'{tile_id}.tif',
-                          tile_ids))
+
+    def extract_dest_path_from_url(tile_id):
+        # glo DEMs
+        if '.tif' in tile_id:
+            return dest_dir / tile_id
+        # USGS or NASA DEMs
+        if '.zip' in tile_id:
+            return dest_dir / tile_id.replace('.zip', '.tif')
+        else:
+            raise ValueError('The dataset format was not considered')
+
+    dest_paths = list(map(extract_dest_path_from_url, tile_ids))
     reader = RASTER_READERS[dem_name]
 
     def download_and_write_one_partial(zipped_data: list) -> dict:
-        return _download_and_write_one_tile(zipped_data[0],
-                                            zipped_data[1],
-                                            reader,
-                                            dem_name)
+        return _download_and_write_one_tile_to_gtiff(zipped_data[0],
+                                                     zipped_data[1],
+                                                     reader,
+                                                     dem_name)
 
     data_list = zip(urls, dest_paths)
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        results = list(tqdm(executor.map(download_and_write_one_partial, data_list),
-                            total=len(urls),
-                            desc=f'Downloading {dem_name} tiles'))
-    profiles = results
+    with ThreadPoolExecutor(max_workers=max_workers_for_download) as executor:
+        list(tqdm(executor.map(download_and_write_one_partial, data_list),
+                  total=len(urls),
+                  desc=f'Downloading {dem_name} tiles'))
 
-    n = len(dest_paths)
-    dest_paths_f = [dest_paths[k] for k in range(n) if profiles[k] is not None]
+    dest_paths_str = list(map(str, dest_paths))
+    return dest_paths_str
 
-    return dest_paths_f
+
+def get_dem_tile_paths(bounds: List[float],
+                       dem_name: str,
+                       localize_tiles_to_gtiff: bool = False,
+                       n_threads_downloading: int = 5,
+                       tile_dir: Union[Path, str] = None) -> List[str]:
+    """Either:
+
+    1. Gets (public urls) so that we can open with rasterio
+    2. Localizes tiles as Geotiffs
+
+    Can force localization setting `download_original_tiles` to True.
+
+    Parameters
+    ----------
+    bounds : list
+        [xmin, ymin, xmax, ymax] in epsg:4326 (i.e. x=lon and y=lat)
+    dem_name : str
+        One of the dems supported by the stitcher (use `from dem_stitcher.datasets import DATASETS; DATASETS`)
+    localize_tiles_to_gtiff : bool, optional
+        Localize DEM tiles as Geotiffs, by default False
+    n_threads_downloading : int, optional
+        Number of workers for downloading, by default 5
+    tile_dir : Path | str, optional
+        Directory to localize files, by default None, which saves to `dem_name`.
+
+    Returns
+    -------
+    List[str]
+        List of paths to dem as urls or paths on disk
+    """
+
+    df_tiles = get_overlapping_dem_tiles(bounds, dem_name)
+    urls = df_tiles.url.tolist()
+
+    if (not localize_tiles_to_gtiff):
+        # Datasets that permit direct reading
+        if (dem_name in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']):
+            dem_paths = urls
+        else:
+            warn(f'We need to localize the tiles as a Geotiff. Saving to {str(tile_dir)}',
+                 category=UserWarning)
+
+    if (dem_name not in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']) or localize_tiles_to_gtiff:
+        if isinstance(tile_dir, str):
+            tile_dir = Path(tile_dir)
+        if tile_dir is None:
+            tile_dir = Path(dem_name)
+        if tile_dir.exists():
+            warn(f'The directory{tile_dir} exists; '
+                 'We are writing new files to this directory',
+                 category=UserWarning)
+        tile_dir.mkdir(exist_ok=True, parents=True)
+        dem_paths = download_tiles_to_gtiff(urls,
+                                            dem_name,
+                                            tile_dir,
+                                            max_workers_for_download=n_threads_downloading)
+    return dem_paths
 
 
 def shift_profile_for_pixel_loc(src_profile: dict,
@@ -202,7 +268,6 @@ def stitch_dem(bounds: list,
                dst_resolution: Union[float, Tuple[float]] = None,
                n_threads_reproj: int = 5,
                n_threads_downloading: int = 5,
-               driver: str = 'GTiff',
                fill_in_glo_30: bool = True,
                merge_nodata_value: float = np.nan
                ) -> Tuple[np.ndarray, dict]:
@@ -228,8 +293,6 @@ def stitch_dem(bounds: list,
         Threads to use for reprojection, by default 5
     n_threads_downloading : int, optional
         Threads for downloading tiles, by default 5
-    driver : str, optional
-        Output format in profile, by default 'GTiff'. Other drivers are not recommended.
     fill_in_glo_30 : bool, optional
         If `dem_name` is 'glo_30' then fills in missing `glo_30` tiles over Armenia and Azerbaijan with available
         `glo_90` tiles, by default True. If the extent falls inside of the missing `glo_30` tiles, then `glo_90` is
@@ -262,37 +325,20 @@ def stitch_dem(bounds: list,
     if merge_nodata_value not in [np.nan, 0]:
         raise ValueError('np.nan and 0 are only acceptable merge_nodata_value')
 
-    if driver != 'GTiff':
-        warn('A non-geotiff driver may not be valid with tile creation options during rasterio write. '
-             'This feature will be removed in a future release and the driver will be fixed to GeoTiff.',
-             category=UserWarning)
-
-    df_tiles = get_overlapping_dem_tiles(bounds, dem_name)
-    urls = df_tiles.url.tolist()
-
     # Random unique identifier
     tmp_id = str(uuid.uuid4())
     tile_dir = Path(f'tmp_{tmp_id}')
 
-    # Datasets that permit virtual warping
-    # The readers return DatasetReader rather than (Array, Profile)
-    if dem_name in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']:
-        def reader(url):
-            return RASTER_READERS[dem_name](url)
-        with ThreadPoolExecutor(max_workers=n_threads_downloading) as executor:
-            results = list(tqdm(executor.map(reader, urls),
-                                total=len(urls),
-                                desc=f'Reading {dem_name} Datasets'))
+    dem_paths = get_dem_tile_paths(bounds=bounds,
+                                   dem_name=dem_name,
+                                   localize_tiles_to_gtiff=False,
+                                   n_threads_downloading=n_threads_downloading,
+                                   tile_dir=tile_dir)
 
-        # If datasets are non-existent, returns None
-        datasets = list(filter(lambda x: x is not None, results))
-    else:
-        tile_dir.mkdir(exist_ok=True, parents=True)
-        dest_paths = download_tiles(urls,
-                                    dem_name,
-                                    tile_dir,
-                                    max_workers=n_threads_downloading)
-        datasets = list(map(rasterio.open, dest_paths))
+    with ThreadPoolExecutor(max_workers=n_threads_downloading) as executor:
+        datasets = list(tqdm(executor.map(rasterio.open, dem_paths),
+                             total=len(dem_paths),
+                             desc=f'Reading {dem_name} Datasets'))
 
     if not datasets:
         # This is the case that an extent is entirely contained within glo_90
@@ -338,9 +384,6 @@ def stitch_dem(bounds: list,
     # Created in memory file containers if there is a dateline crossing for translation
     if crossing:
         list(map(lambda mf: mf.close(), memory_files))
-
-    # Set driver in profile
-    dem_profile['driver'] = driver
 
     # This is the case when we have overlap of the requested extent and glo_30
     # and glo_90 tiles that are missing from glo_30.
