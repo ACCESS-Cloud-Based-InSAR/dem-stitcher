@@ -8,6 +8,23 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.5.0]
 
+## Changed
+* Internally instead of using m x n arrays (with total dimensions 2), we utilize the 3 dimensional arrays in 
+band interleaved by pixel (BIP) with shape c x m x n, where c is the number of channels. Although the API remains
+unchanged, the intermediate functions are slightly more general and applicable.
+  * merged.py - all functions now accept BIP (3d arrays) and return them
+  * geoid.py - all functions return and expect 3d arrays (including the input dem array).
+
+### Added
+* Support for 1/3 arc second 3Dep
+
+
+### Removed
+* Support for NED1 and 3Dep 1 arcsecond
+
+
+## [2.5.0]
+
 See previous release.
 
 ## [2.4.1]

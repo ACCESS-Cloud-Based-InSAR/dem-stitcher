@@ -77,7 +77,8 @@ def test_read_window_4326(test_data_dir, extent, array, transform):
                                             extent,
                                             CRS.from_epsg(4326),
                                             res_buffer=0)
-    assert_array_equal(array, window_arr)
+    array_gdal_format = array[np.newaxis, ...]
+    assert_array_equal(array_gdal_format, window_arr)
     assert transform == p['transform']
 
 
@@ -96,7 +97,8 @@ def test_read_window_utm(test_data_dir, geojson_index, array, transform):
                                             extent,
                                             crs,
                                             res_buffer=0)
-    assert_array_equal(array, window_arr)
+    array_gdal_format = array[np.newaxis, ...]
+    assert_array_equal(array_gdal_format, window_arr)
     assert transform == p['transform']
 
 
@@ -201,6 +203,7 @@ def test_read_window_4326_unequal_dims(test_data_dir, extent, array, transform):
                                             extent,
                                             CRS.from_epsg(4326),
                                             res_buffer=0)
+    array = array[np.newaxis, ...]
     assert_array_equal(array, window_arr)
     assert transform == p['transform']
 
@@ -251,7 +254,7 @@ def test_riow_window_get_one_pixel(test_data_dir):
                                    [0, -25, 0.01, -24.999],
                                    CRS.from_epsg(4326),
                                    res_buffer=0)
-    assert X.shape == (1, 1)
+    assert X.shape == (1, 1, 1)
     assert p['width'] == p['height']
     assert p['width'] == 1
 

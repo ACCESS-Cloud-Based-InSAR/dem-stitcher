@@ -14,7 +14,7 @@ from shapely.geometry import box
 
 def transform_bounds(src_bounds: list,
                      src_crs: CRS,
-                     dest_crs: CRS) -> list:
+                     dest_crs: CRS) -> list[float]:
     """
     Source: https://gis.stackexchange.com/a/392407
     """
@@ -69,7 +69,8 @@ def get_indices_from_extent(transform: Affine,
 
     height, width = (np.inf, np.inf)
     if shape is not None:
-        height, width = shape
+        assert len(shape) in [2, 3]
+        height, width = shape[-2:]
 
     corner_br = (min(row_br + res_buffer, height),
                  min(col_br + res_buffer, width))
@@ -147,13 +148,14 @@ def read_raster_from_window(raster_path: str,
                                 (col_start, col_stop))
 
     with rasterio.open(raster_path) as ds:
-        arr_window = ds.read(1, window=window)
+        arr_window = ds.read(window=window)
         t_window = ds.window_transform(window)
 
     profile_window = src_profile.copy()
     profile_window['transform'] = t_window
 
-    profile_window['height'] = arr_window.shape[0]
-    profile_window['width'] = arr_window.shape[1]
+    profile_window['count'] = arr_window.shape[0]
+    profile_window['height'] = arr_window.shape[1]
+    profile_window['width'] = arr_window.shape[2]
 
     return arr_window, profile_window

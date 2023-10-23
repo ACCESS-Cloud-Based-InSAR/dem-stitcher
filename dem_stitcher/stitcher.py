@@ -23,16 +23,14 @@ from .rio_tools import (reproject_arr_to_match_profile,
                         reproject_arr_to_new_crs, translate_dataset,
                         translate_profile, update_profile_resolution)
 
-RASTER_READERS = {'ned1': read_ned1,
-                  '3dep': read_dem,
+RASTER_READERS = {'3dep': read_dem,
                   'glo_30': read_dem,
                   'glo_90': read_dem,
                   'glo_90_missing': read_dem,
                   'srtm_v3': read_srtm,
                   'nasadem': read_nasadem}
 
-DEM2GEOID = {'ned1': 'geoid_18',
-             '3dep': 'geoid_18',
+DEM2GEOID = {'3dep': 'geoid_18',
              'glo_30': 'egm_08',
              'glo_90': 'egm_08',
              'glo_90_missing': 'egm_08',
@@ -53,7 +51,7 @@ def _download_and_write_one_tile_to_gtiff(url: str,
     if dem_profile['driver'] != 'GTiff':
         dem_profile.update(**DEFAULT_GTIFF_PROFILE)
     with rasterio.open(dest_path, 'w', **dem_profile) as ds:
-        ds.write(dem_arr, 1)
+        ds.write(dem_arr)
         if dem_name in PIXEL_CENTER_DEMS:
             ds.update_tags(AREA_OR_POINT='Point')
     return dem_profile
@@ -194,7 +192,6 @@ def merge_and_transform_dem_tiles(datasets: list,
         dem_arr, dem_profile = reproject_arr_to_new_crs(dem_arr,
                                                         dem_profile,
                                                         CRS.from_epsg(4326))
-        dem_arr = dem_arr[0, ...]
 
     if dem_profile['crs'] != CRS.from_epsg(4326):
         raise ValueError('CRS must be epsg 4269 or 4326')
@@ -214,10 +211,9 @@ def merge_and_transform_dem_tiles(datasets: list,
                                                               dem_profile_res,
                                                               num_threads=num_threads_reproj,
                                                               resampling='bilinear')
-        dem_arr = dem_arr[0, ...]
 
     # Ensure dem_arr has correct shape
-    assert len(dem_arr.shape) == 2
+    assert len(dem_arr.shape) == 3
 
     return dem_arr, dem_profile
 
@@ -232,7 +228,8 @@ def patch_glo_30_with_glo_90(arr_glo_30: np.ndarray,
     stitcher_kwargs['dem_name'] = 'glo_90_missing'
     arr_glo_90, prof_glo_90 = stitch_dem(**stitcher_kwargs)
 
-    dem_arr, dem_prof = merge_arrays_with_geometadata([arr_glo_30, arr_glo_90],
+    # Dems internally are BIP with channel dimension exposed but stitcher api squeezes outputs
+    dem_arr, dem_prof = merge_arrays_with_geometadata([arr_glo_30.squeeze(), arr_glo_90],
                                                       [prof_glo_30, prof_glo_90]
                                                       )
 
@@ -394,4 +391,5 @@ def stitch_dem(bounds: list,
                                                         stitcher_kwargs)
 
     dem_profile.update(**profile_tile)
+    dem_arr = dem_arr[0, ...]
     return dem_arr, dem_profile

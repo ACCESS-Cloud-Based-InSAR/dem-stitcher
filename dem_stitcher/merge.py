@@ -23,7 +23,6 @@ def merge_tile_datasets(datasets: List[rasterio.DatasetReader],
                                          # This fixes the float32 output
                                          dtype='float32',
                                          )
-    merged_arr = merged_arr[0, ...]
 
     # each pair is in (row, col) format
     corner_ul, corner_br = get_indices_from_extent(merged_transform,
@@ -32,7 +31,7 @@ def merge_tile_datasets(datasets: List[rasterio.DatasetReader],
                                                    res_buffer=res_buffer)
     sy = np.s_[corner_ul[0]: corner_br[0]]
     sx = np.s_[corner_ul[1]: corner_br[1]]
-    merged_arr = merged_arr[sy, sx]
+    merged_arr = merged_arr[:, sy, sx]
 
     # We swap row and columns because Affine expects (x, y) or (col, row)
     origin_affine = corner_ul[1], corner_ul[0]
@@ -42,8 +41,9 @@ def merge_tile_datasets(datasets: List[rasterio.DatasetReader],
                                                                    merged_transform.e)
 
     merged_profile = datasets[0].profile.copy()
-    merged_profile['height'] = merged_arr.shape[0]
-    merged_profile['width'] = merged_arr.shape[1]
+    merged_profile['count'] = merged_arr.shape[0]
+    merged_profile['height'] = merged_arr.shape[1]
+    merged_profile['width'] = merged_arr.shape[2]
     merged_profile['nodata'] = np.nan
     merged_profile['dtype'] = 'float32'
     merged_profile['transform'] = merged_transform_final
@@ -55,26 +55,35 @@ def merge_arrays_with_geometadata(arrays: List[np.ndarray],
                                   resampling='bilinear',
                                   method='first') -> Tuple[np.ndarray, dict]:
 
-    if len(arrays[0].shape) > 2:
-        raise ValueError('Currently only supports 2d arrays')
+    n_dim = arrays[0].shape
+    if len(n_dim) not in [2, 3]:
+        raise ValueError('Currently arrays must be in BIP format'
+                         'i.e. channels x height x width or flat array')
+    if len(set([len(arr.shape) for arr in arrays])) != 1:
+        raise ValueError('All arrays must have same number of dimensions i.e. 2 or 3')
+
+    if len(n_dim) == 2:
+        arrays_input = [arr[np.newaxis, ...] for arr in arrays]
+    else:
+        arrays_input = arrays
 
     if (len(arrays)) != (len(profiles)):
         raise ValueError('Length of arrays and profiles needs to be the same')
 
     memfiles = [MemoryFile() for p in profiles]
     datasets = [mfile.open(**p) for (mfile, p) in zip(memfiles, profiles)]
-    [ds.write(arr, 1) for (ds, arr) in zip(datasets, arrays)]
+    [ds.write(arr) for (ds, arr) in zip(datasets, arrays_input)]
 
     merged_arr, merged_trans = merge(datasets,
                                      resampling=Resampling[resampling],
                                      method=method,
                                      )
-    merged_arr = merged_arr[0, ...]
 
     prof_merged = profiles[0].copy()
     prof_merged['transform'] = merged_trans
-    prof_merged['width'] = merged_arr.shape[1]
-    prof_merged['height'] = merged_arr.shape[0]
+    prof_merged['count'] = merged_arr.shape[0]
+    prof_merged['height'] = merged_arr.shape[1]
+    prof_merged['width'] = merged_arr.shape[2]
 
     [ds.close() for ds in datasets]
     [mfile.close() for mfile in memfiles]
