@@ -15,7 +15,7 @@ from tqdm import tqdm
 from .datasets import (get_overlapping_dem_tiles,
                        intersects_missing_glo_30_tiles)
 from .dateline import get_dateline_crossing
-from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
+from .dem_readers import read_dem, read_nasadem, read_srtm
 from .exceptions import NoDEMCoverage
 from .geoid import remove_geoid
 from .merge import merge_arrays_with_geometadata, merge_tile_datasets

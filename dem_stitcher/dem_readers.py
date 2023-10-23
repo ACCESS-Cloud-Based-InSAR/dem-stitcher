@@ -35,16 +35,6 @@ def read_dem_bytes(dem_path: str, suffix: str = '.img') -> bytes:
     return img_bytes
 
 
-def read_ned1(dem_path: str) -> Tuple[np.ndarray, dict]:
-    img_bytes = read_dem_bytes(dem_path, suffix='.img')
-    with MemoryFile(img_bytes) as memfile:
-        with memfile.open() as dataset:
-            dem_arr = dataset.read()
-            dem_profile = dataset.profile
-
-    return dem_arr, dem_profile
-
-
 def read_srtm(dem_path: str, version='srtm') -> Tuple[np.ndarray, dict]:
     img_bytes = read_dem_bytes(dem_path, suffix='.hgt')
     # The gdal driver hgt depends on filename convention
