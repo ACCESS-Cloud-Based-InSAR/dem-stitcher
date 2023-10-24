@@ -1,58 +1,63 @@
+import warnings
 from typing import List, Tuple
 
 import numpy as np
 import rasterio
-from affine import Affine
+from rasterio.crs import CRS
 from rasterio.enums import Resampling
 from rasterio.io import MemoryFile
 from rasterio.merge import merge
+from rasterio.windows import Window
+from shapely.geometry import box
 
-from .rio_window import get_indices_from_extent
+from .rio_window import format_window_profile, get_window_from_extent
 
 
 def merge_tile_datasets(datasets: List[rasterio.DatasetReader],
                         bounds: list = None,
                         resampling: str = 'nearest',
-                        res_buffer: int = 0,
-                        nodata: float = np.nan
+                        nodata: float = np.nan,
+                        dtype: str | np.dtype = np.float32
                         ) -> Tuple[np.ndarray, dict]:
-    merged_arr, merged_transform = merge(datasets,
-                                         resampling=Resampling[resampling],
-                                         # This fixes the nodata values
-                                         nodata=nodata,
-                                         # This fixes the float32 output
-                                         dtype='float32',
-                                         )
+    if datasets[0].profile['crs'] != CRS.from_epsg(4326):
+        raise ValueError('CRS must be epgs:4326')
 
-    # each pair is in (row, col) format
-    corner_ul, corner_br = get_indices_from_extent(merged_transform,
-                                                   bounds,
-                                                   shape=merged_arr.shape,
-                                                   res_buffer=res_buffer)
-    sy = np.s_[corner_ul[0]: corner_br[0]]
-    sx = np.s_[corner_ul[1]: corner_br[1]]
-    merged_arr = merged_arr[:, sy, sx]
+    datasets_filtered = [ds for ds in datasets
+                         if (box(*ds.bounds).intersects(box(*bounds)) and
+                             (box(*ds.bounds).intersection(box(*bounds)).geom_type == 'Polygon')
+                             )
+                         ]
 
-    # We swap row and columns because Affine expects (x, y) or (col, row)
-    origin_affine = corner_ul[1], corner_ul[0]
-    new_origin = merged_transform * origin_affine
-    merged_transform_final = Affine.translation(*new_origin)
-    merged_transform_final = merged_transform_final * Affine.scale(merged_transform.a,
-                                                                   merged_transform.e)
+    src_profiles = [ds.profile for ds in datasets_filtered]
 
-    merged_profile = datasets[0].profile.copy()
-    merged_profile['count'] = merged_arr.shape[0]
-    merged_profile['height'] = merged_arr.shape[1]
-    merged_profile['width'] = merged_arr.shape[2]
-    merged_profile['nodata'] = np.nan
-    merged_profile['dtype'] = 'float32'
-    merged_profile['transform'] = merged_transform_final
-    return merged_arr, merged_profile
+    def window_partial(profile: dict) -> Window:
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=RuntimeWarning)
+            return get_window_from_extent(profile,
+                                          bounds,
+                                          window_crs=CRS.from_epsg(4326))
+    windows = [window_partial(p) for p in src_profiles]
+    arrs_window = [ds.read(window=window) for (ds, window) in zip(datasets_filtered, windows)]
+    if dtype is not None:
+        arrs_window = [arr.astype(dtype) for arr in arrs_window]
+    trans_window = [ds.window_transform(window=window) for (ds, window) in zip(datasets_filtered, windows)]
+    profs_window = [format_window_profile(p_s, arr_w, tran_w)
+                    for (p_s, arr_w, tran_w) in zip(src_profiles, arrs_window, trans_window)]
+
+    arr_merged, prof_merged = merge_arrays_with_geometadata(arrs_window,
+                                                            profs_window,
+                                                            resampling=resampling,
+                                                            method='first',
+                                                            nodata=nodata,
+                                                            dtype=dtype)
+    return arr_merged, prof_merged
 
 
 def merge_arrays_with_geometadata(arrays: List[np.ndarray],
                                   profiles: List[dict],
                                   resampling='bilinear',
+                                  nodata: float | int = np.nan,
+                                  dtype: str = None,
                                   method='first') -> Tuple[np.ndarray, dict]:
 
     n_dim = arrays[0].shape
@@ -77,6 +82,8 @@ def merge_arrays_with_geometadata(arrays: List[np.ndarray],
     merged_arr, merged_trans = merge(datasets,
                                      resampling=Resampling[resampling],
                                      method=method,
+                                     nodata=nodata,
+                                     dtype=dtype
                                      )
 
     prof_merged = profiles[0].copy()
@@ -84,6 +91,8 @@ def merge_arrays_with_geometadata(arrays: List[np.ndarray],
     prof_merged['count'] = merged_arr.shape[0]
     prof_merged['height'] = merged_arr.shape[1]
     prof_merged['width'] = merged_arr.shape[2]
+    prof_merged['nodata'] = nodata
+    prof_merged['dtype'] = dtype
 
     [ds.close() for ds in datasets]
     [mfile.close() for mfile in memfiles]

@@ -179,7 +179,8 @@ def merge_and_transform_dem_tiles(datasets: list,
                                   merge_nodata_value: float = np.nan) -> Tuple[np.ndarray, dict]:
     dem_arr, dem_profile = merge_tile_datasets(datasets,
                                                bounds=bounds,
-                                               nodata=merge_nodata_value)
+                                               nodata=merge_nodata_value,
+                                               dtype=np.float32)
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
 
     dem_profile = shift_profile_for_pixel_loc(dem_profile,

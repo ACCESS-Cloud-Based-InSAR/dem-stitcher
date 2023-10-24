@@ -7,9 +7,15 @@ import rasterio
 from affine import Affine
 from pyproj import Transformer
 from rasterio.crs import CRS
-from rasterio.transform import rowcol
+from rasterio.transform import array_bounds, rowcol
 from rasterio.windows import Window
 from shapely.geometry import box
+
+
+def get_array_bounds(profile: dict) -> list[float]:
+    return array_bounds(profile['height'],
+                        profile['width'],
+                        profile['transform'])
 
 
 def transform_bounds(src_bounds: list,
@@ -78,9 +84,63 @@ def get_indices_from_extent(transform: Affine,
     return corner_ul, corner_br
 
 
+def get_window_from_extent(src_profile: dict,
+                           window_extent,
+                           window_crs: CRS = CRS.from_epsg(4326),
+                           res_buffer: int = 0) -> Window:
+
+    src_shape = src_profile['height'], src_profile['width']
+    src_bounds = get_array_bounds(src_profile)
+    window_extent_r = transform_bounds(window_extent,
+                                       window_crs,
+                                       src_profile['crs'])
+
+    src_bbox_geo = box(*src_bounds)
+    win_bbox_geo = box(*window_extent_r)
+
+    intersection_geo = src_bbox_geo.intersection(win_bbox_geo)
+
+    if intersection_geo.geom_type != 'Polygon':
+        raise RuntimeError('The intersection geometry is degenerate (i.e. a '
+                           f'Point or LineString: {intersection_geo.geom_type}')
+    if not intersection_geo.is_empty:
+        window_extent_r = intersection_geo.bounds
+        if not src_bbox_geo.contains(win_bbox_geo):
+            warn(f'Requesting extent beyond raster bounds of {list(src_bounds)}'
+                 f'. Shrinking bounds in raster crs to {window_extent_r}.',
+                 category=RuntimeWarning)
+    else:
+        raise RuntimeError('The extent you specified does not overlap'
+                           ' the specified raster as a Polygon.')
+
+    corner_ul, corner_br = get_indices_from_extent(src_profile['transform'],
+                                                   window_extent_r,
+                                                   shape=src_shape,
+                                                   res_buffer=res_buffer
+                                                   )
+    row_start, col_start = corner_ul
+    row_stop, col_stop = corner_br
+    window = Window.from_slices((row_start, row_stop),
+                                (col_start, col_stop))
+    return window
+
+
+def format_window_profile(src_profile: dict,
+                          window_arr: np.ndarray,
+                          window_transform: Affine) -> dict:
+
+    profile_window = src_profile.copy()
+    profile_window['transform'] = window_transform
+
+    profile_window['count'] = window_arr.shape[0]
+    profile_window['height'] = window_arr.shape[1]
+    profile_window['width'] = window_arr.shape[2]
+    return profile_window
+
+
 def read_raster_from_window(raster_path: str,
                             window_extent: list,
-                            window_crs: CRS,
+                            window_crs: CRS = CRS.from_epsg(4326),
                             res_buffer: int = 0) -> tuple:
     """Obtains minimum pixels from original raster (specified by raster_path) that contain
     window extent. Does not reproject into window extent! Returns only 1st channel.
@@ -113,49 +173,16 @@ def read_raster_from_window(raster_path: str,
 
     with rasterio.open(raster_path) as ds:
         src_profile = ds.profile
-        src_crs = ds.crs
-        src_bounds = list(ds.bounds)
 
-    src_shape = src_profile['height'], src_profile['width']
-    window_extent_r = transform_bounds(window_extent, window_crs, src_crs)
-
-    src_bbox_geo = box(*src_bounds)
-    win_bbox_geo = box(*window_extent_r)
-
-    intersection_geo = src_bbox_geo.intersection(win_bbox_geo)
-
-    if intersection_geo.geom_type != 'Polygon':
-        raise RuntimeError('The intersection geometry is degenerate (i.e. a '
-                           f'Point or LineString: {intersection_geo.geom_type}')
-    if not intersection_geo.is_empty:
-        window_extent_r = intersection_geo.bounds
-        if not src_bbox_geo.contains(win_bbox_geo):
-            warn(f'Requesting extent beyond raster bounds of {list(src_bounds)}'
-                 f'. Shrinking bounds in raster crs to {window_extent_r}.',
-                 category=RuntimeWarning)
-    else:
-        raise RuntimeError('The extent you specified does not overlap'
-                           ' the specified raster as a Polygon.')
-
-    corner_ul, corner_br = get_indices_from_extent(src_profile['transform'],
-                                                   window_extent_r,
-                                                   shape=src_shape,
-                                                   res_buffer=res_buffer
-                                                   )
-    row_start, col_start = corner_ul
-    row_stop, col_stop = corner_br
-    window = Window.from_slices((row_start, row_stop),
-                                (col_start, col_stop))
+    window = get_window_from_extent(src_profile,
+                                    window_extent,
+                                    window_crs,
+                                    res_buffer=res_buffer)
 
     with rasterio.open(raster_path) as ds:
         arr_window = ds.read(window=window)
         t_window = ds.window_transform(window)
 
-    profile_window = src_profile.copy()
-    profile_window['transform'] = t_window
-
-    profile_window['count'] = arr_window.shape[0]
-    profile_window['height'] = arr_window.shape[1]
-    profile_window['width'] = arr_window.shape[2]
+    profile_window = format_window_profile(src_profile, arr_window, t_window)
 
     return arr_window, profile_window
