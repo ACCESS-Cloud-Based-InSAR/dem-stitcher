@@ -65,7 +65,7 @@ def merge_tile_datasets_within_extent(datasets: Union[list[rasterio.DatasetReade
 def merge_arrays_with_geometadata(arrays: list[np.ndarray],
                                   profiles: list[dict],
                                   resampling='bilinear',
-                                  nodata: Union[float, int] = np.nan,
+                                  nodata: Union[float, int = np.nan,
                                   dtype: str = None,
                                   method='first') -> tuple[np.ndarray, dict]:
 
