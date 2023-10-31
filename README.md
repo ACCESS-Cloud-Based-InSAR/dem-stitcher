@@ -121,7 +121,7 @@ Wherever possible, we do not resample the original DEMs unless specified by the 
 
 There are some [notebooks](notebooks/analysis_and_comparison) that illustrate how tiles are merged by comparing the output of our stitcher with the original tiles.
 
-As a performance note, when merging DEM tiles, we merge the all needed tiles in memory and this process has an associated overhead. An alternative approach would be to download the tiles to disk and use virtual warping. Ultimately, the accuracy of the final DEM is our prime focus and these minor performance tradeoffs are sidelined.
+As a performance note, when merging DEM tiles, we merge the needed tiles within the extent in memory and this process has an associated overhead. An alternative approach would be to download the tiles to disk and use virtual warping or utilize VRTs more effectively. Ultimately, the accuracy of the final DEM is our prime focus and these minor performance tradeoffs are sidelined.
 
 # Dateline support
 
