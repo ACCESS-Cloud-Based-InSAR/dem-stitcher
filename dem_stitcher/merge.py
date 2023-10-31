@@ -1,5 +1,4 @@
 import warnings
-from typing import List, Tuple
 
 import numpy as np
 import rasterio
@@ -13,19 +12,25 @@ from shapely.geometry import box
 from .rio_window import format_window_profile, get_window_from_extent
 
 
-def merge_tile_datasets(datasets: List[rasterio.DatasetReader],
-                        bounds: list = None,
-                        resampling: str = 'nearest',
-                        nodata: float = np.nan,
-                        dtype: str | np.dtype = np.float32
-                        ) -> Tuple[np.ndarray, dict]:
+def merge_tile_datasets_within_extent(datasets: list[rasterio.DatasetReader] | list[str],
+                                      extent: list,
+                                      resampling: str = 'nearest',
+                                      nodata: float = None,
+                                      dtype: str | np.dtype = None
+                                      ) -> tuple[np.ndarray, dict]:
     # 4269 is North American epsg similar to 4326 and used for 3dep DEM
-    if datasets[0].profile['crs'] not in [CRS.from_epsg(4326), CRS.from_epsg(4269)]:
+    inputs_str = isinstance(datasets[0], str)
+    if inputs_str:
+        datasets_objs = [rasterio.open(ds_path) for ds_path in datasets]
+    else:
+        datasets_objs = datasets
+
+    if datasets_objs[0].profile['crs'] not in [CRS.from_epsg(4326), CRS.from_epsg(4269)]:
         raise ValueError('CRS must be epgs:4326')
 
-    datasets_filtered = [ds for ds in datasets
-                         if (box(*ds.bounds).intersects(box(*bounds)) and
-                             (box(*ds.bounds).intersection(box(*bounds)).geom_type == 'Polygon')
+    datasets_filtered = [ds for ds in datasets_objs
+                         if (box(*ds.bounds).intersects(box(*extent)) and
+                             (box(*ds.bounds).intersection(box(*extent)).geom_type == 'Polygon')
                              )
                          ]
 
@@ -35,7 +40,7 @@ def merge_tile_datasets(datasets: List[rasterio.DatasetReader],
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', category=RuntimeWarning)
             return get_window_from_extent(profile,
-                                          bounds,
+                                          extent,
                                           window_crs=CRS.from_epsg(4326))
     windows = [window_partial(p) for p in src_profiles]
     arrs_window = [ds.read(window=window) for (ds, window) in zip(datasets_filtered, windows)]
@@ -51,15 +56,17 @@ def merge_tile_datasets(datasets: List[rasterio.DatasetReader],
                                                             method='first',
                                                             nodata=nodata,
                                                             dtype=dtype)
+    if inputs_str:
+        [ds.close() for ds in datasets_objs]
     return arr_merged, prof_merged
 
 
-def merge_arrays_with_geometadata(arrays: List[np.ndarray],
-                                  profiles: List[dict],
+def merge_arrays_with_geometadata(arrays: list[np.ndarray],
+                                  profiles: list[dict],
                                   resampling='bilinear',
                                   nodata: float | int = np.nan,
                                   dtype: str = None,
-                                  method='first') -> Tuple[np.ndarray, dict]:
+                                  method='first') -> tuple[np.ndarray, dict]:
 
     n_dim = arrays[0].shape
     if len(n_dim) not in [2, 3]:
@@ -92,8 +99,10 @@ def merge_arrays_with_geometadata(arrays: List[np.ndarray],
     prof_merged['count'] = merged_arr.shape[0]
     prof_merged['height'] = merged_arr.shape[1]
     prof_merged['width'] = merged_arr.shape[2]
-    prof_merged['nodata'] = nodata
-    prof_merged['dtype'] = dtype
+    if nodata is not None:
+        prof_merged['nodata'] = nodata
+    if nodata is not None:
+        prof_merged['dtype'] = dtype
 
     [ds.close() for ds in datasets]
     [mfile.close() for mfile in memfiles]

@@ -18,7 +18,7 @@ from .dateline import get_dateline_crossing
 from .dem_readers import read_dem, read_nasadem, read_srtm
 from .exceptions import NoDEMCoverage
 from .geoid import remove_geoid
-from .merge import merge_arrays_with_geometadata, merge_tile_datasets
+from .merge import merge_arrays_with_geometadata, merge_tile_datasets_within_extent
 from .rio_tools import (reproject_arr_to_match_profile,
                         reproject_arr_to_new_crs, translate_dataset,
                         translate_profile, update_profile_resolution)
@@ -177,10 +177,10 @@ def merge_and_transform_dem_tiles(datasets: list,
                                   dst_resolution: Union[float, Tuple[float]] = None,
                                   num_threads_reproj: int = 5,
                                   merge_nodata_value: float = np.nan) -> Tuple[np.ndarray, dict]:
-    dem_arr, dem_profile = merge_tile_datasets(datasets,
-                                               bounds=bounds,
-                                               nodata=merge_nodata_value,
-                                               dtype=np.float32)
+    dem_arr, dem_profile = merge_tile_datasets_within_extent(datasets,
+                                                             bounds,
+                                                             nodata=merge_nodata_value,
+                                                             dtype=np.float32)
     # We could have merge_nodata_value that is zero and we want the final metadata
     # to be np.nan
     dem_profile['nodata'] = np.nan

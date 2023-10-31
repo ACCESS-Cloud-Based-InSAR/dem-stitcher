@@ -4,7 +4,7 @@ import rasterio
 from affine import Affine
 from numpy.testing import assert_array_equal
 
-from dem_stitcher.stitcher import merge_tile_datasets
+from dem_stitcher.stitcher import merge_tile_datasets_within_extent
 
 # from dem_stitcher.datasets import DATASETS
 
@@ -85,7 +85,7 @@ def test_merge_tiles(test_data_dir, extent, array, transform):
     tile_datasets = [rasterio.open(path)
                      for path in [upper_left, upper_right, bottom_left]]
 
-    X, p = merge_tile_datasets(tile_datasets, extent)
+    X, p = merge_tile_datasets_within_extent(tile_datasets, extent)
 
     list(map(lambda x: x.close, tile_datasets))
 
