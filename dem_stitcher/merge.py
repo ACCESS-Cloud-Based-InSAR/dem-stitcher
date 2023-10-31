@@ -19,7 +19,8 @@ def merge_tile_datasets(datasets: List[rasterio.DatasetReader],
                         nodata: float = np.nan,
                         dtype: str | np.dtype = np.float32
                         ) -> Tuple[np.ndarray, dict]:
-    if datasets[0].profile['crs'] != CRS.from_epsg(4326):
+    # 4269 is North American epsg similar to 4326 and used for 3dep DEM
+    if datasets[0].profile['crs'] not in [CRS.from_epsg(4326), CRS.from_epsg(4269)]:
         raise ValueError('CRS must be epgs:4326')
 
     datasets_filtered = [ds for ds in datasets

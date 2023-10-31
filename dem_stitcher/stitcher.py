@@ -181,6 +181,9 @@ def merge_and_transform_dem_tiles(datasets: list,
                                                bounds=bounds,
                                                nodata=merge_nodata_value,
                                                dtype=np.float32)
+    # We could have merge_nodata_value that is zero and we want the final metadata
+    # to be np.nan
+    dem_profile['nodata'] = np.nan
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
 
     dem_profile = shift_profile_for_pixel_loc(dem_profile,
