@@ -165,7 +165,7 @@ def get_bounds_dict(profile: dict) -> dict:
 
 
 def reproject_profile_to_new_crs(src_profile: dict, dst_crs: CRS,
-                                 target_resolution: float | int | None = None)\
+                                 target_resolution: float | int = None)\
                                          -> dict:
     """
     Create a new profile into a new CRS based on a dst_crs. May specify
