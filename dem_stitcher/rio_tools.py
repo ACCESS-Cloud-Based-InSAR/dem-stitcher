@@ -1,5 +1,3 @@
-from typing import Tuple, Union
-
 import numpy as np
 from affine import Affine
 from rasterio import DatasetReader
@@ -44,7 +42,7 @@ def translate_profile(profile: dict,
 
 def translate_dataset(dataset: DatasetReader,
                       x_shift: float,
-                      y_shift: float) -> Tuple[MemoryFile, DatasetReader]:
+                      y_shift: float) -> tuple[MemoryFile, DatasetReader]:
     """Creates a new in-memory dataset and translates this. Closes the input dataset.
 
     Parameters
@@ -75,9 +73,9 @@ def translate_dataset(dataset: DatasetReader,
 def reproject_arr_to_match_profile(src_array: np.ndarray,
                                    src_profile: dict,
                                    ref_profile: dict,
-                                   nodata: Union[float, int] = None,
+                                   nodata: float | int = None,
                                    num_threads: int = 1,
-                                   resampling='bilinear') -> Tuple[np.ndarray, dict]:
+                                   resampling='bilinear') -> tuple[np.ndarray, dict]:
     """
     Reprojects an array to match a reference profile providing the reprojected
     array and the new profile.  Simply a wrapper for rasterio.warp.reproject.
@@ -167,7 +165,7 @@ def get_bounds_dict(profile: dict) -> dict:
 
 
 def reproject_profile_to_new_crs(src_profile: dict, dst_crs: CRS,
-                                 target_resolution: Union[float, int] = None)\
+                                 target_resolution: float | int | None = None)\
                                          -> dict:
     """
     Create a new profile into a new CRS based on a dst_crs. May specify
@@ -218,7 +216,7 @@ def reproject_arr_to_new_crs(src_array: np.ndarray,
                              dst_crs: str,
                              resampling: str = 'bilinear',
                              target_resolution: float = None) -> \
-                                     Tuple[np.ndarray, dict]:
+                                     tuple[np.ndarray, dict]:
     """
     Reproject an array into a new CRS.
 
@@ -268,7 +266,7 @@ def reproject_arr_to_new_crs(src_array: np.ndarray,
 
 def _aligned_target(transform: Affine,
                     width: int, height: int,
-                    resolution: Union[float, tuple]):
+                    resolution: float | int | tuple):
     """Aligns target to specified resolution; ensures same origin.
     Source: https://github.com/rasterio/rasterio/blob/master/rasterio/warp.py#L354-L393
 
@@ -278,7 +276,7 @@ def _aligned_target(transform: Affine,
         Input affine transformation matrix
     width, height: int
         Input dimensions
-    resolution: tuple (x resolution, y resolution) or float
+    resolution: tuple (x resolution, y resolution) or float or int
         Target resolution, in units of target coordinate reference
         system.
     Returns
@@ -305,7 +303,7 @@ def _aligned_target(transform: Affine,
     return dst_transform, dst_width, dst_height
 
 
-def update_profile_resolution(src_profile: dict, resolution: Union[float, Tuple[float]]) -> dict:
+def update_profile_resolution(src_profile: dict, resolution: float | tuple[float]) -> dict:
     transform = src_profile['transform']
     width = src_profile['width']
     height = src_profile['height']

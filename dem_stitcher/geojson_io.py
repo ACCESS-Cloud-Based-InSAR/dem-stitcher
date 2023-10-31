@@ -1,14 +1,13 @@
 import gzip
 import json
 from pathlib import Path
-from typing import Union
 
 import geopandas as gpd
 import shapely
 from rasterio.crs import CRS
 
 
-def read_geojson_gzip(input_zip_path: Union[str, Path]) -> gpd.GeoDataFrame:
+def read_geojson_gzip(input_zip_path: str | Path) -> gpd.GeoDataFrame:
     with gzip.GzipFile(input_zip_path, 'r') as file_in:
         data_gjson = json.loads(file_in.read().decode('utf-8'))
     return gpd.GeoDataFrame.from_features(data_gjson['features'],

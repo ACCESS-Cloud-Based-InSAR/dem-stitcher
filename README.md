@@ -52,7 +52,7 @@ or into a virtual environment with
 python -m pip install dem_stitcher
 ```
 
-Currently, python 3.7+ is supported.
+Currently, python 3.9+ is supported.
 
 ## With ISCE2 or gdal
 

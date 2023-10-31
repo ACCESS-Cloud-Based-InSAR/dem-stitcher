@@ -6,14 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.5.0]
+## [2.5.1]
 
 ## Changed
-* Internally instead of using m x n arrays (with total dimensions 2), we utilize the 3 dimensional arrays in 
-band interleaved by pixel (BIP) with shape c x m x n, where c is the number of channels. Although the API remains
-unchanged, the intermediate functions are slightly more general and applicable.
+* Internally, swap use of m x n arrays (with total dimensions 2) to the 3 dimensional arrays c x m x n. Specifically, use 
+band interleaved by pixel (BIP) format where c is the number of channels. Although the API remains
+unchanged (outputs 2 dimensional array), the intermediate functions are slightly more general and applicable.
   * merged.py - all functions now accept BIP (3d arrays) and return them
-  * geoid.py - all functions return and expect 3d arrays (including the input dem array).
+  * geoid.py - all functions return and expect BIP (3d arrays) including the input dem array.
+* Improved performance of merge by reading only the extent that is required.
+* Typing for 3.9+
 
 ### Added
 * Support for 1/3 arc second 3Dep
@@ -21,6 +23,7 @@ unchanged, the intermediate functions are slightly more general and applicable.
 
 ### Removed
 * Support for NED1 and 3Dep 1 arcsecond
+* Support for Python 3.7 and 3.8
 
 
 ## [2.5.0]

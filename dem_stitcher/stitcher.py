@@ -2,7 +2,7 @@ import shutil
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Callable, List, Tuple, Union
+from typing import Callable
 from warnings import warn
 
 import numpy as np
@@ -61,7 +61,7 @@ def download_tiles_to_gtiff(urls: list,
                             dem_name: str,
                             dest_dir: Path,
                             max_workers_for_download: int = 5
-                            ) -> List[Path]:
+                            ) -> list[Path]:
 
     tile_ids = list(map(lambda x: x.split('/')[-1], urls))
 
@@ -94,11 +94,11 @@ def download_tiles_to_gtiff(urls: list,
     return dest_paths_str
 
 
-def get_dem_tile_paths(bounds: List[float],
+def get_dem_tile_paths(bounds: list[float],
                        dem_name: str,
                        localize_tiles_to_gtiff: bool = False,
                        n_threads_downloading: int = 5,
-                       tile_dir: Union[Path, str] = None) -> List[str]:
+                       tile_dir: Path | str = None) -> list[str]:
     """Either:
 
     1. Gets (public urls) so that we can open with rasterio
@@ -121,7 +121,7 @@ def get_dem_tile_paths(bounds: List[float],
 
     Returns
     -------
-    List[str]
+    list[str]
         List of paths to dem as urls or paths on disk
     """
 
@@ -174,9 +174,9 @@ def merge_and_transform_dem_tiles(datasets: list,
                                   dem_name: str,
                                   dst_ellipsoidal_height: bool = True,
                                   dst_area_or_point: str = 'Area',
-                                  dst_resolution: Union[float, Tuple[float]] = None,
+                                  dst_resolution: float | tuple[float] = None,
                                   num_threads_reproj: int = 5,
-                                  merge_nodata_value: float = np.nan) -> Tuple[np.ndarray, dict]:
+                                  merge_nodata_value: float = np.nan) -> tuple[np.ndarray, dict]:
     dem_arr, dem_profile = merge_tile_datasets_within_extent(datasets,
                                                              bounds,
                                                              nodata=merge_nodata_value,
@@ -225,7 +225,7 @@ def merge_and_transform_dem_tiles(datasets: list,
 def patch_glo_30_with_glo_90(arr_glo_30: np.ndarray,
                              prof_glo_30: dict,
                              extent: list,
-                             stitcher_kwargs: dict) -> Tuple[np.ndarray, dict]:
+                             stitcher_kwargs: dict) -> tuple[np.ndarray, dict]:
     if not intersects_missing_glo_30_tiles(extent):
         return arr_glo_30, prof_glo_30
 
@@ -266,12 +266,12 @@ def stitch_dem(bounds: list,
                dem_name: str,
                dst_ellipsoidal_height: bool = True,
                dst_area_or_point: str = 'Area',
-               dst_resolution: Union[float, Tuple[float]] = None,
+               dst_resolution: float | tuple[float] = None,
                n_threads_reproj: int = 5,
                n_threads_downloading: int = 5,
                fill_in_glo_30: bool = True,
                merge_nodata_value: float = np.nan
-               ) -> Tuple[np.ndarray, dict]:
+               ) -> tuple[np.ndarray, dict]:
     """This is API for stitching DEMs. Specify bounds and various options to obtain a continuous raster.
     The output raster will be determined by availability of tiles. If no tiles are available over bounds,
     then NoDEMCoverage is raised.
@@ -287,7 +287,7 @@ def stitch_dem(bounds: list,
     dst_area_or_point : str, optional
         Can be 'Area' or 'Point'. The former means each pixel is referenced with respect to the upper
         left corner. The latter means the pixel is center at its own center. By default 'Area' (as is `gdal`)
-    dst_resolution : Union[float, Tuple[float]], optional
+    dst_resolution : float | tuple[float], optional
         Can be float (square pixel with float resolution) or (x_res, y_res). When None is specified,
         then the DEM tile resolution is used. By default None
     n_threads_reproj : int, optional
@@ -306,7 +306,7 @@ def stitch_dem(bounds: list,
 
     Returns
     -------
-    Tuple[np.ndarray, dict]
+    tuple[np.ndarray, dict]
         (DEM Array, metadata dictionary). The metadata dictionary can be used as in rasterio to write the array
         in a gdal compatible format. See the
         [notebooks](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/tree/dev/notebooks)

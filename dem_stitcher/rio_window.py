@@ -1,5 +1,4 @@
 import math
-from typing import List, Tuple
 from warnings import warn
 
 import numpy as np
@@ -37,9 +36,9 @@ def transform_bounds(src_bounds: list,
 
 
 def get_indices_from_extent(transform: Affine,
-                            extent: List[float],
+                            extent: list[float],
                             shape: tuple = None,
-                            res_buffer: int = 0) -> Tuple[tuple]:
+                            res_buffer: int = 0) -> tuple[tuple]:
     """Obtain Upper left corner and bottom right corner from extents based on
     geo-transform that specifies resolution and upper left corner of a coordinate
     system
