@@ -2,7 +2,7 @@ import shutil
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Union
 from warnings import warn
 
 import numpy as np
@@ -98,7 +98,7 @@ def get_dem_tile_paths(bounds: list[float],
                        dem_name: str,
                        localize_tiles_to_gtiff: bool = False,
                        n_threads_downloading: int = 5,
-                       tile_dir: Path | str = None) -> list[str]:
+                       tile_dir: Union[str, Path] = None) -> list[str]:
     """Either:
 
     1. Gets (public urls) so that we can open with rasterio
@@ -174,7 +174,7 @@ def merge_and_transform_dem_tiles(datasets: list,
                                   dem_name: str,
                                   dst_ellipsoidal_height: bool = True,
                                   dst_area_or_point: str = 'Area',
-                                  dst_resolution: float | tuple[float] = None,
+                                  dst_resolution: Union[float, tuple[float]] = None,
                                   num_threads_reproj: int = 5,
                                   merge_nodata_value: float = np.nan) -> tuple[np.ndarray, dict]:
     dem_arr, dem_profile = merge_tile_datasets_within_extent(datasets,
@@ -266,7 +266,7 @@ def stitch_dem(bounds: list,
                dem_name: str,
                dst_ellipsoidal_height: bool = True,
                dst_area_or_point: str = 'Area',
-               dst_resolution: float | tuple[float] = None,
+               dst_resolution: Union[float, tuple[float]] = None,
                n_threads_reproj: int = 5,
                n_threads_downloading: int = 5,
                fill_in_glo_30: bool = True,

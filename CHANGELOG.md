@@ -9,6 +9,8 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [2.5.1]
 
 ## Changed
+* Update `merge_tile_datasets_within_extent` (formely named `merged_tile_datasets`) to only read data within provided extents
+    * Requires `extent` (i.e. `list[float]`) as input now.
 * Internally, swap use of m x n arrays (with total dimensions 2) to the 3 dimensional arrays c x m x n. Specifically, use 
 band interleaved by pixel (BIP) format where c is the number of channels. Although the API remains
 unchanged (outputs 2 dimensional array), the intermediate functions are slightly more general and applicable.

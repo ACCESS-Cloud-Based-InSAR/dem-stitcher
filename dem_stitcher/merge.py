@@ -1,3 +1,4 @@
+from typing import Union
 import warnings
 
 import numpy as np
@@ -12,11 +13,11 @@ from shapely.geometry import box
 from .rio_window import format_window_profile, get_window_from_extent
 
 
-def merge_tile_datasets_within_extent(datasets: list[rasterio.DatasetReader] | list[str],
+def merge_tile_datasets_within_extent(datasets: Union[list[rasterio.DatasetReader], list[str]],
                                       extent: list,
                                       resampling: str = 'nearest',
                                       nodata: float = None,
-                                      dtype: str | np.dtype = None
+                                      dtype: Union[str, np.dtype] = None
                                       ) -> tuple[np.ndarray, dict]:
     # 4269 is North American epsg similar to 4326 and used for 3dep DEM
     inputs_str = isinstance(datasets[0], str)
@@ -64,7 +65,7 @@ def merge_tile_datasets_within_extent(datasets: list[rasterio.DatasetReader] | l
 def merge_arrays_with_geometadata(arrays: list[np.ndarray],
                                   profiles: list[dict],
                                   resampling='bilinear',
-                                  nodata: float | int = np.nan,
+                                  nodata: Union[float, int] = np.nan,
                                   dtype: str = None,
                                   method='first') -> tuple[np.ndarray, dict]:
 

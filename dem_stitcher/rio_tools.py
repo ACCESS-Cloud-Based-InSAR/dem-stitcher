@@ -1,3 +1,5 @@
+from typing import Union
+
 import numpy as np
 from affine import Affine
 from rasterio import DatasetReader
@@ -73,7 +75,7 @@ def translate_dataset(dataset: DatasetReader,
 def reproject_arr_to_match_profile(src_array: np.ndarray,
                                    src_profile: dict,
                                    ref_profile: dict,
-                                   nodata: float | int = None,
+                                   nodata: Union[float, int] = None,
                                    num_threads: int = 1,
                                    resampling='bilinear') -> tuple[np.ndarray, dict]:
     """
@@ -165,7 +167,7 @@ def get_bounds_dict(profile: dict) -> dict:
 
 
 def reproject_profile_to_new_crs(src_profile: dict, dst_crs: CRS,
-                                 target_resolution: float | int = None)\
+                                 target_resolution: Union[float, int] = None)\
                                          -> dict:
     """
     Create a new profile into a new CRS based on a dst_crs. May specify
@@ -266,7 +268,7 @@ def reproject_arr_to_new_crs(src_array: np.ndarray,
 
 def _aligned_target(transform: Affine,
                     width: int, height: int,
-                    resolution: float | int | tuple):
+                    resolution: Union[float, int, tuple]):
     """Aligns target to specified resolution; ensures same origin.
     Source: https://github.com/rasterio/rasterio/blob/master/rasterio/warp.py#L354-L393
 
@@ -303,7 +305,8 @@ def _aligned_target(transform: Affine,
     return dst_transform, dst_width, dst_height
 
 
-def update_profile_resolution(src_profile: dict, resolution: float | tuple[float]) -> dict:
+def update_profile_resolution(src_profile: dict,
+                              resolution: Union[float, tuple[float]]) -> dict:
     transform = src_profile['transform']
     width = src_profile['width']
     height = src_profile['height']
