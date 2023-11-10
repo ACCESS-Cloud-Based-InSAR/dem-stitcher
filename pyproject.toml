@@ -10,7 +10,7 @@ testpaths = ["tests"]
 
 [project]
 name = 'dem_stitcher'
-requires-python = '>=3.10'
+requires-python = '>=3.9'
 authors = [
     {name ='Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard, Joseph H. Kennedy, Simran Sangha, Grace Bato', email ='access_cloud_based_insar@jpl.nasa.gov'}
 ]
@@ -23,8 +23,6 @@ classifiers = [
     'Operating System :: OS Independent',
     'Natural Language :: English',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.7',
-    'Programming Language :: Python :: 3.8',
     'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
