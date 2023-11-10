@@ -18,15 +18,15 @@ unchanged (outputs 2 dimensional array), the intermediate functions are slightly
   * geoid.py - all functions return and expect BIP (3d arrays) including the input dem array.
 * Improved performance of merge by reading only the extent that is required.
 * Typing for 3.9+
+* Use pyproject.toml for installation.
 
 ### Added
 * Support for 1/3 arc second 3Dep
 
-
 ### Removed
 * Support for NED1 and 3Dep 1 arcsecond
 * Support for Python 3.7 and 3.8
-
+* setup.py
 
 ## [2.5.0]
 
