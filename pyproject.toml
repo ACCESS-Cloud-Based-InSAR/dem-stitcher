@@ -9,7 +9,7 @@ markers = [
 testpaths = ["tests"]
 
 [project]
-name = 'dem-stitcher'
+name = 'dem_stitcher'
 requires-python = '>=3.10'
 authors = [
     {name ='Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard, Joseph H. Kennedy, Simran Sangha, Grace Bato', email ='access_cloud_based_insar@jpl.nasa.gov'}
