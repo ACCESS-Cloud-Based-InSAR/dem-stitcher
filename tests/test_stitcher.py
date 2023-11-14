@@ -214,3 +214,10 @@ def test_get_dem_tile_paths_and_output_vrt(test_dir):
         output_geo = box(*ds.bounds)
 
     assert output_geo.contains(input_geo)
+
+
+@pytest.mark.parametrize("location", ['los_angeles', 'fairbanks'])
+def test_with_golden_datasets(location: str,
+                              get_tile_paths_for_comparison_with_golden_dataset,
+                              get_golden_dataset_path):
+    breakpoint()
