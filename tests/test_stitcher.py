@@ -229,7 +229,7 @@ def test_against_golden_datasets(location: str,
         dst_resolution = None
     if location == 'fairbanks':
         bounds = [-147.75, 64.75, -147.65, 64.85]
-        dst_resolution = .0002777777777777777775
+        dst_resolution = .0002777777
 
     mocker.patch('dem_stitcher.stitcher.get_dem_tile_paths',
                  side_effect=[get_tile_paths_for_comparison_with_golden_dataset(location)])
