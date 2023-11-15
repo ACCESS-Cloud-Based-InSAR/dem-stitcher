@@ -14,6 +14,8 @@ This tool provides a raster of a Digital Elevation Model (DEM) over an area of i
 We rely on the GIS formats from `rasterio`. The API can be summarized as
 
 ```
+from dem_stitcher import stitch_dem
+
 # as xmin, ymin, xmax, ymax in epsg:4326
 bounds = [-119.085, 33.402, -118.984, 35.435]
 
