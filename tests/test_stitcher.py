@@ -241,7 +241,7 @@ def test_against_golden_datasets(location: str,
 
     with rasterio.open(path_golden) as ds:
         X_golden = ds.read(1)
-        # transform_golden = ds.transform
+        transform_golden = ds.transform
 
     X, p = stitch_dem(bounds,
                       dem_name='glo_30',
@@ -250,4 +250,4 @@ def test_against_golden_datasets(location: str,
                       dst_resolution=dst_resolution
                       )
     assert_almost_equal(X_golden, X, decimal=7)
-    # assert trans_golden == p['transform']
+    assert transform_golden == p['transform']
