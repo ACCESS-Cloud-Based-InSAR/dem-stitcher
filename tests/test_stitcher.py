@@ -216,8 +216,38 @@ def test_get_dem_tile_paths_and_output_vrt(test_dir):
     assert output_geo.contains(input_geo)
 
 
+@pytest.mark.parametrize("hgt_type", ['geoid', 'ellipsoid'])
 @pytest.mark.parametrize("location", ['los_angeles', 'fairbanks'])
-def test_with_golden_datasets(location: str,
-                              get_tile_paths_for_comparison_with_golden_dataset,
-                              get_golden_dataset_path):
-    breakpoint()
+def test_against_golden_datasets(location: str,
+                                 hgt_type: str,
+                                 get_tile_paths_for_comparison_with_golden_dataset,
+                                 get_golden_dataset_path,
+                                 get_geoid_for_golden_dataset_test,
+                                 mocker):
+    if location == 'los_angeles':
+        bounds = [-118.05, 33.95, -117.95, 34.05]
+        dst_resolution = None
+    if location == 'fairbanks':
+        bounds = [-147.75, 64.75, -147.65, 64.85]
+        dst_resolution = .0002777777777777777775
+
+    mocker.patch('dem_stitcher.stitcher.get_dem_tile_paths',
+                 side_effect=[get_tile_paths_for_comparison_with_golden_dataset(location)])
+
+    mocker.patch('dem_stitcher.geoid.read_geoid',
+                 side_effect=[get_geoid_for_golden_dataset_test(location)])
+
+    path_golden = get_golden_dataset_path(location, hgt_type)
+
+    with rasterio.open(path_golden) as ds:
+        X_golden = ds.read(1)
+        # transform_golden = ds.transform
+
+    X, p = stitch_dem(bounds,
+                      dem_name='glo_30',
+                      dst_ellipsoidal_height=(hgt_type == 'ellipsoid'),
+                      dst_area_or_point='Point',
+                      dst_resolution=dst_resolution
+                      )
+    assert_almost_equal(X_golden, X, decimal=7)
+    # assert trans_golden == p['transform']

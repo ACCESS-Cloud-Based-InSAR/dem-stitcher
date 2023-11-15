@@ -68,7 +68,8 @@ def get_tile_paths_for_comparison_with_golden_dataset():
             raise NotImplementedError
         dem_tile_dir = golden_dataset_dir / f'{location}_tiles'
         paths = list(dem_tile_dir.glob('*.tif'))
-        paths_str = sorted(list(map(str, paths)))
+        paths_str = list(map(str, paths))
+        paths_str = sorted(paths_str)
         return paths_str
 
     return _get_tile_dataset
@@ -78,10 +79,10 @@ def get_tile_paths_for_comparison_with_golden_dataset():
 def get_golden_dataset_path():
     golden_dataset_dir = Path(__file__).resolve().parent / 'data' / 'golden_datasets'
 
-    def _get_golden_dataset_path(location: str) -> str:
+    def _get_golden_dataset_path(location: str, hgt_type: str) -> str:
         if location not in ['fairbanks', 'los_angeles']:
             raise NotImplementedError
-        return str(golden_dataset_dir / f'{location}_dem.tif')
+        return str(golden_dataset_dir / f'{location}_dem_{hgt_type}.tif')
 
     return _get_golden_dataset_path
 
@@ -93,6 +94,10 @@ def get_geoid_for_golden_dataset_test():
     def _get_geoid(location: str) -> str:
         if location not in ['fairbanks', 'los_angeles']:
             raise NotImplementedError
-        return str(golden_dataset_dir / f'egm_08_{location}.tif')
+        geoid_path = golden_dataset_dir / f'egm_08_{location}.tif'
+        with rasterio.open(geoid_path) as ds:
+            X = ds.read(1)
+            p = ds.profile
+        return X, p
 
     return _get_geoid
