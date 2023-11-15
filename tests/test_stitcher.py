@@ -249,5 +249,5 @@ def test_against_golden_datasets(location: str,
                       dst_area_or_point='Point',
                       dst_resolution=dst_resolution
                       )
-    assert_almost_equal(X_golden, X, decimal=4)
+    assert_almost_equal(X_golden, X, decimal=7)
     # assert trans_golden == p['transform']
