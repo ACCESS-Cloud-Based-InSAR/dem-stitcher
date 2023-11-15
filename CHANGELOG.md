@@ -22,6 +22,7 @@ unchanged (outputs 2 dimensional array), the intermediate functions are slightly
 
 ### Added
 * Support for 1/3 arc second 3Dep
+* Tests using golden datasets and mocked tiles/geoid - ensures correctness of transformations
 
 ### Removed
 * Support for NED1 and 3Dep 1 arcsecond
