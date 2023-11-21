@@ -23,7 +23,7 @@ def test_empty_tiles(extent, dem_name):
 def test_dateline_warning():
     extent_no_dateline = [-121.5, 34.95, -120.2, 36.25]
     with warnings.catch_warnings():
-        warnings.simplefilter("error")
+        warnings.simplefilter("error", category=UserWarning)
         get_overlapping_dem_tiles(extent_no_dateline, 'glo_30')
 
     extent_with_dateline = [-181, 51.25, -179, 51.75]

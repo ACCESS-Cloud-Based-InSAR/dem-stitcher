@@ -14,6 +14,8 @@ This tool provides a raster of a Digital Elevation Model (DEM) over an area of i
 We rely on the GIS formats from `rasterio`. The API can be summarized as
 
 ```
+from dem_stitcher import stitch_dem
+
 # as xmin, ymin, xmax, ymax in epsg:4326
 bounds = [-119.085, 33.402, -118.984, 35.435]
 
@@ -52,7 +54,7 @@ or into a virtual environment with
 python -m pip install dem_stitcher
 ```
 
-Currently, python 3.7+ is supported.
+Currently, python 3.9+ is supported.
 
 ## With ISCE2 or gdal
 
@@ -90,14 +92,12 @@ The [DEMs](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/tree/main/de
 
 ```
 In [1]: from dem_stitcher.datasets import DATASETS; DATASETS
-Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90', 'ned1']
+Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90']
 ```
 The shortnames aboves are the strings required to use `stitch_dem`. Below, we expound upon these DEM shortnames and link to their respective data repositories.
 
 1. `glo_30`/`glo_90`: Copernicus GLO-30/GLO-90 DEM. The tile sets are the 30 and 90 meter resolution, respectively [[link](https://registry.opendata.aws/copernicus-dem/)].
-2. The USGS DEMSs:
-   - `ned1`:  Ned 1 arc-second (deprecated by USGS) over North America [[link](https://cugir.library.cornell.edu/catalog/cugir-009096)]
-   - `3dep`: 3Dep 1 arc-second over North America - the successor of NED1 [[link](https://www.sciencebase.gov/catalog/item/imap/4f70aa71e4b058caae3f8de1)]
+2. The USGS DEM `3dep`: 3Dep 1/3 arc-second over North America - we are storing the ~10 meter resolution dataset. There are many more as noted [here](https://www.usgs.gov/the-national-map-data-delivery/gis-data-download?qt-science_support_page_related_con=0#qt-science_support_page_related_con). The files for these DEMs are [here](https://prd-tnm.s3.amazonaws.com/index.html?prefix=StagedProducts/)
 3. `srtm_v3`: SRTM v3 [[link](https://dwtkns.com/srtm30m/)]
 4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)]
 5. `glo_90_missing`: these are tiles that are in `glo_90` but not in `glo_30`. They are over the countries Armenia and Azerbaijan. Used internally to help fill in gaps in coverage of `glo_30`.
@@ -123,7 +123,7 @@ Wherever possible, we do not resample the original DEMs unless specified by the 
 
 There are some [notebooks](notebooks/analysis_and_comparison) that illustrate how tiles are merged by comparing the output of our stitcher with the original tiles.
 
-As a performance note, when merging DEM tiles, we merge the all needed tiles in memory and this process has an associated overhead. An alternative approach would be to download the tiles to disk and use virtual warping. Ultimately, the accuracy of the final DEM is our prime focus and these minor performance tradeoffs are sidelined.
+As a performance note, when merging DEM tiles, we merge the needed tiles within the extent in memory and this process has an associated overhead. An alternative approach would be to download the tiles to disk and use virtual warping or utilize VRTs more effectively. Ultimately, the accuracy of the final DEM is our prime focus and these minor performance tradeoffs are sidelined.
 
 # Dateline support
 

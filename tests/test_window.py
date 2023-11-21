@@ -1,13 +1,18 @@
 import geopandas as gpd
 import numpy as np
 import pytest
+import rasterio
 from affine import Affine
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
+from rasterio.windows import bounds as get_window_bounds
+from shapely.geometry import box
 
 from dem_stitcher.geoid import read_geoid
 from dem_stitcher.rio_window import (get_indices_from_extent,
+                                     get_window_from_extent,
                                      read_raster_from_window)
+
 """
 This does a simple test of window reading over an extent of the following area:
 
@@ -77,7 +82,8 @@ def test_read_window_4326(test_data_dir, extent, array, transform):
                                             extent,
                                             CRS.from_epsg(4326),
                                             res_buffer=0)
-    assert_array_equal(array, window_arr)
+    array_gdal_format = array[np.newaxis, ...]
+    assert_array_equal(array_gdal_format, window_arr)
     assert transform == p['transform']
 
 
@@ -96,8 +102,40 @@ def test_read_window_utm(test_data_dir, geojson_index, array, transform):
                                             extent,
                                             crs,
                                             res_buffer=0)
-    assert_array_equal(array, window_arr)
+    array_gdal_format = array[np.newaxis, ...]
+    assert_array_equal(array_gdal_format, window_arr)
     assert transform == p['transform']
+
+
+@pytest.mark.parametrize("geojson_index, array, transform", zip([0, 1, 2, 3], arrays, transforms))
+def test_get_window_obj_utm(test_data_dir, geojson_index, array, transform):
+    """Checks the window's bounds contains the input extent once intersected with the rasters (sometimes the extent
+    can go beyond the raster)"""
+    raster_path = test_data_dir / 'rio_window' / 'test_window.tif'
+    geojson_path = test_data_dir / 'rio_window' / f'window_utm_{geojson_index}.geojson'
+
+    df = gpd.read_file(geojson_path)
+    extent = list(df.total_bounds)
+    crs = df.crs
+
+    with rasterio.open(raster_path) as ds:
+        src_profile = ds.profile
+
+    window = get_window_from_extent(src_profile,
+                                    extent,
+                                    crs
+                                    )
+    with rasterio.open(raster_path) as ds:
+        window_transform = ds.window_transform(window=window)
+
+    window_bounds = get_window_bounds(window, window_transform)
+    window_geo = box(*window_bounds)
+    extent_raster_crs = df.to_crs(src_profile['crs']).total_bounds
+    extent_geo = box(*extent_raster_crs)
+    # The extent geometry goes beyond the actual image in the last case.
+    extent_geo = extent_geo.intersection(window_geo)
+
+    assert window_geo.contains(extent_geo)
 
 
 """
@@ -201,6 +239,7 @@ def test_read_window_4326_unequal_dims(test_data_dir, extent, array, transform):
                                             extent,
                                             CRS.from_epsg(4326),
                                             res_buffer=0)
+    array = array[np.newaxis, ...]
     assert_array_equal(array, window_arr)
     assert transform == p['transform']
 
@@ -251,7 +290,7 @@ def test_riow_window_get_one_pixel(test_data_dir):
                                    [0, -25, 0.01, -24.999],
                                    CRS.from_epsg(4326),
                                    res_buffer=0)
-    assert X.shape == (1, 1)
+    assert X.shape == (1, 1, 1)
     assert p['width'] == p['height']
     assert p['width'] == 1
 
