@@ -2,7 +2,7 @@ import shutil
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Callable, List, Tuple, Union
+from typing import Callable, Union
 from warnings import warn
 
 import numpy as np
@@ -15,24 +15,22 @@ from tqdm import tqdm
 from .datasets import (get_overlapping_dem_tiles,
                        intersects_missing_glo_30_tiles)
 from .dateline import get_dateline_crossing
-from .dem_readers import read_dem, read_nasadem, read_ned1, read_srtm
+from .dem_readers import read_dem, read_nasadem, read_srtm
 from .exceptions import NoDEMCoverage
 from .geoid import remove_geoid
-from .merge import merge_arrays_with_geometadata, merge_tile_datasets
+from .merge import merge_arrays_with_geometadata, merge_tile_datasets_within_extent
 from .rio_tools import (reproject_arr_to_match_profile,
                         reproject_arr_to_new_crs, translate_dataset,
                         translate_profile, update_profile_resolution)
 
-RASTER_READERS = {'ned1': read_ned1,
-                  '3dep': read_dem,
+RASTER_READERS = {'3dep': read_dem,
                   'glo_30': read_dem,
                   'glo_90': read_dem,
                   'glo_90_missing': read_dem,
                   'srtm_v3': read_srtm,
                   'nasadem': read_nasadem}
 
-DEM2GEOID = {'ned1': 'geoid_18',
-             '3dep': 'geoid_18',
+DEM2GEOID = {'3dep': 'geoid_18',
              'glo_30': 'egm_08',
              'glo_90': 'egm_08',
              'glo_90_missing': 'egm_08',
@@ -53,7 +51,7 @@ def _download_and_write_one_tile_to_gtiff(url: str,
     if dem_profile['driver'] != 'GTiff':
         dem_profile.update(**DEFAULT_GTIFF_PROFILE)
     with rasterio.open(dest_path, 'w', **dem_profile) as ds:
-        ds.write(dem_arr, 1)
+        ds.write(dem_arr)
         if dem_name in PIXEL_CENTER_DEMS:
             ds.update_tags(AREA_OR_POINT='Point')
     return dem_profile
@@ -63,7 +61,7 @@ def download_tiles_to_gtiff(urls: list,
                             dem_name: str,
                             dest_dir: Path,
                             max_workers_for_download: int = 5
-                            ) -> List[Path]:
+                            ) -> list[Path]:
 
     tile_ids = list(map(lambda x: x.split('/')[-1], urls))
 
@@ -96,11 +94,11 @@ def download_tiles_to_gtiff(urls: list,
     return dest_paths_str
 
 
-def get_dem_tile_paths(bounds: List[float],
+def get_dem_tile_paths(bounds: list[float],
                        dem_name: str,
                        localize_tiles_to_gtiff: bool = False,
                        n_threads_downloading: int = 5,
-                       tile_dir: Union[Path, str] = None) -> List[str]:
+                       tile_dir: Union[str, Path] = None) -> list[str]:
     """Either:
 
     1. Gets (public urls) so that we can open with rasterio
@@ -123,7 +121,7 @@ def get_dem_tile_paths(bounds: List[float],
 
     Returns
     -------
-    List[str]
+    list[str]
         List of paths to dem as urls or paths on disk
     """
 
@@ -176,12 +174,16 @@ def merge_and_transform_dem_tiles(datasets: list,
                                   dem_name: str,
                                   dst_ellipsoidal_height: bool = True,
                                   dst_area_or_point: str = 'Area',
-                                  dst_resolution: Union[float, Tuple[float]] = None,
+                                  dst_resolution: Union[float, tuple[float]] = None,
                                   num_threads_reproj: int = 5,
-                                  merge_nodata_value: float = np.nan) -> Tuple[np.ndarray, dict]:
-    dem_arr, dem_profile = merge_tile_datasets(datasets,
-                                               bounds=bounds,
-                                               nodata=merge_nodata_value)
+                                  merge_nodata_value: float = np.nan) -> tuple[np.ndarray, dict]:
+    dem_arr, dem_profile = merge_tile_datasets_within_extent(datasets,
+                                                             bounds,
+                                                             nodata=merge_nodata_value,
+                                                             dtype=np.float32)
+    # We could have merge_nodata_value that is zero and we want the final metadata
+    # to be np.nan
+    dem_profile['nodata'] = np.nan
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
 
     dem_profile = shift_profile_for_pixel_loc(dem_profile,
@@ -194,7 +196,6 @@ def merge_and_transform_dem_tiles(datasets: list,
         dem_arr, dem_profile = reproject_arr_to_new_crs(dem_arr,
                                                         dem_profile,
                                                         CRS.from_epsg(4326))
-        dem_arr = dem_arr[0, ...]
 
     if dem_profile['crs'] != CRS.from_epsg(4326):
         raise ValueError('CRS must be epsg 4269 or 4326')
@@ -214,10 +215,9 @@ def merge_and_transform_dem_tiles(datasets: list,
                                                               dem_profile_res,
                                                               num_threads=num_threads_reproj,
                                                               resampling='bilinear')
-        dem_arr = dem_arr[0, ...]
 
     # Ensure dem_arr has correct shape
-    assert len(dem_arr.shape) == 2
+    assert len(dem_arr.shape) == 3
 
     return dem_arr, dem_profile
 
@@ -225,14 +225,15 @@ def merge_and_transform_dem_tiles(datasets: list,
 def patch_glo_30_with_glo_90(arr_glo_30: np.ndarray,
                              prof_glo_30: dict,
                              extent: list,
-                             stitcher_kwargs: dict) -> Tuple[np.ndarray, dict]:
+                             stitcher_kwargs: dict) -> tuple[np.ndarray, dict]:
     if not intersects_missing_glo_30_tiles(extent):
         return arr_glo_30, prof_glo_30
 
     stitcher_kwargs['dem_name'] = 'glo_90_missing'
     arr_glo_90, prof_glo_90 = stitch_dem(**stitcher_kwargs)
 
-    dem_arr, dem_prof = merge_arrays_with_geometadata([arr_glo_30, arr_glo_90],
+    # Dems internally are BIP with channel dimension exposed but stitcher api squeezes outputs
+    dem_arr, dem_prof = merge_arrays_with_geometadata([arr_glo_30.squeeze(), arr_glo_90],
                                                       [prof_glo_30, prof_glo_90]
                                                       )
 
@@ -265,12 +266,12 @@ def stitch_dem(bounds: list,
                dem_name: str,
                dst_ellipsoidal_height: bool = True,
                dst_area_or_point: str = 'Area',
-               dst_resolution: Union[float, Tuple[float]] = None,
+               dst_resolution: Union[float, tuple[float]] = None,
                n_threads_reproj: int = 5,
                n_threads_downloading: int = 5,
                fill_in_glo_30: bool = True,
                merge_nodata_value: float = np.nan
-               ) -> Tuple[np.ndarray, dict]:
+               ) -> tuple[np.ndarray, dict]:
     """This is API for stitching DEMs. Specify bounds and various options to obtain a continuous raster.
     The output raster will be determined by availability of tiles. If no tiles are available over bounds,
     then NoDEMCoverage is raised.
@@ -286,7 +287,7 @@ def stitch_dem(bounds: list,
     dst_area_or_point : str, optional
         Can be 'Area' or 'Point'. The former means each pixel is referenced with respect to the upper
         left corner. The latter means the pixel is center at its own center. By default 'Area' (as is `gdal`)
-    dst_resolution : Union[float, Tuple[float]], optional
+    dst_resolution : float | tuple[float], optional
         Can be float (square pixel with float resolution) or (x_res, y_res). When None is specified,
         then the DEM tile resolution is used. By default None
     n_threads_reproj : int, optional
@@ -305,7 +306,7 @@ def stitch_dem(bounds: list,
 
     Returns
     -------
-    Tuple[np.ndarray, dict]
+    tuple[np.ndarray, dict]
         (DEM Array, metadata dictionary). The metadata dictionary can be used as in rasterio to write the array
         in a gdal compatible format. See the
         [notebooks](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/tree/dev/notebooks)
@@ -394,4 +395,5 @@ def stitch_dem(bounds: list,
                                                         stitcher_kwargs)
 
     dem_profile.update(**profile_tile)
+    dem_arr = dem_arr[0, ...]
     return dem_arr, dem_profile

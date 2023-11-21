@@ -4,4 +4,71 @@ requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4"]
 [tool.pytest.ini_options]
 markers = [
     "integration: marks tests as (slow) integration and requiring internet (deselect with '-m \"not integration\"')",
+    "notebook: tests that run a notebook(s)",
 ]
+testpaths = ["tests"]
+
+[project]
+name = 'dem_stitcher'
+requires-python = '>=3.9'
+authors = [
+    {name ='Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard, Joseph H. Kennedy, Simran Sangha, Grace Bato', email ='access_cloud_based_insar@jpl.nasa.gov'}
+]
+description = 'Download and merge DEM tiles'
+license = { text = 'Apache 2.0' }
+classifiers = [
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: Apache 2.0',
+    'Natural Language :: English',
+    'Operating System :: OS Independent',
+    'Natural Language :: English',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+]
+
+dynamic = ['version', 'readme']
+
+dependencies = [
+        'affine',
+        'boto3',  # required for rasterio vsis3 support
+        'geopandas',
+        'importlib_metadata',  # drop when py>=3.8
+        'numpy',
+        'pyproj',
+        'rasterio',
+        'requests',
+        'shapely',
+        'tqdm',
+]
+
+[project.optional-dependencies]
+develop = [
+    "pytest",
+    "pytest-cov",
+    "flake8",
+    "flake8-import-order",
+    "flake8-blind-except",
+    "flake8-builtins",
+]
+
+[project.urls]
+Homepage = "https://github.com/OPERA-Cal-Val/tile-stitcher"
+"Bug Tracker" = "https://github.com/OPERA-Cal-Val/tile-stitcher/issues"
+
+[tool.setuptools]
+include-package-data = true
+zip-safe = true
+
+[tool.setuptools.packages.find]
+include = ['dem_stitcher']
+exclude = ['notebooks*', 'tests*']
+
+[tool.setuptools.dynamic]
+readme = { file = ['README.md'], content-type = 'text/markdown' }
+
+[tool.setuptools_scm]
+
+[tool.ruff]
+line-length = 120

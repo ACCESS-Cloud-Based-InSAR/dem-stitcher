@@ -15,7 +15,7 @@ def read_geojson_gzip(input_zip_path: Union[str, Path]) -> gpd.GeoDataFrame:
                                           crs=CRS.from_epsg(4326))
 
 
-def to_geojson_obj(geodataframe: gpd.geodataframe.GeoDataFrame):
+def to_geojson_obj(geodataframe: gpd.geodataframe.GeoDataFrame) -> dict:
     features = geodataframe.to_dict('records')
 
     def mapping_geojson(entry):
@@ -32,7 +32,7 @@ def to_geojson_obj(geodataframe: gpd.geodataframe.GeoDataFrame):
 
 
 def to_geojson_gzip(geodataframe: gpd.geodataframe.GeoDataFrame,
-                    dest_path: str):
+                    dest_path: str) -> Path:
     geojson_ob = to_geojson_obj(geodataframe)
     with gzip.GzipFile(dest_path, 'w') as file_out:
         file_out.write(json.dumps(geojson_ob).encode('utf-8'))

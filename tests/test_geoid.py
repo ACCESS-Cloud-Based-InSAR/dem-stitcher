@@ -18,7 +18,6 @@ def test_read_geoid():
     X_sub, p_sub = read_geoid('geoid_18', extent=la_bounds, res_buffer=1)
 
     X_sub_r, p_r = reproject_arr_to_match_profile(X_sub, p_sub, p_all)
-    X_sub_r = X_sub_r[0, ...]
 
     mask = np.isnan(X_sub_r)
     data_sub = X_sub_r[~mask]
@@ -42,8 +41,7 @@ def test_remove_geoid(get_los_angeles_dummy_profile, dem_res):
 
     res_buffer_default = 2
 
-    X_sub, p_sub = reproject_arr_to_match_profile(X_geoid, p_geoid, p_ref)
-    X_sub = X_sub[0, ...]
+    X_sub, _ = reproject_arr_to_match_profile(X_geoid, p_geoid, p_ref)
 
     Y = np.zeros((10, 10), dtype=np.float32)
     if dem_res >= .1:

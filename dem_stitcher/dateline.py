@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 from shapely.affinity import translate
 from shapely.geometry import box
 
@@ -67,7 +65,7 @@ def get_dateline_crossing(bounds: list) -> int:
         raise DoubleDatelineCrossing('Shrink your bounding area')
 
 
-def split_extent_across_dateline(extent: list) -> Tuple[List]:
+def split_extent_across_dateline(extent: list) -> tuple[list]:
     """If extent crosses the dateline, then we return tuple of left and right hemispheres
     assuming lat/lon CRS. Otherwise, just returns, extent and empty list
 

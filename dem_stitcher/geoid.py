@@ -31,7 +31,7 @@ def read_geoid(geoid_name: str,
 
     if extent is None:
         with rasterio.open(geoid_path) as ds:
-            geoid_arr = ds.read(1)
+            geoid_arr = ds.read()
             geoid_profile = ds.profile
     else:
         extent_crs = CRS.from_epsg(4326)
@@ -59,7 +59,6 @@ def read_geoid(geoid_name: str,
                 geoid_profile_r = translate_profile(geoid_profile_r, -360 / res_x, 0)
             geoid_arr, geoid_profile = merge_arrays_with_geometadata([geoid_arr_l, geoid_arr_r],
                                                                      [geoid_profile_l, geoid_profile_r])
-
     # Transform nodata to nan
     geoid_arr = geoid_arr.astype('float32')
     geoid_arr[geoid_profile['nodata'] == geoid_arr] = np.nan
@@ -107,6 +106,5 @@ def remove_geoid(dem_arr: np.ndarray,
                                                      dem_profile,
                                                      resampling='bilinear')
 
-    geoid_offset = geoid_offset[0, ...]
     dem_arr_offset = dem_arr + geoid_offset
     return dem_arr_offset

@@ -4,7 +4,7 @@ channels:
  - anaconda
  - defaults
 dependencies:
- - python>3.7
+ - python>=3.9
  - pip
  - affine
  - boto3
@@ -22,6 +22,7 @@ dependencies:
  - matplotlib
  - numpy
  - pytest
+ - pytest-mock
  - rasterio
  - setuptools
  - setuptools_scm

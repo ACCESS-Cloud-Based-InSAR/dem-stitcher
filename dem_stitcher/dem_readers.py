@@ -10,7 +10,7 @@ from rasterio.io import MemoryFile
 
 def read_dem(dem_path: str) -> rasterio.DatasetReader:
     with rasterio.open(dem_path) as ds:
-        dem_arr = ds.read(1)
+        dem_arr = ds.read()
         dem_profile = ds.profile
     return dem_arr, dem_profile
 
@@ -35,16 +35,6 @@ def read_dem_bytes(dem_path: str, suffix: str = '.img') -> bytes:
     return img_bytes
 
 
-def read_ned1(dem_path: str) -> Tuple[np.ndarray, dict]:
-    img_bytes = read_dem_bytes(dem_path, suffix='.img')
-    with MemoryFile(img_bytes) as memfile:
-        with memfile.open() as dataset:
-            dem_arr = dataset.read(1)
-            dem_profile = dataset.profile
-
-    return dem_arr, dem_profile
-
-
 def read_srtm(dem_path: str, version='srtm') -> Tuple[np.ndarray, dict]:
     img_bytes = read_dem_bytes(dem_path, suffix='.hgt')
     # The gdal driver hgt depends on filename convention
@@ -59,7 +49,7 @@ def read_srtm(dem_path: str, version='srtm') -> Tuple[np.ndarray, dict]:
 
     with MemoryFile(img_bytes, filename=filename) as memfile:
         with memfile.open() as dataset:
-            dem_arr = dataset.read(1).astype(np.float32)
+            dem_arr = dataset.read().astype(np.float32)
             dem_profile = dataset.profile
 
     return dem_arr, dem_profile
