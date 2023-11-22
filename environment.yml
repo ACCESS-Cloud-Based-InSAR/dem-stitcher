@@ -8,6 +8,7 @@ dependencies:
  - pip
  - affine
  - boto3
+ - build
  - dateparser
  - fiona
  - flake8
@@ -24,8 +25,7 @@ dependencies:
  - pytest
  - pytest-mock
  - rasterio
- - setuptools
- - setuptools_scm
+ - setuptools>=61.0
+ - setuptools_scm>=6.2
  - shapely
  - tqdm
- - wheel

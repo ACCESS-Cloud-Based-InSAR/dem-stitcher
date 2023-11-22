@@ -6,7 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2]
+
+## Changed
+* Updated environment.yml and pyproject.toml for modern build of wheels
+* Updated github actions to tie to specific version of ASF resuable workflows
+* Included dependabot.yml
+
+
 ## [2.5.1]
+
+Not on PyPI
 
 ## Changed
 * Update `merge_tile_datasets_within_extent` (formely named `merged_tile_datasets`) to only read data within provided extents
@@ -30,10 +40,6 @@ unchanged (outputs 2 dimensional array), the intermediate functions are slightly
 * setup.py
 
 ## [2.5.0]
-
-See previous release.
-
-## [2.4.1]
 
 ### Added
 - The function `get_dem_tile_paths` to extract urls or local paths to dem tiles specifying bounds and dem names.
