@@ -11,6 +11,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
 ## [2.5.2]
+Not on PyPI
 
 ## Changed
 * Updated environment.yml and pyproject.toml for modern build of wheels
