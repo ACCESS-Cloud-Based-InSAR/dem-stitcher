@@ -2,13 +2,6 @@
 requires = ["setuptools>=61.0", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
-[tool.pytest.ini_options]
-markers = [
-    "integration: marks tests as (slow) integration and requiring internet (deselect with '-m \"not integration\"')",
-    "notebook: tests that run a notebook(s)",
-]
-testpaths = ["tests"]
-
 [project]
 name = 'dem_stitcher'
 requires-python = '>=3.9'
@@ -16,10 +9,9 @@ authors = [
     {name ='Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard, Joseph H. Kennedy, Simran Sangha, Grace Bato', email ='access_cloud_based_insar@jpl.nasa.gov'}
 ]
 description = 'Download and merge DEM tiles'
-license = { text = 'Apache 2.0' }
+license = {text = 'Apache-2.0'}
 classifiers = [
     'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: Apache 2.0',
     'Natural Language :: English',
     'Operating System :: OS Independent',
     'Natural Language :: English',
@@ -73,3 +65,10 @@ readme = { file = ['README.md'], content-type = 'text/markdown' }
 
 [tool.ruff]
 line-length = 120
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as (slow) integration and requiring internet (deselect with '-m \"not integration\"')",
+    "notebook: tests that run a notebook(s)",
+]
+testpaths = ["tests"]
