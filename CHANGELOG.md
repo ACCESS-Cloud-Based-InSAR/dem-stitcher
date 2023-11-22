@@ -16,6 +16,8 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.5.1]
 
+Not on PyPI
+
 ## Changed
 * Update `merge_tile_datasets_within_extent` (formely named `merged_tile_datasets`) to only read data within provided extents
     * Requires `extent` (i.e. `list[float]`) as input now.
