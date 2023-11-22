@@ -7,7 +7,7 @@ on:
 
 jobs:
   call-bump-version-workflow:
-    uses: ASFHyP3/actions/.github/workflows/reusable-bump-version.yml@main
+    uses: ASFHyP3/actions/.github/workflows/reusable-bump-version.yml@v0.8.3
     with:
       user: access-cloud-insar-team
       email: access-cloud-insar-team@jpl.nasa.gov
