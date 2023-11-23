@@ -47,8 +47,8 @@ develop = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/OPERA-Cal-Val/tile-stitcher"
-"Bug Tracker" = "https://github.com/OPERA-Cal-Val/tile-stitcher/issues"
+Homepage = "https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher"
+"Bug Tracker" = "https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues"
 
 [tool.setuptools]
 include-package-data = true
