@@ -8,7 +8,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.5.5]
 * Multithreading for windowed reading during merge operation
-* Ruff linting and workflows
+* Add 3.12 support
 
 
 ## [2.5.4]

@@ -20,6 +20,7 @@ def merge_tile_datasets_within_extent(
     extent: list,
     resampling: str = "nearest",
     nodata: float = None,
+    n_threads: int = 5,
     dtype: Union[str, np.dtype] = None,
 ) -> tuple[np.ndarray, dict]:
     # 4269 is North American epsg similar to 4326 and used for 3dep DEM
@@ -51,7 +52,7 @@ def merge_tile_datasets_within_extent(
     def read_in_window(dataset: rasterio.DatasetReader, window: rasterio.windows.Window):
         return dataset.read(window=window)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=n_threads) as executor:
         windows = list(
             tqdm(executor.map(window_partial, src_profiles[:]), total=len(src_profiles), desc="Reading tile metadata")
         )

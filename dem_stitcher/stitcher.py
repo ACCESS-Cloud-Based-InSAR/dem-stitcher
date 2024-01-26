@@ -176,11 +176,13 @@ def merge_and_transform_dem_tiles(datasets: list,
                                   dst_area_or_point: str = 'Area',
                                   dst_resolution: Union[float, tuple[float]] = None,
                                   num_threads_reproj: int = 5,
-                                  merge_nodata_value: float = np.nan) -> tuple[np.ndarray, dict]:
+                                  merge_nodata_value: float = np.nan,
+                                  n_threads_for_reading_tile_data: int = 5) -> tuple[np.ndarray, dict]:
     dem_arr, dem_profile = merge_tile_datasets_within_extent(datasets,
                                                              bounds,
                                                              nodata=merge_nodata_value,
-                                                             dtype=np.float32)
+                                                             dtype=np.float32,
+                                                             n_threads=n_threads_for_reading_tile_data)
     # We could have merge_nodata_value that is zero and we want the final metadata
     # to be np.nan
     dem_profile['nodata'] = np.nan
@@ -293,7 +295,7 @@ def stitch_dem(bounds: list,
     n_threads_reproj : int, optional
         Threads to use for reprojection, by default 5
     n_threads_downloading : int, optional
-        Threads for downloading tiles, by default 5
+        Threads for downloading tile data, by default 5
     fill_in_glo_30 : bool, optional
         If `dem_name` is 'glo_30' then fills in missing `glo_30` tiles over Armenia and Azerbaijan with available
         `glo_90` tiles, by default True. If the extent falls inside of the missing `glo_30` tiles, then `glo_90` is
@@ -372,7 +374,8 @@ def stitch_dem(bounds: list,
                                                          dst_area_or_point=dst_area_or_point,
                                                          dst_resolution=dst_resolution,
                                                          num_threads_reproj=n_threads_reproj,
-                                                         merge_nodata_value=merge_nodata_value
+                                                         merge_nodata_value=merge_nodata_value,
+                                                         n_threads_for_reading_tile_data=n_threads_downloading
                                                          )
 
     # Close datasets
