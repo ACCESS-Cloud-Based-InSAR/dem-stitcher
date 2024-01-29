@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.5]
+* Multithreading for windowed reading during merge operation
+* Add 3.12 support
+* Introduce ruffformatting - i.e. add ruff workflow to actions for static analysis and reformat python files.
+* Provide separate progress bar for opening dataset, reading tile metadata, and reading tile array.
+* Supresses: `RuntimeWarning: invalid value encountered in intersection` from `shapely`
+
 ## [2.5.4]
 * Fix urls found in pyproject.toml so they correctly link on PyPI
 
