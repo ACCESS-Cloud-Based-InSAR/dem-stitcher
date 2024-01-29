@@ -10,3 +10,6 @@ jobs:
 
   call-secrets-analysis-workflow:
     uses: ASFHyP3/actions/.github/workflows/reusable-secrets-analysis.yml@v0.11.0
+  
+  call-ruff-workflow:
+    uses: ASFHyP3/actions/.github/workflows/reusable-ruff.yml@v0.11.0

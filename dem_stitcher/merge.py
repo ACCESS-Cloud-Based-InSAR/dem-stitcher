@@ -56,7 +56,7 @@ def merge_tile_datasets_within_extent(
         windows = list(
             tqdm(executor.map(window_partial, src_profiles[:]), total=len(src_profiles), desc="Reading tile metadata")
         )
-        assert len(datasets_filtered) == len(windows), 'input_lengths of datasets and windows not aligned'
+        assert len(datasets_filtered) == len(windows), "input_lengths of datasets and windows not aligned"
         arrs_window = list(
             tqdm(
                 executor.map(read_in_window, datasets_filtered, windows),

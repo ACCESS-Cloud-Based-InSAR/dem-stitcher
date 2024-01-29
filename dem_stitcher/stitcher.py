@@ -270,7 +270,7 @@ def stitch_dem(bounds: list,
                dst_area_or_point: str = 'Area',
                dst_resolution: Union[float, tuple[float]] = None,
                n_threads_reproj: int = 5,
-               n_threads_downloading: int = 5,
+               n_threads_downloading: int = 10,
                fill_in_glo_30: bool = True,
                merge_nodata_value: float = np.nan
                ) -> tuple[np.ndarray, dict]:
@@ -295,7 +295,7 @@ def stitch_dem(bounds: list,
     n_threads_reproj : int, optional
         Threads to use for reprojection, by default 5
     n_threads_downloading : int, optional
-        Threads for downloading tile data, by default 5
+        Threads for downloading tile data, by default 10
     fill_in_glo_30 : bool, optional
         If `dem_name` is 'glo_30' then fills in missing `glo_30` tiles over Armenia and Azerbaijan with available
         `glo_90` tiles, by default True. If the extent falls inside of the missing `glo_30` tiles, then `glo_90` is
@@ -338,10 +338,11 @@ def stitch_dem(bounds: list,
                                    n_threads_downloading=n_threads_downloading,
                                    tile_dir=tile_dir)
 
-    with ThreadPoolExecutor(max_workers=n_threads_downloading) as executor:
+    # Opening is capped at 5 threads because more leads to errors
+    with ThreadPoolExecutor(max_workers=5) as executor:
         datasets = list(tqdm(executor.map(rasterio.open, dem_paths),
                              total=len(dem_paths),
-                             desc=f'Reading {dem_name} Datasets'))
+                             desc=f'Opening {dem_name} Datasets'))
 
     if not datasets:
         # This is the case that an extent is entirely contained within glo_90

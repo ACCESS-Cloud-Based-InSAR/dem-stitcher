@@ -5,21 +5,22 @@ from .exceptions import DoubleDatelineCrossing, Incorrect4326Bounds
 
 
 def check_4326_bounds(bounds: list) -> bool:
-
     xmin, ymin, xmax, ymax = bounds
 
     if (xmin > xmax) or (ymin > ymax):
-        raise Incorrect4326Bounds('Ensure xmin <= xmax and ymin <= ymax')
+        raise Incorrect4326Bounds("Ensure xmin <= xmax and ymin <= ymax")
 
     standard_4326_box = box(-180, -90, 180, 90)
     bounds_box = box(*bounds)
 
     if not (standard_4326_box.intersects(bounds_box)):
-        raise Incorrect4326Bounds('Make sure bounds have intersection over standard 4326 CRS i.e. '
-                                  'between longitude -180 and 180 and latitude -90 and 90.')
+        raise Incorrect4326Bounds(
+            "Make sure bounds have intersection over standard 4326 CRS i.e. "
+            "between longitude -180 and 180 and latitude -90 and 90."
+        )
 
     if (ymin < -90) or (ymax > 90):
-        raise Incorrect4326Bounds('Boxes beyond the North/South Pole at +/- 90 Latitude not supported')
+        raise Incorrect4326Bounds("Boxes beyond the North/South Pole at +/- 90 Latitude not supported")
 
     return True
 
@@ -62,7 +63,7 @@ def get_dateline_crossing(bounds: list) -> int:
         return 180
 
     elif (xmin <= -180) and (xmax >= 180):
-        raise DoubleDatelineCrossing('Shrink your bounding area')
+        raise DoubleDatelineCrossing("Shrink your bounding area")
 
 
 def split_extent_across_dateline(extent: list) -> tuple[list]:
@@ -90,7 +91,7 @@ def split_extent_across_dateline(extent: list) -> tuple[list]:
         right_hemisphere = box(0, -90, 180, 90)
 
         extent_box = box(*extent)
-        translation_x = - crossing * 2
+        translation_x = -crossing * 2
 
         extent_box_t = translate(extent_box, translation_x, 0)
         multipolygon = extent_box.union(extent_box_t)
