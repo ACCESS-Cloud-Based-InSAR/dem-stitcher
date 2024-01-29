@@ -86,7 +86,7 @@ def get_window_from_extent(
     win_bbox_geo = box(*window_extent_r)
 
     with warnings.catch_warnings():
-        warnings.simplefilter('ignore', category=RuntimeWarning)
+        warnings.simplefilter("ignore", category=RuntimeWarning)
         intersection_geo = src_bbox_geo.intersection(win_bbox_geo)
 
     if intersection_geo.geom_type != "Polygon":
