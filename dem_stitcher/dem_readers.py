@@ -15,9 +15,9 @@ def read_dem(dem_path: str) -> rasterio.DatasetReader:
     return dem_arr, dem_profile
 
 
-def read_dem_bytes(dem_path: str, suffix: str = '.img') -> bytes:
+def read_dem_bytes(dem_path: str, suffix: str = ".img") -> bytes:
     # online
-    if (dem_path[:7] == 'http://') or (dem_path[:8] == 'https://'):
+    if (dem_path[:7] == "http://") or (dem_path[:8] == "https://"):
         resp = requests.get(dem_path)
         data = io.BytesIO(resp.content)
     # local file
@@ -35,17 +35,17 @@ def read_dem_bytes(dem_path: str, suffix: str = '.img') -> bytes:
     return img_bytes
 
 
-def read_srtm(dem_path: str, version='srtm') -> Tuple[np.ndarray, dict]:
-    img_bytes = read_dem_bytes(dem_path, suffix='.hgt')
+def read_srtm(dem_path: str, version="srtm") -> Tuple[np.ndarray, dict]:
+    img_bytes = read_dem_bytes(dem_path, suffix=".hgt")
     # The gdal driver hgt depends on filename convention
-    filename = dem_path.split('/')[-1]
-    if version == 'srtm':
-        filename = filename.replace('.zip', '')
-    elif version == 'nasadem':
-        filename = filename.replace('.zip', '.hgt')
-        filename = filename.replace('NASADEM_HGT_', '')
+    filename = dem_path.split("/")[-1]
+    if version == "srtm":
+        filename = filename.replace(".zip", "")
+    elif version == "nasadem":
+        filename = filename.replace(".zip", ".hgt")
+        filename = filename.replace("NASADEM_HGT_", "")
     else:
-        raise ValueError('version must be either nasadem or srtm')
+        raise ValueError("version must be either nasadem or srtm")
 
     with MemoryFile(img_bytes, filename=filename) as memfile:
         with memfile.open() as dataset:
@@ -56,4 +56,4 @@ def read_srtm(dem_path: str, version='srtm') -> Tuple[np.ndarray, dict]:
 
 
 def read_nasadem(dem_path: str) -> Tuple[np.ndarray, dict]:
-    return read_srtm(dem_path, version='nasadem')
+    return read_srtm(dem_path, version="nasadem")
