@@ -9,7 +9,7 @@ from pyproj import Transformer
 from rasterio.crs import CRS
 from rasterio.transform import array_bounds, rowcol
 from rasterio.windows import Window
-from shapely.geometry import Polygon, box
+from shapely.geometry import box
 
 
 def get_array_bounds(profile: dict) -> list[float]:

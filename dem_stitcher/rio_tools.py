@@ -1,5 +1,4 @@
 from typing import Union
-import warnings
 
 import numpy as np
 from affine import Affine
