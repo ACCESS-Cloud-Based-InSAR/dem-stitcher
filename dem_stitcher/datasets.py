@@ -1,3 +1,4 @@
+import warnings
 from functools import lru_cache
 from pathlib import Path
 from warnings import warn
@@ -97,8 +98,11 @@ def get_overlapping_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
     # If empty, then additional intersection removes column names so addition this conditional flow
     # so subsequent sorting does not fail
     if not df_tiles.empty:
-        df_tiles_intersection = df_tiles.geometry.intersection(box_geo)
-        geo_type_index = df_tiles_intersection.geometry.map(lambda geo: geo.geom_type == "Polygon")
+        # Degenerate geometries raise warning in shapely - intersection is black box to us
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", category=RuntimeWarning)
+            df_tiles_intersection = df_tiles.geometry.intersection(box_geo)
+            geo_type_index = df_tiles_intersection.geometry.map(lambda geo: geo.geom_type == "Polygon")
         df_tiles = df_tiles[geo_type_index].copy()
 
     # Merging is order dependent - ensures consistency

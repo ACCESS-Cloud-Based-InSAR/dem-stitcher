@@ -33,21 +33,24 @@ def merge_tile_datasets_within_extent(
     if datasets_objs[0].profile["crs"] not in [CRS.from_epsg(4326), CRS.from_epsg(4269)]:
         raise ValueError("CRS must be epgs:4326")
 
-    datasets_filtered = [
-        ds
-        for ds in datasets_objs
-        if (
-            box(*ds.bounds).intersects(box(*extent))
-            and (box(*ds.bounds).intersection(box(*extent)).geom_type == "Polygon")
-        )
-    ]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        datasets_filtered = [
+            ds
+            for ds in datasets_objs
+            if (
+                box(*ds.bounds).intersects(box(*extent))
+                and (box(*ds.bounds).intersection(box(*extent)).geom_type == "Polygon")
+            )
+        ]
 
     src_profiles = [ds.profile for ds in datasets_filtered]
 
     def window_partial(profile: dict) -> Window:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=RuntimeWarning)
-            return get_window_from_extent(profile, extent, window_crs=CRS.from_epsg(4326))
+            window = get_window_from_extent(profile, extent, window_crs=CRS.from_epsg(4326))
+        return window
 
     def read_in_window(dataset: rasterio.DatasetReader, window: rasterio.windows.Window):
         return dataset.read(window=window)

@@ -1,3 +1,5 @@
+import warnings
+
 from shapely.affinity import translate
 from shapely.geometry import box
 
@@ -96,8 +98,10 @@ def split_extent_across_dateline(extent: list) -> tuple[list]:
         extent_box_t = translate(extent_box, translation_x, 0)
         multipolygon = extent_box.union(extent_box_t)
 
-        bounds_l = list(multipolygon.intersection(left_hemisphere).bounds)
-        bounds_r = list(multipolygon.intersection(right_hemisphere).bounds)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=RuntimeWarning)
+            bounds_l = list(multipolygon.intersection(left_hemisphere).bounds)
+            bounds_r = list(multipolygon.intersection(right_hemisphere).bounds)
         return (bounds_l, bounds_r)
 
     else:

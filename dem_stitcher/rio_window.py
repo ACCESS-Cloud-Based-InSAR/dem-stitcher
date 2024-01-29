@@ -1,4 +1,5 @@
 import math
+import warnings
 from warnings import warn
 
 import numpy as np
@@ -8,7 +9,7 @@ from pyproj import Transformer
 from rasterio.crs import CRS
 from rasterio.transform import array_bounds, rowcol
 from rasterio.windows import Window
-from shapely.geometry import box
+from shapely.geometry import Polygon, box
 
 
 def get_array_bounds(profile: dict) -> list[float]:
@@ -84,7 +85,9 @@ def get_window_from_extent(
     src_bbox_geo = box(*src_bounds)
     win_bbox_geo = box(*window_extent_r)
 
-    intersection_geo = src_bbox_geo.intersection(win_bbox_geo)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=RuntimeWarning)
+        intersection_geo = src_bbox_geo.intersection(win_bbox_geo)
 
     if intersection_geo.geom_type != "Polygon":
         raise RuntimeError(
