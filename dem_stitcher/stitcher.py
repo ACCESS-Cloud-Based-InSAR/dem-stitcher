@@ -172,10 +172,16 @@ def merge_and_transform_dem_tiles(
     dst_resolution: Union[float, tuple[float]] = None,
     num_threads_reproj: int = 5,
     merge_nodata_value: float = np.nan,
+    merge_respect_extent: bool = False,
     n_threads_for_reading_tile_data: int = 5,
 ) -> tuple[np.ndarray, dict]:
     dem_arr, dem_profile = merge_tile_datasets_within_extent(
-        datasets, bounds, nodata=merge_nodata_value, dtype=np.float32, n_threads=n_threads_for_reading_tile_data
+        datasets,
+        bounds,
+        nodata=merge_nodata_value,
+        dtype=np.float32,
+        n_threads=n_threads_for_reading_tile_data,
+        merge_respect_extent=merge_respect_extent,
     )
     # We could have merge_nodata_value that is zero and we want the final metadata
     # to be np.nan
@@ -259,6 +265,7 @@ def stitch_dem(
     n_threads_downloading: int = 10,
     fill_in_glo_30: bool = True,
     merge_nodata_value: float = np.nan,
+    merge_respect_extent: bool = False,
 ) -> tuple[np.ndarray, dict]:
     """This is API for stitching DEMs. Specify bounds and various options to obtain a continuous raster.
     The output raster will be determined by availability of tiles. If no tiles are available over bounds,
@@ -291,6 +298,9 @@ def stitch_dem(
         When set to np.nan (default), all areas with nodata in tiles are consistently marked in output as such.
         When set to 0 and converting to ellipsoidal heights, all nodata areas will be filled in with geoid.
         When set to 0 and not converting to ellipsoidal heights, all nodata areas will be 0.
+    merge_respect_extent: bool, optional
+        When merging tiles, determine the extent from the available tiles (default, when False), or
+        respect the extent bounds given as parameter (when True).
 
     Returns
     -------
@@ -364,6 +374,7 @@ def stitch_dem(
         dst_resolution=dst_resolution,
         num_threads_reproj=n_threads_reproj,
         merge_nodata_value=merge_nodata_value,
+        merge_respect_extent=merge_respect_extent,
         n_threads_for_reading_tile_data=n_threads_downloading,
     )
 

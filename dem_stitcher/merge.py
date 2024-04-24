@@ -1,6 +1,6 @@
 import concurrent.futures
 import warnings
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import rasterio
@@ -22,6 +22,7 @@ def merge_tile_datasets_within_extent(
     nodata: float = None,
     n_threads: int = 5,
     dtype: Union[str, np.dtype] = None,
+    merge_respect_extent: bool = False,
 ) -> tuple[np.ndarray, dict]:
     # 4269 is North American epsg similar to 4326 and used for 3dep DEM
     inputs_str = isinstance(datasets[0], str)
@@ -77,8 +78,9 @@ def merge_tile_datasets_within_extent(
         for (p_s, arr_w, tran_w) in zip(src_profiles, arrs_window, trans_window)
     ]
 
+    maybe_extent = extent if merge_respect_extent else None
     arr_merged, prof_merged = merge_arrays_with_geometadata(
-        arrs_window, profs_window, resampling=resampling, method="first", nodata=nodata, dtype=dtype
+        arrs_window, profs_window, maybe_extent, resampling=resampling, method="first", nodata=nodata, dtype=dtype
     )
     if inputs_str:
         [ds.close() for ds in datasets_objs]
@@ -88,6 +90,7 @@ def merge_tile_datasets_within_extent(
 def merge_arrays_with_geometadata(
     arrays: list[np.ndarray],
     profiles: list[dict],
+    extent: Optional[list],
     resampling="bilinear",
     nodata: Union[float, int] = np.nan,
     dtype: str = None,
@@ -112,7 +115,7 @@ def merge_arrays_with_geometadata(
     [ds.write(arr) for (ds, arr) in zip(datasets, arrays_input)]
 
     merged_arr, merged_trans = merge(
-        datasets, resampling=Resampling[resampling], method=method, nodata=nodata, dtype=dtype
+        datasets, extent, resampling=Resampling[resampling], method=method, nodata=nodata, dtype=dtype
     )
 
     prof_merged = profiles[0].copy()
