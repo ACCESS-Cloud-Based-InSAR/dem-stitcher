@@ -1,6 +1,10 @@
 name: Pytest 
 
 on:
+  workflow_dispatch:
+    branches:
+      - dev
+      - main
   push:
     branches:
       - main
