@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.6]
+* Updated URLs for downloading geoids from agisoft.com. Fixes [#88](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/88).
+
 ## [2.5.5]
 * Multithreading for windowed reading during merge operation
 * Add 3.12 support
