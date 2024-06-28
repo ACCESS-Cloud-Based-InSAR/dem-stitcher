@@ -11,7 +11,7 @@ from .merge import merge_arrays_with_geometadata
 from .rio_tools import reproject_arr_to_match_profile, translate_profile
 from .rio_window import read_raster_from_window
 
-AGISOFT_URL = "http://download.agisoft.com/geoids"
+AGISOFT_URL = "https://s3-eu-west-1.amazonaws.com/download.agisoft.com/geoids"
 GEOID_PATHS_AGI = {
     "geoid_18": f"{DATA_PATH}/geoid_18.tif",
     "egm_08": f"{AGISOFT_URL}/egm2008-1.tif",
