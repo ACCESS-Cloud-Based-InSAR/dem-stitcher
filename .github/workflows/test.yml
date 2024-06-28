@@ -1,6 +1,10 @@
 name: Pytest 
 
 on:
+  workflow_dispatch:
+    branches:
+      - dev
+      - main
   push:
     branches:
       - main
@@ -20,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: extractions/netrc@v1
+      - uses: extractions/netrc@v2
         with:
           machine: urs.earthdata.nasa.gov
           username: ${{ secrets.EARTHDATA_USERNAME }}
