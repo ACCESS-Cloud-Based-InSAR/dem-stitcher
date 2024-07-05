@@ -12,6 +12,7 @@ from rasterio.crs import CRS
 from rasterio.io import MemoryFile
 from tqdm import tqdm
 
+from .credentials import ensure_earthdata_credentials
 from .datasets import get_overlapping_dem_tiles, intersects_missing_glo_30_tiles
 from .dateline import get_dateline_crossing
 from .dem_readers import read_dem, read_nasadem, read_srtm
@@ -317,6 +318,9 @@ def stitch_dem(
     # Random unique identifier
     tmp_id = str(uuid.uuid4())
     tile_dir = Path(f"tmp_{tmp_id}")
+
+    if dem_name in ['srtm_v3', 'nasadem']:
+        ensure_earthdata_credentials()
 
     dem_paths = get_dem_tile_paths(
         bounds=bounds,

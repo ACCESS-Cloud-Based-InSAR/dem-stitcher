@@ -193,7 +193,8 @@ def test_get_dem_tile_paths_and_output_vrt(test_dir):
 
     input_geo = box(*input_bounds)
     with rasterio.open(vrt_path) as ds:
-        output_geo = box(*ds.bounds)
+        bounds = ds.bounds
+        output_geo = box(*bounds)
 
     assert output_geo.contains(input_geo)
 
