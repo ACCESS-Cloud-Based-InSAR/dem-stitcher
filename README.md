@@ -67,8 +67,7 @@ The creation metadata unrelated to georeferencing (e.g. the `compress` key or va
 ## Credentials
 
 The accessing of NASADEM and SRTM require earthdata login credentials to be put into the `~/.netrc` file. If these are not present, the stitcher will
-fail with `BadZipFile Error` as we use `requests` to obtain zipped data and load the data using `rasterio`. An entry in the `.netrc` will look like:
-
+fail with `ValueError` asking you to update the `~/.netrc`. The appropriate entry appears as:
 ```
 machine urs.earthdata.nasa.gov
     login <username>
