@@ -18,7 +18,7 @@ from .rio_window import format_window_profile, get_window_from_extent
 def merge_tile_datasets_within_extent(
     datasets: Union[list[rasterio.DatasetReader], list[str]],
     extent: list,
-    resampling: str = "nearest",
+    resampling: str = 'nearest',
     nodata: float = None,
     n_threads: int = 5,
     dtype: Union[str, np.dtype] = None,
@@ -30,17 +30,17 @@ def merge_tile_datasets_within_extent(
     else:
         datasets_objs = datasets
 
-    if datasets_objs[0].profile["crs"] not in [CRS.from_epsg(4326), CRS.from_epsg(4269)]:
-        raise ValueError("CRS must be epgs:4326")
+    if datasets_objs[0].profile['crs'] not in [CRS.from_epsg(4326), CRS.from_epsg(4269)]:
+        raise ValueError('CRS must be epgs:4326')
 
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
+        warnings.simplefilter('ignore', category=RuntimeWarning)
         datasets_filtered = [
             ds
             for ds in datasets_objs
             if (
                 box(*ds.bounds).intersects(box(*extent))
-                and (box(*ds.bounds).intersection(box(*extent)).geom_type == "Polygon")
+                and (box(*ds.bounds).intersection(box(*extent)).geom_type == 'Polygon')
             )
         ]
 
@@ -48,7 +48,7 @@ def merge_tile_datasets_within_extent(
 
     def window_partial(profile: dict) -> Window:
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=RuntimeWarning)
+            warnings.simplefilter('ignore', category=RuntimeWarning)
             window = get_window_from_extent(profile, extent, window_crs=CRS.from_epsg(4326))
         return window
 
@@ -57,14 +57,14 @@ def merge_tile_datasets_within_extent(
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=n_threads) as executor:
         windows = list(
-            tqdm(executor.map(window_partial, src_profiles[:]), total=len(src_profiles), desc="Reading tile metadata")
+            tqdm(executor.map(window_partial, src_profiles[:]), total=len(src_profiles), desc='Reading tile metadata')
         )
-        assert len(datasets_filtered) == len(windows), "input_lengths of datasets and windows not aligned"
+        assert len(datasets_filtered) == len(windows), 'input_lengths of datasets and windows not aligned'
         arrs_window = list(
             tqdm(
                 executor.map(read_in_window, datasets_filtered, windows),
                 total=len(windows),
-                desc="Reading tile imagery",
+                desc='Reading tile imagery',
             )
         )
 
@@ -78,7 +78,7 @@ def merge_tile_datasets_within_extent(
     ]
 
     arr_merged, prof_merged = merge_arrays_with_geometadata(
-        arrs_window, profs_window, resampling=resampling, method="first", nodata=nodata, dtype=dtype
+        arrs_window, profs_window, resampling=resampling, method='first', nodata=nodata, dtype=dtype
     )
     if inputs_str:
         [ds.close() for ds in datasets_objs]
@@ -88,16 +88,16 @@ def merge_tile_datasets_within_extent(
 def merge_arrays_with_geometadata(
     arrays: list[np.ndarray],
     profiles: list[dict],
-    resampling="bilinear",
+    resampling='bilinear',
     nodata: Union[float, int] = np.nan,
     dtype: str = None,
-    method="first",
+    method='first',
 ) -> tuple[np.ndarray, dict]:
     n_dim = arrays[0].shape
     if len(n_dim) not in [2, 3]:
-        raise ValueError("Currently arrays must be in BIP format" "i.e. channels x height x width or flat array")
+        raise ValueError('Currently arrays must be in BIP format' 'i.e. channels x height x width or flat array')
     if len(set([len(arr.shape) for arr in arrays])) != 1:
-        raise ValueError("All arrays must have same number of dimensions i.e. 2 or 3")
+        raise ValueError('All arrays must have same number of dimensions i.e. 2 or 3')
 
     if len(n_dim) == 2:
         arrays_input = [arr[np.newaxis, ...] for arr in arrays]
@@ -105,7 +105,7 @@ def merge_arrays_with_geometadata(
         arrays_input = arrays
 
     if (len(arrays)) != (len(profiles)):
-        raise ValueError("Length of arrays and profiles needs to be the same")
+        raise ValueError('Length of arrays and profiles needs to be the same')
 
     memfiles = [MemoryFile() for p in profiles]
     datasets = [mfile.open(**p) for (mfile, p) in zip(memfiles, profiles)]
@@ -116,14 +116,14 @@ def merge_arrays_with_geometadata(
     )
 
     prof_merged = profiles[0].copy()
-    prof_merged["transform"] = merged_trans
-    prof_merged["count"] = merged_arr.shape[0]
-    prof_merged["height"] = merged_arr.shape[1]
-    prof_merged["width"] = merged_arr.shape[2]
+    prof_merged['transform'] = merged_trans
+    prof_merged['count'] = merged_arr.shape[0]
+    prof_merged['height'] = merged_arr.shape[1]
+    prof_merged['width'] = merged_arr.shape[2]
     if nodata is not None:
-        prof_merged["nodata"] = nodata
+        prof_merged['nodata'] = nodata
     if nodata is not None:
-        prof_merged["dtype"] = dtype
+        prof_merged['dtype'] = dtype
 
     [ds.close() for ds in datasets]
     [mfile.close() for mfile in memfiles]

@@ -28,52 +28,52 @@ from .rio_tools import (
 )
 
 RASTER_READERS = {
-    "3dep": read_dem,
-    "glo_30": read_dem,
-    "glo_90": read_dem,
-    "glo_90_missing": read_dem,
-    "srtm_v3": read_srtm,
-    "nasadem": read_nasadem,
+    '3dep': read_dem,
+    'glo_30': read_dem,
+    'glo_90': read_dem,
+    'glo_90_missing': read_dem,
+    'srtm_v3': read_srtm,
+    'nasadem': read_nasadem,
 }
 
 DEM2GEOID = {
-    "3dep": "geoid_18",
-    "glo_30": "egm_08",
-    "glo_90": "egm_08",
-    "glo_90_missing": "egm_08",
-    "srtm_v3": "egm_96",
-    "nasadem": "egm_96",
+    '3dep': 'geoid_18',
+    'glo_30': 'egm_08',
+    'glo_90': 'egm_08',
+    'glo_90_missing': 'egm_08',
+    'srtm_v3': 'egm_96',
+    'nasadem': 'egm_96',
 }
 
-PIXEL_CENTER_DEMS = ["srtm_v3", "nasadem", "glo_30", "glo_90", "glo_90_missing"]
+PIXEL_CENTER_DEMS = ['srtm_v3', 'nasadem', 'glo_30', 'glo_90', 'glo_90_missing']
 DEFAULT_GTIFF_PROFILE = default_gtiff_profile.copy()
-DEFAULT_GTIFF_PROFILE.pop("nodata")
-DEFAULT_GTIFF_PROFILE.pop("dtype")
+DEFAULT_GTIFF_PROFILE.pop('nodata')
+DEFAULT_GTIFF_PROFILE.pop('dtype')
 
 
 def _download_and_write_one_tile_to_gtiff(url: str, dest_path: Path, reader: Callable, dem_name: str) -> dict:
     dem_arr, dem_profile = reader(url)
-    if dem_profile["driver"] != "GTiff":
+    if dem_profile['driver'] != 'GTiff':
         dem_profile.update(**DEFAULT_GTIFF_PROFILE)
-    with rasterio.open(dest_path, "w", **dem_profile) as ds:
+    with rasterio.open(dest_path, 'w', **dem_profile) as ds:
         ds.write(dem_arr)
         if dem_name in PIXEL_CENTER_DEMS:
-            ds.update_tags(AREA_OR_POINT="Point")
+            ds.update_tags(AREA_OR_POINT='Point')
     return dem_profile
 
 
 def download_tiles_to_gtiff(urls: list, dem_name: str, dest_dir: Path, max_workers_for_download: int = 5) -> list[Path]:
-    tile_ids = list(map(lambda x: x.split("/")[-1], urls))
+    tile_ids = list(map(lambda x: x.split('/')[-1], urls))
 
     def extract_dest_path_from_url(tile_id):
         # glo DEMs
-        if ".tif" in tile_id:
+        if '.tif' in tile_id:
             return dest_dir / tile_id
         # USGS or NASA DEMs
-        if ".zip" in tile_id:
-            return dest_dir / tile_id.replace(".zip", ".tif")
+        if '.zip' in tile_id:
+            return dest_dir / tile_id.replace('.zip', '.tif')
         else:
-            raise ValueError("The dataset format was not considered")
+            raise ValueError('The dataset format was not considered')
 
     dest_paths = list(map(extract_dest_path_from_url, tile_ids))
     reader = RASTER_READERS[dem_name]
@@ -87,7 +87,7 @@ def download_tiles_to_gtiff(urls: list, dem_name: str, dest_dir: Path, max_worke
             tqdm(
                 executor.map(download_and_write_one_partial, data_list),
                 total=len(urls),
-                desc=f"Downloading {dem_name} tiles",
+                desc=f'Downloading {dem_name} tiles',
             )
         )
 
@@ -133,30 +133,30 @@ def get_dem_tile_paths(
 
     if not localize_tiles_to_gtiff:
         # Datasets that permit direct reading
-        if dem_name in ["glo_30", "glo_90", "3dep", "glo_90_missing"]:
+        if dem_name in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']:
             dem_paths = urls
         else:
-            warn(f"We need to localize the tiles as a Geotiff. Saving to {str(tile_dir)}", category=UserWarning)
+            warn(f'We need to localize the tiles as a Geotiff. Saving to {str(tile_dir)}', category=UserWarning)
 
-    if (dem_name not in ["glo_30", "glo_90", "3dep", "glo_90_missing"]) or localize_tiles_to_gtiff:
+    if (dem_name not in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']) or localize_tiles_to_gtiff:
         if isinstance(tile_dir, str):
             tile_dir = Path(tile_dir)
         if tile_dir is None:
             tile_dir = Path(dem_name)
         if tile_dir.exists():
-            warn(f"The directory{tile_dir} exists; " "We are writing new files to this directory", category=UserWarning)
+            warn(f'The directory{tile_dir} exists; ' 'We are writing new files to this directory', category=UserWarning)
         tile_dir.mkdir(exist_ok=True, parents=True)
         dem_paths = download_tiles_to_gtiff(urls, dem_name, tile_dir, max_workers_for_download=n_threads_downloading)
     return dem_paths
 
 
 def shift_profile_for_pixel_loc(src_profile: dict, src_area_or_point: str, dst_area_or_point: str) -> dict:
-    assert dst_area_or_point in ["Area", "Point"]
-    assert src_area_or_point in ["Area", "Point"]
-    if (dst_area_or_point == "Point") and (src_area_or_point == "Area"):
+    assert dst_area_or_point in ['Area', 'Point']
+    assert src_area_or_point in ['Area', 'Point']
+    if (dst_area_or_point == 'Point') and (src_area_or_point == 'Area'):
         shift = -0.5
         profile_shifted = translate_profile(src_profile, shift, shift)
-    elif (dst_area_or_point == "Area") and (src_area_or_point == "Point"):
+    elif (dst_area_or_point == 'Area') and (src_area_or_point == 'Point'):
         shift = 0.5
         profile_shifted = translate_profile(src_profile, shift, shift)
     else:
@@ -169,7 +169,7 @@ def merge_and_transform_dem_tiles(
     bounds: list,
     dem_name: str,
     dst_ellipsoidal_height: bool = True,
-    dst_area_or_point: str = "Area",
+    dst_area_or_point: str = 'Area',
     dst_resolution: Union[float, tuple[float]] = None,
     num_threads_reproj: int = 5,
     merge_nodata_value: float = np.nan,
@@ -180,18 +180,18 @@ def merge_and_transform_dem_tiles(
     )
     # We could have merge_nodata_value that is zero and we want the final metadata
     # to be np.nan
-    dem_profile["nodata"] = np.nan
-    src_area_or_point = datasets[0].tags().get("AREA_OR_POINT", "Area")
+    dem_profile['nodata'] = np.nan
+    src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
 
     dem_profile = shift_profile_for_pixel_loc(dem_profile, src_area_or_point, dst_area_or_point)
 
     # Reproject to 4326 for USGS DEMs over North America
     # Note 4269 is almost identical to 4326 and often no changes are made
-    if dem_profile["crs"] == CRS.from_epsg(4269):
+    if dem_profile['crs'] == CRS.from_epsg(4269):
         dem_arr, dem_profile = reproject_arr_to_new_crs(dem_arr, dem_profile, CRS.from_epsg(4326))
 
-    if dem_profile["crs"] != CRS.from_epsg(4326):
-        raise ValueError("CRS must be epsg 4269 or 4326")
+    if dem_profile['crs'] != CRS.from_epsg(4326):
+        raise ValueError('CRS must be epsg 4269 or 4326')
 
     if dst_ellipsoidal_height:
         geoid_name = DEM2GEOID[dem_name]
@@ -205,7 +205,7 @@ def merge_and_transform_dem_tiles(
     if dst_resolution is not None:
         dem_profile_res = update_profile_resolution(dem_profile, dst_resolution)
         dem_arr, dem_profile = reproject_arr_to_match_profile(
-            dem_arr, dem_profile, dem_profile_res, num_threads=num_threads_reproj, resampling="bilinear"
+            dem_arr, dem_profile, dem_profile_res, num_threads=num_threads_reproj, resampling='bilinear'
         )
 
     # Ensure dem_arr has correct shape
@@ -220,7 +220,7 @@ def patch_glo_30_with_glo_90(
     if not intersects_missing_glo_30_tiles(extent):
         return arr_glo_30, prof_glo_30
 
-    stitcher_kwargs["dem_name"] = "glo_90_missing"
+    stitcher_kwargs['dem_name'] = 'glo_90_missing'
     arr_glo_90, prof_glo_90 = stitch_dem(**stitcher_kwargs)
 
     # Dems internally are BIP with channel dimension exposed but stitcher api squeezes outputs
@@ -254,7 +254,7 @@ def stitch_dem(
     bounds: list,
     dem_name: str,
     dst_ellipsoidal_height: bool = True,
-    dst_area_or_point: str = "Area",
+    dst_area_or_point: str = 'Area',
     dst_resolution: Union[float, tuple[float]] = None,
     n_threads_reproj: int = 5,
     n_threads_downloading: int = 10,
@@ -313,11 +313,11 @@ def stitch_dem(
         fill_in_glo_30 = fill_in_glo_30 and glo_90_missing_intersection
 
     if merge_nodata_value not in [np.nan, 0]:
-        raise ValueError("np.nan and 0 are only acceptable merge_nodata_value")
+        raise ValueError('np.nan and 0 are only acceptable merge_nodata_value')
 
     # Random unique identifier
     tmp_id = str(uuid.uuid4())
-    tile_dir = Path(f"tmp_{tmp_id}")
+    tile_dir = Path(f'tmp_{tmp_id}')
 
     if dem_name in ['srtm_v3', 'nasadem']:
         ensure_earthdata_credentials()
@@ -333,26 +333,26 @@ def stitch_dem(
     # Opening is capped at 5 threads because more leads to errors
     with ThreadPoolExecutor(max_workers=5) as executor:
         datasets = list(
-            tqdm(executor.map(rasterio.open, dem_paths), total=len(dem_paths), desc=f"Opening {dem_name} Datasets")
+            tqdm(executor.map(rasterio.open, dem_paths), total=len(dem_paths), desc=f'Opening {dem_name} Datasets')
         )
 
     if not datasets:
         # This is the case that an extent is entirely contained within glo_90
         # tiles that are missing from glo_30 (list of datasets is empty)
-        if (dem_name == "glo_30") and fill_in_glo_30:
-            stitcher_kwargs["dem_name"] = "glo_90_missing"
+        if (dem_name == 'glo_30') and fill_in_glo_30:
+            stitcher_kwargs['dem_name'] = 'glo_90_missing'
             # if dst_resolution is None, then make sure we upsample to 30 meter resolution
-            dst_resolution = stitcher_kwargs["dst_resolution"]
-            stitcher_kwargs["dst_resolution"] = dst_resolution or 0.0002777777777777777775
+            dst_resolution = stitcher_kwargs['dst_resolution']
+            stitcher_kwargs['dst_resolution'] = dst_resolution or 0.0002777777777777777775
 
             dem_arr, dem_profile = stitch_dem(**stitcher_kwargs)
             return dem_arr, dem_profile
         else:
-            raise NoDEMCoverage(f"Specified bounds are not within coverage area of {dem_name}")
+            raise NoDEMCoverage(f'Specified bounds are not within coverage area of {dem_name}')
 
     # Preserve tile metadata data not used for geo-referencing
     profile_tile = datasets[0].profile.copy()
-    [profile_tile.pop(key) for key in ["transform", "dtype", "height", "width", "nodata", "crs"]]
+    [profile_tile.pop(key) for key in ['transform', 'dtype', 'height', 'width', 'nodata', 'crs']]
 
     crossing = get_dateline_crossing(bounds)
     if crossing:
@@ -384,7 +384,7 @@ def stitch_dem(
 
     # This is the case when we have overlap of the requested extent and glo_30
     # and glo_90 tiles that are missing from glo_30.
-    if (dem_name == "glo_30") and fill_in_glo_30:
+    if (dem_name == 'glo_30') and fill_in_glo_30:
         dem_arr, dem_profile = patch_glo_30_with_glo_90(dem_arr, dem_profile, bounds, stitcher_kwargs)
 
     dem_profile.update(**profile_tile)
