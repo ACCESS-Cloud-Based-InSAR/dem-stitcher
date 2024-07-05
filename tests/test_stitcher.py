@@ -189,12 +189,11 @@ def test_get_dem_tile_paths_and_output_vrt(test_dir):
     dem_tile_paths = get_dem_tile_paths(bounds=input_bounds, dem_name=dem_name, localize_tiles_to_gtiff=False)
     vrt_path = str(test_dir / f"test_{dem_name}.vrt")
     ds = gdal.BuildVRT(vrt_path, dem_tile_paths)
-    ds = None
+    del ds
 
     input_geo = box(*input_bounds)
-    with rasterio.open(vrt_path) as ds:
-        bounds = ds.bounds
-        output_geo = box(*bounds)
+    with rasterio.open(vrt_path) as ds_vrt:
+        output_geo = box(*ds_vrt.bounds)
 
     assert output_geo.contains(input_geo)
 
