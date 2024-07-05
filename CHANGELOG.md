@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.7]
+
+### Fixed
+* Check for Earthdata credentials in netrc (adapted from Joe Kennedy/Forrest Williams) resolving isse [#83](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/83)
+  * when no credentials in netrc are present when requesting data for `nasadem` or `srtm_v3`, there is a human readable error instructing user to update their `~/.netrc`.
+* Updates some ruff linting
+  * Ensures ruff in `environment.yml`
+  * Ensure single quotes for consistency. 
+
+
 ## [2.5.6]
 * Updated URLs for downloading geoids from agisoft.com. Fixes [#88](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/88).
 

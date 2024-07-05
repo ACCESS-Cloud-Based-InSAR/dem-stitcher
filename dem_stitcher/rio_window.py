@@ -13,7 +13,7 @@ from shapely.geometry import box
 
 
 def get_array_bounds(profile: dict) -> list[float]:
-    return array_bounds(profile["height"], profile["width"], profile["transform"])
+    return array_bounds(profile['height'], profile['width'], profile['transform'])
 
 
 def transform_bounds(src_bounds: list, src_crs: CRS, dest_crs: CRS) -> list[float]:
@@ -78,34 +78,34 @@ def get_indices_from_extent(
 def get_window_from_extent(
     src_profile: dict, window_extent, window_crs: CRS = CRS.from_epsg(4326), res_buffer: int = 0
 ) -> Window:
-    src_shape = src_profile["height"], src_profile["width"]
+    src_shape = src_profile['height'], src_profile['width']
     src_bounds = get_array_bounds(src_profile)
-    window_extent_r = transform_bounds(window_extent, window_crs, src_profile["crs"])
+    window_extent_r = transform_bounds(window_extent, window_crs, src_profile['crs'])
 
     src_bbox_geo = box(*src_bounds)
     win_bbox_geo = box(*window_extent_r)
 
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
+        warnings.simplefilter('ignore', category=RuntimeWarning)
         intersection_geo = src_bbox_geo.intersection(win_bbox_geo)
 
-    if intersection_geo.geom_type != "Polygon":
+    if intersection_geo.geom_type != 'Polygon':
         raise RuntimeError(
-            "The intersection geometry is degenerate (i.e. a " f"Point or LineString: {intersection_geo.geom_type}"
+            'The intersection geometry is degenerate (i.e. a ' f'Point or LineString: {intersection_geo.geom_type}'
         )
     if not intersection_geo.is_empty:
         window_extent_r = intersection_geo.bounds
         if not src_bbox_geo.contains(win_bbox_geo):
             warn(
-                f"Requesting extent beyond raster bounds of {list(src_bounds)}"
-                f". Shrinking bounds in raster crs to {window_extent_r}.",
+                f'Requesting extent beyond raster bounds of {list(src_bounds)}'
+                f'. Shrinking bounds in raster crs to {window_extent_r}.',
                 category=RuntimeWarning,
             )
     else:
-        raise RuntimeError("The extent you specified does not overlap" " the specified raster as a Polygon.")
+        raise RuntimeError('The extent you specified does not overlap' ' the specified raster as a Polygon.')
 
     corner_ul, corner_br = get_indices_from_extent(
-        src_profile["transform"], window_extent_r, shape=src_shape, res_buffer=res_buffer
+        src_profile['transform'], window_extent_r, shape=src_shape, res_buffer=res_buffer
     )
     row_start, col_start = corner_ul
     row_stop, col_stop = corner_br
@@ -115,11 +115,11 @@ def get_window_from_extent(
 
 def format_window_profile(src_profile: dict, window_arr: np.ndarray, window_transform: Affine) -> dict:
     profile_window = src_profile.copy()
-    profile_window["transform"] = window_transform
+    profile_window['transform'] = window_transform
 
-    profile_window["count"] = window_arr.shape[0]
-    profile_window["height"] = window_arr.shape[1]
-    profile_window["width"] = window_arr.shape[2]
+    profile_window['count'] = window_arr.shape[0]
+    profile_window['height'] = window_arr.shape[1]
+    profile_window['width'] = window_arr.shape[2]
     return profile_window
 
 
@@ -153,7 +153,7 @@ def read_raster_from_window(
        Extent is not properly specified
     """
     if (window_extent[0] >= window_extent[2]) or (window_extent[1] >= window_extent[3]):
-        raise ValueError("Extents must be in the form of (xmin, ymin, xmax, ymax)")
+        raise ValueError('Extents must be in the form of (xmin, ymin, xmax, ymax)')
 
     with rasterio.open(raster_path) as ds:
         src_profile = ds.profile

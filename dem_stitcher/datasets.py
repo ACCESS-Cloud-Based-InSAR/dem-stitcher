@@ -12,11 +12,11 @@ from .dateline import check_4326_bounds, get_dateline_crossing
 from .exceptions import DEMNotSupported
 from .geojson_io import read_geojson_gzip
 
-DATA_PATH = Path(__file__).parents[0].absolute() / "data"
+DATA_PATH = Path(__file__).parents[0].absolute() / 'data'
 
 # Get Datasets
-_DATASET_PATHS = list(DATA_PATH.glob("*.geojson.zip"))
-DATASETS = list(map(lambda x: x.name.split(".")[0], _DATASET_PATHS))
+_DATASET_PATHS = list(DATA_PATH.glob('*.geojson.zip'))
+DATASETS = list(map(lambda x: x.name.split('.')[0], _DATASET_PATHS))
 
 
 def get_available_datasets():
@@ -45,8 +45,8 @@ def get_global_dem_tile_extents(dataset: str) -> gpd.GeoDataFrame:
     """
     if dataset not in DATASETS:
         raise DEMNotSupported(f'{dataset} must be in {", ".join(DATASETS)}')
-    df = read_geojson_gzip(DATA_PATH / f"{dataset}.geojson.zip")
-    df["dem_name"] = dataset
+    df = read_geojson_gzip(DATA_PATH / f'{dataset}.geojson.zip')
+    df['dem_name'] = dataset
     df.crs = CRS.from_epsg(4326)
     return df
 
@@ -81,9 +81,9 @@ def get_overlapping_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
     crossing = get_dateline_crossing(bounds)
     if crossing:
         warn(
-            "Getting tiles across dateline on the opposite hemisphere; "
-            f"The source tiles will be {- 2 * crossing} deg along the"
-            "longitudinal axis from the extent requested",
+            'Getting tiles across dateline on the opposite hemisphere; '
+            f'The source tiles will be {- 2 * crossing} deg along the'
+            'longitudinal axis from the extent requested',
             category=UserWarning,
         )
         df_tiles_all_translated = df_tiles_all.copy()
@@ -100,18 +100,18 @@ def get_overlapping_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
     if not df_tiles.empty:
         # Degenerate geometries raise warning in shapely - intersection is black box to us
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=RuntimeWarning)
+            warnings.simplefilter('ignore', category=RuntimeWarning)
             df_tiles_intersection = df_tiles.geometry.intersection(box_geo)
-            geo_type_index = df_tiles_intersection.geometry.map(lambda geo: geo.geom_type == "Polygon")
+            geo_type_index = df_tiles_intersection.geometry.map(lambda geo: geo.geom_type == 'Polygon')
         df_tiles = df_tiles[geo_type_index].copy()
 
     # Merging is order dependent - ensures consistency
-    df_tiles = df_tiles.sort_values(by="tile_id")
+    df_tiles = df_tiles.sort_values(by='tile_id')
     df_tiles = df_tiles.reset_index(drop=True)
     return df_tiles
 
 
 def intersects_missing_glo_30_tiles(extent: list) -> bool:
     extent_geo = box(*extent)
-    df_missing = get_overlapping_dem_tiles(extent, "glo_90_missing")
+    df_missing = get_overlapping_dem_tiles(extent, 'glo_90_missing')
     return df_missing.intersects(extent_geo).sum() > 0

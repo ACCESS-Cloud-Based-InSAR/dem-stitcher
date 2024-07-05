@@ -25,6 +25,7 @@ dependencies:
  - pytest
  - pytest-mock
  - rasterio
+ - ruff
  - setuptools>=61.0
  - setuptools_scm>=6.2
  - shapely
