@@ -71,12 +71,12 @@ transforms = [
 ]
 
 
-@pytest.mark.parametrize("extent, array, transform", zip(extents, arrays, transforms))
+@pytest.mark.parametrize('extent, array, transform', zip(extents, arrays, transforms))
 def test_merge_tiles(test_data_dir, extent, array, transform):
-    merge_dir = test_data_dir / "stitcher" / "merge_tiles"
-    upper_left = merge_dir / "ul.tif"
-    upper_right = merge_dir / "ur.tif"
-    bottom_left = merge_dir / "bl.tif"
+    merge_dir = test_data_dir / 'stitcher' / 'merge_tiles'
+    upper_left = merge_dir / 'ul.tif'
+    upper_right = merge_dir / 'ur.tif'
+    bottom_left = merge_dir / 'bl.tif'
 
     tile_datasets = [rasterio.open(path) for path in [upper_left, upper_right, bottom_left]]
 
@@ -86,4 +86,4 @@ def test_merge_tiles(test_data_dir, extent, array, transform):
 
     array = array[np.newaxis, ...]
     assert_array_equal(X, array)
-    assert p["transform"] == transform
+    assert p['transform'] == transform
