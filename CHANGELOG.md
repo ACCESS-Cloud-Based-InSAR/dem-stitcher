@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.8]
+### Fixed
+* Resolves read_geoid issue [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/96). 
+  * Update geoid url for egm08 (again) creating public bucket for ACCESS processing
+  * Included egm96 as gtx in the data directory
+
 ## [2.5.7]
 
 ### Fixed
