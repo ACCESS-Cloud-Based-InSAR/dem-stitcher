@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.8]
+### Fixed
+* Resolves read_geoid issue [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/96). 
+  * Update geoid url for egm08 (again) creating public bucket for ACCESS processing
+  * Included egm96 as gtx in the data directory
+  * egm08 and egm96 data comes from here: https://download.osgeo.org/proj/vdatum/
+
 ## [2.5.7]
 
 ### Fixed
@@ -14,6 +21,8 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 * Updates some ruff linting
   * Ensures ruff in `environment.yml`
   * Ensure single quotes for consistency. 
+### Changed
+* egm08 is now using 2.5 deg raster rather than 1 deg.
 
 
 ## [2.5.6]
