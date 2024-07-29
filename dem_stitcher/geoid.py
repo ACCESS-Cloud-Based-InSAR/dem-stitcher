@@ -14,7 +14,7 @@ from .rio_window import read_raster_from_window
 ARIA_GEOIDS = 'https://aria-geoid.s3.us-west-2.amazonaws.com'
 GEOID_PATHS_AGI = {
     'geoid_18': f'{DATA_PATH}/geoid_18.tif',
-    'egm_08': f'{ARIA_GEOIDS}/us_nga_egm2008_1__4326.tif',
+    'egm_08': f'{ARIA_GEOIDS}/egm08_25.tif',
     'egm_96': f'{DATA_PATH}/egm96_15.gtx',
 }
 
