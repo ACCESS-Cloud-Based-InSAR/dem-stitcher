@@ -81,12 +81,13 @@ def download_tiles_to_gtiff(urls: list, dem_name: str, dest_dir: Path, max_worke
     def download_and_write_one_partial(zipped_data: list) -> dict:
         return _download_and_write_one_tile_to_gtiff(zipped_data[0], zipped_data[1], reader, dem_name)
 
-    data_list = zip(urls, dest_paths)
+    # filter non existing destination path
+    data_list = [(u, d) for u, d in zip(urls, dest_paths) if not d.exists()]
     with ThreadPoolExecutor(max_workers=max_workers_for_download) as executor:
         list(
             tqdm(
                 executor.map(download_and_write_one_partial, data_list),
-                total=len(urls),
+                total=len(data_list),
                 desc=f'Downloading {dem_name} tiles',
             )
         )
@@ -260,6 +261,7 @@ def stitch_dem(
     n_threads_downloading: int = 10,
     fill_in_glo_30: bool = True,
     merge_nodata_value: float = np.nan,
+    persistent_tile_cache_dir: Union[Path, str, None] = None,
 ) -> tuple[np.ndarray, dict]:
     """This is API for stitching DEMs. Specify bounds and various options to obtain a continuous raster.
     The output raster will be determined by availability of tiles. If no tiles are available over bounds,
@@ -292,7 +294,8 @@ def stitch_dem(
         When set to np.nan (default), all areas with nodata in tiles are consistently marked in output as such.
         When set to 0 and converting to ellipsoidal heights, all nodata areas will be filled in with geoid.
         When set to 0 and not converting to ellipsoidal heights, all nodata areas will be 0.
-
+    persistent_tile_cache_dir: Path, str, optional
+        If not None do not remove tiles already downloaded, and use them instead of downloading.
     Returns
     -------
     tuple[np.ndarray, dict]
@@ -317,15 +320,14 @@ def stitch_dem(
 
     # Random unique identifier
     tmp_id = str(uuid.uuid4())
-    tile_dir = Path(f'tmp_{tmp_id}')
+    tile_dir = persistent_tile_cache_dir or  Path(f'tmp_{tmp_id}')
 
     if dem_name in ['srtm_v3', 'nasadem']:
         ensure_earthdata_credentials()
-
     dem_paths = get_dem_tile_paths(
         bounds=bounds,
         dem_name=dem_name,
-        localize_tiles_to_gtiff=False,
+        localize_tiles_to_gtiff=persistent_tile_cache_dir is not None,
         n_threads_downloading=n_threads_downloading,
         tile_dir=tile_dir,
     )
@@ -375,7 +377,7 @@ def stitch_dem(
     list(map(lambda dataset: dataset.close(), datasets))
 
     # Delete orginal tiles if downloaded
-    if tile_dir.exists():
+    if tile_dir.exists() and persistent_tile_cache_dir is None:
         shutil.rmtree(str(tile_dir))
 
     # Created in memory file containers if there is a dateline crossing for translation
