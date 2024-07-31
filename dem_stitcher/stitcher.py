@@ -81,12 +81,13 @@ def download_tiles_to_gtiff(urls: list, dem_name: str, dest_dir: Path, max_worke
     def download_and_write_one_partial(zipped_data: list) -> dict:
         return _download_and_write_one_tile_to_gtiff(zipped_data[0], zipped_data[1], reader, dem_name)
 
-    data_list = zip(urls, dest_paths)
+    # filter non existing destination path
+    data_list = [(u, d) for u, d in zip(urls, dest_paths) if not d.exists()]
     with ThreadPoolExecutor(max_workers=max_workers_for_download) as executor:
         list(
             tqdm(
                 executor.map(download_and_write_one_partial, data_list),
-                total=len(urls),
+                total=len(data_list),
                 desc=f'Downloading {dem_name} tiles',
             )
         )
@@ -136,7 +137,7 @@ def get_dem_tile_paths(
         if dem_name in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']:
             dem_paths = urls
         else:
-            warn(f'We need to localize the tiles as a Geotiff. Saving to {str(tile_dir)}', category=UserWarning)
+            warn(f"We need to localize the tiles as a Geotiff. Saving to {str(tile_dir)}", category=UserWarning)
 
     if (dem_name not in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']) or localize_tiles_to_gtiff:
         if isinstance(tile_dir, str):
@@ -151,9 +152,9 @@ def get_dem_tile_paths(
 
 
 def shift_profile_for_pixel_loc(src_profile: dict, src_area_or_point: str, dst_area_or_point: str) -> dict:
-    assert dst_area_or_point in ['Area', 'Point']
-    assert src_area_or_point in ['Area', 'Point']
-    if (dst_area_or_point == 'Point') and (src_area_or_point == 'Area'):
+    assert dst_area_or_point in ["Area", "Point"]
+    assert src_area_or_point in ["Area", "Point"]
+    if (dst_area_or_point == "Point") and (src_area_or_point == "Area"):
         shift = -0.5
         profile_shifted = translate_profile(src_profile, shift, shift)
     elif (dst_area_or_point == 'Area') and (src_area_or_point == 'Point'):
@@ -260,6 +261,7 @@ def stitch_dem(
     n_threads_downloading: int = 10,
     fill_in_glo_30: bool = True,
     merge_nodata_value: float = np.nan,
+    persistent_tile_cache_dir: Union[Path, str, None] = None,
 ) -> tuple[np.ndarray, dict]:
     """This is API for stitching DEMs. Specify bounds and various options to obtain a continuous raster.
     The output raster will be determined by availability of tiles. If no tiles are available over bounds,
@@ -292,7 +294,8 @@ def stitch_dem(
         When set to np.nan (default), all areas with nodata in tiles are consistently marked in output as such.
         When set to 0 and converting to ellipsoidal heights, all nodata areas will be filled in with geoid.
         When set to 0 and not converting to ellipsoidal heights, all nodata areas will be 0.
-
+    persistent_tile_cache_dir: Path, str, optional
+        If not None do not remove tiles already downloaded, and use them instead of downloading.
     Returns
     -------
     tuple[np.ndarray, dict]
@@ -313,19 +316,18 @@ def stitch_dem(
         fill_in_glo_30 = fill_in_glo_30 and glo_90_missing_intersection
 
     if merge_nodata_value not in [np.nan, 0]:
-        raise ValueError('np.nan and 0 are only acceptable merge_nodata_value')
+        raise ValueError("np.nan and 0 are only acceptable merge_nodata_value")
 
     # Random unique identifier
     tmp_id = str(uuid.uuid4())
-    tile_dir = Path(f'tmp_{tmp_id}')
+    tile_dir = persistent_tile_cache_dir or  Path(f'tmp_{tmp_id}')
 
     if dem_name in ['srtm_v3', 'nasadem']:
         ensure_earthdata_credentials()
-
     dem_paths = get_dem_tile_paths(
         bounds=bounds,
         dem_name=dem_name,
-        localize_tiles_to_gtiff=False,
+        localize_tiles_to_gtiff=persistent_tile_cache_dir is not None,
         n_threads_downloading=n_threads_downloading,
         tile_dir=tile_dir,
     )
@@ -375,7 +377,7 @@ def stitch_dem(
     list(map(lambda dataset: dataset.close(), datasets))
 
     # Delete orginal tiles if downloaded
-    if tile_dir.exists():
+    if tile_dir.exists() and persistent_tile_cache_dir is None:
         shutil.rmtree(str(tile_dir))
 
     # Created in memory file containers if there is a dateline crossing for translation
