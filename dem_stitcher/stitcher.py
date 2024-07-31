@@ -137,7 +137,7 @@ def get_dem_tile_paths(
         if dem_name in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']:
             dem_paths = urls
         else:
-            warn(f"We need to localize the tiles as a Geotiff. Saving to {str(tile_dir)}", category=UserWarning)
+            warn(f'We need to localize the tiles as a Geotiff. Saving to {str(tile_dir)}', category=UserWarning)
 
     if (dem_name not in ['glo_30', 'glo_90', '3dep', 'glo_90_missing']) or localize_tiles_to_gtiff:
         if isinstance(tile_dir, str):
@@ -152,9 +152,9 @@ def get_dem_tile_paths(
 
 
 def shift_profile_for_pixel_loc(src_profile: dict, src_area_or_point: str, dst_area_or_point: str) -> dict:
-    assert dst_area_or_point in ["Area", "Point"]
-    assert src_area_or_point in ["Area", "Point"]
-    if (dst_area_or_point == "Point") and (src_area_or_point == "Area"):
+    assert dst_area_or_point in ['Area', 'Point']
+    assert src_area_or_point in ['Area', 'Point']
+    if (dst_area_or_point == 'Point') and (src_area_or_point == 'Area'):
         shift = -0.5
         profile_shifted = translate_profile(src_profile, shift, shift)
     elif (dst_area_or_point == 'Area') and (src_area_or_point == 'Point'):
@@ -316,7 +316,7 @@ def stitch_dem(
         fill_in_glo_30 = fill_in_glo_30 and glo_90_missing_intersection
 
     if merge_nodata_value not in [np.nan, 0]:
-        raise ValueError("np.nan and 0 are only acceptable merge_nodata_value")
+        raise ValueError('np.nan and 0 are only acceptable merge_nodata_value')
 
     # Random unique identifier
     tmp_id = str(uuid.uuid4())
