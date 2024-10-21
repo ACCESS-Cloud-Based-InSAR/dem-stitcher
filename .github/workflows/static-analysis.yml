@@ -4,12 +4,12 @@ on: push
 
 jobs:
   call-flake8-workflow:
-    uses: ASFHyP3/actions/.github/workflows/reusable-flake8.yml@v0.11.2
+    uses: ASFHyP3/actions/.github/workflows/reusable-flake8.yml@v0.12.0
     with:
       local_package_names: dem_stitcher
 
   call-secrets-analysis-workflow:
-    uses: ASFHyP3/actions/.github/workflows/reusable-secrets-analysis.yml@v0.11.2
+    uses: ASFHyP3/actions/.github/workflows/reusable-secrets-analysis.yml@v0.12.0
   
   call-ruff-workflow:
-    uses: ASFHyP3/actions/.github/workflows/reusable-ruff.yml@v0.11.2
+    uses: ASFHyP3/actions/.github/workflows/reusable-ruff.yml@v0.12.0
