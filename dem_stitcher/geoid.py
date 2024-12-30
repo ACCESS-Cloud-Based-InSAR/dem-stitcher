@@ -1,4 +1,5 @@
 import warnings
+from pathlib import Path
 
 import numpy as np
 import rasterio
@@ -10,6 +11,8 @@ from .dateline import get_dateline_crossing, split_extent_across_dateline
 from .merge import merge_arrays_with_geometadata
 from .rio_tools import reproject_arr_to_match_profile, translate_profile
 from .rio_window import read_raster_from_window
+from .stitcher import DEM2GEOID
+
 
 ARIA_GEOIDS = 'https://aria-geoid.s3.us-west-2.amazonaws.com'
 GEOID_PATHS_AGI = {
@@ -24,9 +27,22 @@ def get_geoid_dict() -> dict:
     return geoid_dict.copy()
 
 
-def read_geoid(geoid_name: str, extent: list = None, res_buffer: int = 1) -> tuple:
-    geoid_dict = get_geoid_dict()
-    geoid_path = geoid_dict[geoid_name]
+def read_geoid(geoid_path: str | Path, extent: list | None = None, res_buffer: int = 1) -> tuple:
+    if isinstance(geoid_path, str):
+        if geoid_path in DEM2GEOID.values():
+            geoid_dict = get_geoid_dict()
+            geoid_path = geoid_dict[geoid_path]
+        elif geoid_path.startswith('https') or geoid_path.startswith('s3://'):
+            geoid_path = geoid_path
+        elif '.' in geoid_path:
+            geoid_path = Path(geoid_path)
+            if not geoid_path.exists():
+                raise FileNotFoundError(f'Geoid file {geoid_path} does not exist.')
+        else:
+            raise ValueError(
+                f'Geoid path {geoid_path} is not valid: does not begin with https, s3://, nor contain a file suffix.'
+                ' Also does not match any of the geoid names in `DEM2GEOID`.'
+            )
 
     if extent is None:
         with rasterio.open(geoid_path) as ds:
@@ -63,13 +79,13 @@ def read_geoid(geoid_name: str, extent: list = None, res_buffer: int = 1) -> tup
 
 
 def remove_geoid(
-    dem_arr: np.ndarray, dem_profile: dict, geoid_name: str, dem_area_or_point: str = 'Area', res_buffer: int = 2
+    dem_arr: np.ndarray, dem_profile: dict, geoid_path: str | Path, dem_area_or_point: str = 'Area', res_buffer: int = 2
 ) -> np.ndarray:
     assert dem_area_or_point in ['Point', 'Area']
 
     extent = array_bounds(dem_profile['height'], dem_profile['width'], dem_profile['transform'])
 
-    geoid_arr, geoid_profile = read_geoid(geoid_name, extent=list(extent), res_buffer=res_buffer)
+    geoid_arr, geoid_profile = read_geoid(geoid_path, extent=list(extent), res_buffer=res_buffer)
 
     t_dem = dem_profile['transform']
     t_geoid = geoid_profile['transform']

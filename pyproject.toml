@@ -64,15 +64,37 @@ readme = { file = ['README.md'], content-type = 'text/markdown' }
 
 [tool.setuptools_scm]
 
-[tool.ruff]
-line-length = 120
-
 [tool.ruff.format]
 quote-style = "single"
+indent-style = "space"
 
-[tool.pytest.ini_options]
-markers = [
-    "integration: marks tests as (slow) integration and requiring internet (deselect with '-m \"not integration\"')",
-    "notebook: tests that run a notebook(s)",
+[tool.ruff.lint]
+select = [
+    "F",   # flake8: https://docs.astral.sh/ruff/rules/#flake8-f
+    "E",   # flake8: https://docs.astral.sh/ruff/rules/#flake8-e
+    "I",   # isort: https://docs.astral.sh/ruff/rules/#isort-i
+    "UP",  # pyupgrade: https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "D",   # pydocstyle: https://docs.astral.sh/ruff/rules/#pydocstyle-d
+    "ANN", # annotations: https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
+    "PTH", # use-pathlib-pth: https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
+    "TRY", # tryceratops
 ]
-testpaths = ["tests"]
+
+ignore = [
+  "D100",   # Missing docstring in public module
+  "D101",   # Missing docstring in public class
+  "D102",   # Missing docstring in public method
+  "D103",   # Missing docstring in public function
+  "D104",   # Missing docstring in public package
+  "D105",   # Missing docstring in magic method
+  "D203",   # 1 blank line required before class docstring
+  "D213",   # Multi-line docstring summary should start at the second line
+  "TRY003", # Avoid specifying long messages outside the exception
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+lines-after-imports = 2

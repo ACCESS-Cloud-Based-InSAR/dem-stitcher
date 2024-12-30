@@ -7,6 +7,15 @@ and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.5.8]
+
+## Added
+* Uses ruff exclusively for linting and formatting following OPERA/ARIA linting standards from DIST-S1.
+
+### Fixed
+* Resolves read_geoid issue [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/96). 
+* Ruff issues and docstring issues by ruff configuration
+
+## [2.5.8]
 ### Fixed
 * Resolves read_geoid issue [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/96). 
   * Update geoid url for egm08 (again) creating public bucket for ACCESS processing

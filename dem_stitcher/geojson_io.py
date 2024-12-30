@@ -17,7 +17,7 @@ def read_geojson_gzip(input_zip_path: Union[str, Path]) -> gpd.GeoDataFrame:
 def to_geojson_obj(geodataframe: gpd.geodataframe.GeoDataFrame) -> dict:
     features = geodataframe.to_dict('records')
 
-    def mapping_geojson(entry):
+    def mapping_geojson(entry: dict) -> dict:
         geometry = entry.pop('geometry')
         new_entry = {'type': 'Feature', 'properties': entry, 'geometry': shapely.geometry.mapping(geometry)}
         return new_entry

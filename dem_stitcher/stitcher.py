@@ -27,6 +27,7 @@ from .rio_tools import (
     update_profile_resolution,
 )
 
+
 RASTER_READERS = {
     '3dep': read_dem,
     'glo_30': read_dem,
@@ -65,7 +66,7 @@ def _download_and_write_one_tile_to_gtiff(url: str, dest_path: Path, reader: Cal
 def download_tiles_to_gtiff(urls: list, dem_name: str, dest_dir: Path, max_workers_for_download: int = 5) -> list[Path]:
     tile_ids = list(map(lambda x: x.split('/')[-1], urls))
 
-    def extract_dest_path_from_url(tile_id):
+    def extract_dest_path_from_url(tile_id: str) -> Path:
         # glo DEMs
         if '.tif' in tile_id:
             return dest_dir / tile_id
@@ -102,12 +103,14 @@ def get_dem_tile_paths(
     n_threads_downloading: int = 5,
     tile_dir: Union[str, Path] = None,
 ) -> list[str]:
-    """Either:
+    """Obtain paths or urls to DEM tiles.
+
+    Two cases:
 
     1. Gets (public urls) so that we can open with rasterio
-    2. Localizes tiles as Geotiffs
+    2. Localizes tiles as Geotiffs and returns their paths
 
-    Can force localization setting `download_original_tiles` to True.
+    Can force localization (i.e. 2) setting `download_original_tiles` to True.
 
     Parameters
     ----------
@@ -127,7 +130,6 @@ def get_dem_tile_paths(
     list[str]
         List of paths to dem as urls or paths on disk
     """
-
     df_tiles = get_overlapping_dem_tiles(bounds, dem_name)
     urls = df_tiles.url.tolist()
 
@@ -229,7 +231,9 @@ def patch_glo_30_with_glo_90(
     return dem_arr, dem_prof
 
 
-def _translate_one_tile_across_dateline(dataset: rasterio.DatasetReader, crossing):
+def _translate_one_tile_across_dateline(
+    dataset: rasterio.DatasetReader, crossing: int
+) -> tuple[MemoryFile, rasterio.DatasetReader]:
     assert crossing in [180, -180]
     res_x = dataset.res[0]
     xmin, _, xmax, _ = dataset.bounds
@@ -261,9 +265,7 @@ def stitch_dem(
     fill_in_glo_30: bool = True,
     merge_nodata_value: float = np.nan,
 ) -> tuple[np.ndarray, dict]:
-    """This is API for stitching DEMs. Specify bounds and various options to obtain a continuous raster.
-    The output raster will be determined by availability of tiles. If no tiles are available over bounds,
-    then NoDEMCoverage is raised.
+    """Specify extents (xmin, ymin, xmax, ymax) to obtain a continuous DEM raster.
 
     Parameters
     ----------

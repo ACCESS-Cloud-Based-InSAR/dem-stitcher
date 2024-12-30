@@ -1,6 +1,5 @@
 import io
 import zipfile
-from typing import Tuple
 
 import numpy as np
 import rasterio
@@ -35,7 +34,7 @@ def read_dem_bytes(dem_path: str, suffix: str = '.img') -> bytes:
     return img_bytes
 
 
-def read_srtm(dem_path: str, version='srtm') -> Tuple[np.ndarray, dict]:
+def read_srtm(dem_path: str, version: str = 'srtm') -> tuple[np.ndarray, dict]:
     img_bytes = read_dem_bytes(dem_path, suffix='.hgt')
     # The gdal driver hgt depends on filename convention
     filename = dem_path.split('/')[-1]
@@ -55,5 +54,5 @@ def read_srtm(dem_path: str, version='srtm') -> Tuple[np.ndarray, dict]:
     return dem_arr, dem_profile
 
 
-def read_nasadem(dem_path: str) -> Tuple[np.ndarray, dict]:
+def read_nasadem(dem_path: str) -> tuple[np.ndarray, dict]:
     return read_srtm(dem_path, version='nasadem')

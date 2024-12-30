@@ -1,5 +1,5 @@
 import warnings
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from warnings import warn
 
@@ -12,6 +12,7 @@ from .dateline import check_4326_bounds, get_dateline_crossing
 from .exceptions import DEMNotSupported
 from .geojson_io import read_geojson_gzip
 
+
 DATA_PATH = Path(__file__).parents[0].absolute() / 'data'
 
 # Get Datasets
@@ -19,14 +20,14 @@ _DATASET_PATHS = list(DATA_PATH.glob('*.geojson.zip'))
 DATASETS = list(map(lambda x: x.name.split('.')[0], _DATASET_PATHS))
 
 
-def get_available_datasets():
+def get_available_datasets() -> list[str]:
     return DATASETS
 
 
 # TODO: maxsize=None is not needed for 3.8+
-@lru_cache(maxsize=None)
+@cache
 def get_global_dem_tile_extents(dataset: str) -> gpd.GeoDataFrame:
-    """Obtains globally avaialable tiles from DEM names supported.
+    """Obtain globally avaialable tiles from DEM names supported.
 
     Parameters
     ----------
@@ -52,7 +53,7 @@ def get_global_dem_tile_extents(dataset: str) -> gpd.GeoDataFrame:
 
 
 def get_overlapping_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
-    """_summary_
+    """Get tiles from dem-shortname that overlap with the bounds.
 
     Parameters
     ----------
