@@ -64,6 +64,27 @@ readme = { file = ['README.md'], content-type = 'text/markdown' }
 
 [tool.setuptools_scm]
 
+[tool.ruff]
+line-length = 120
+src = ["src", "tests"]
+exclude = [
+    ".eggs",
+    ".git",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "site-packages",
+    "notebooks/*",
+    "tests/data/*",
+]
+indent-width = 4
+
 [tool.ruff.format]
 quote-style = "single"
 indent-style = "space"
