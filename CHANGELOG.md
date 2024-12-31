@@ -6,14 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.5.8]
+## [2.5.9]
 
 ## Added
 * Uses ruff exclusively for linting and formatting following OPERA/ARIA linting standards from DIST-S1.
+* Added `geoid_path` to `stitch_dem` to allow for user to specify geoid path.
 
 ### Fixed
 * Resolves read_geoid issue [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/96). 
 * Ruff issues and docstring issues by ruff configuration
+* Updates test action workflow with micromamba.
+
+### Removed
+* Explicit flake8 action.
 
 ## [2.5.8]
 ### Fixed

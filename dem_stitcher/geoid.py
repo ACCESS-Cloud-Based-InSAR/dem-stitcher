@@ -11,7 +11,16 @@ from .dateline import get_dateline_crossing, split_extent_across_dateline
 from .merge import merge_arrays_with_geometadata
 from .rio_tools import reproject_arr_to_match_profile, translate_profile
 from .rio_window import read_raster_from_window
-from .stitcher import DEM2GEOID
+
+
+DEM2GEOID = {
+    '3dep': 'geoid_18',
+    'glo_30': 'egm_08',
+    'glo_90': 'egm_08',
+    'glo_90_missing': 'egm_08',
+    'srtm_v3': 'egm_96',
+    'nasadem': 'egm_96',
+}
 
 
 ARIA_GEOIDS = 'https://aria-geoid.s3.us-west-2.amazonaws.com'
@@ -27,23 +36,32 @@ def get_geoid_dict() -> dict:
     return geoid_dict.copy()
 
 
-def read_geoid(geoid_path: str | Path, extent: list | None = None, res_buffer: int = 1) -> tuple:
+def get_default_geoid_path(dem_name: str | Path) -> Path:
+    if dem_name not in DEM2GEOID.keys():
+        raise ValueError(f'DEM name {dem_name} does not have a default geoid.')
+    geoid_name = DEM2GEOID[dem_name]
+    geoid_path = GEOID_PATHS_AGI[geoid_name]
+    return geoid_path
+
+
+def validate_geoid_path(geoid_path: str | Path) -> None:
     if isinstance(geoid_path, str):
         if geoid_path in DEM2GEOID.values():
-            geoid_dict = get_geoid_dict()
-            geoid_path = geoid_dict[geoid_path]
+            return
         elif geoid_path.startswith('https') or geoid_path.startswith('s3://'):
-            geoid_path = geoid_path
-        elif '.' in geoid_path:
+            return
+        else:
             geoid_path = Path(geoid_path)
             if not geoid_path.exists():
                 raise FileNotFoundError(f'Geoid file {geoid_path} does not exist.')
-        else:
-            raise ValueError(
-                f'Geoid path {geoid_path} is not valid: does not begin with https, s3://, nor contain a file suffix.'
-                ' Also does not match any of the geoid names in `DEM2GEOID`.'
-            )
+            return
+    elif isinstance(geoid_path, Path):
+        if not geoid_path.exists():
+            raise FileNotFoundError(f'Geoid file {geoid_path} does not exist.')
+    raise TypeError(f'Geoid path {geoid_path} is not of type str or Path.')
 
+
+def read_geoid(geoid_path: str | Path, extent: list | None = None, res_buffer: int = 1) -> tuple:
     if extent is None:
         with rasterio.open(geoid_path) as ds:
             geoid_arr = ds.read()
@@ -85,6 +103,7 @@ def remove_geoid(
 
     extent = array_bounds(dem_profile['height'], dem_profile['width'], dem_profile['transform'])
 
+    validate_geoid_path(geoid_path)
     geoid_arr, geoid_profile = read_geoid(geoid_path, extent=list(extent), res_buffer=res_buffer)
 
     t_dem = dem_profile['transform']

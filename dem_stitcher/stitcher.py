@@ -17,7 +17,7 @@ from .datasets import get_overlapping_dem_tiles, intersects_missing_glo_30_tiles
 from .dateline import get_dateline_crossing
 from .dem_readers import read_dem, read_nasadem, read_srtm
 from .exceptions import NoDEMCoverage
-from .geoid import remove_geoid
+from .geoid import get_default_geoid_path, remove_geoid
 from .merge import merge_arrays_with_geometadata, merge_tile_datasets_within_extent
 from .rio_tools import (
     reproject_arr_to_match_profile,
@@ -35,15 +35,6 @@ RASTER_READERS = {
     'glo_90_missing': read_dem,
     'srtm_v3': read_srtm,
     'nasadem': read_nasadem,
-}
-
-DEM2GEOID = {
-    '3dep': 'geoid_18',
-    'glo_30': 'egm_08',
-    'glo_90': 'egm_08',
-    'glo_90_missing': 'egm_08',
-    'srtm_v3': 'egm_96',
-    'nasadem': 'egm_96',
 }
 
 PIXEL_CENTER_DEMS = ['srtm_v3', 'nasadem', 'glo_30', 'glo_90', 'glo_90_missing']
@@ -176,6 +167,7 @@ def merge_and_transform_dem_tiles(
     num_threads_reproj: int = 5,
     merge_nodata_value: float = np.nan,
     n_threads_for_reading_tile_data: int = 5,
+    geoid_path: str | Path | None = None,
 ) -> tuple[np.ndarray, dict]:
     dem_arr, dem_profile = merge_tile_datasets_within_extent(
         datasets, bounds, nodata=merge_nodata_value, dtype=np.float32, n_threads=n_threads_for_reading_tile_data
@@ -196,11 +188,12 @@ def merge_and_transform_dem_tiles(
         raise ValueError('CRS must be epsg 4269 or 4326')
 
     if dst_ellipsoidal_height:
-        geoid_name = DEM2GEOID[dem_name]
+        if geoid_path is None:
+            geoid_path = get_default_geoid_path(dem_name)
         dem_arr = remove_geoid(
             dem_arr,
             dem_profile,
-            geoid_name,
+            geoid_path,
             dem_area_or_point=dst_area_or_point,
         )
 
@@ -264,6 +257,7 @@ def stitch_dem(
     n_threads_downloading: int = 10,
     fill_in_glo_30: bool = True,
     merge_nodata_value: float = np.nan,
+    geoid_path: str | Path = None,
 ) -> tuple[np.ndarray, dict]:
     """Specify extents (xmin, ymin, xmax, ymax) to obtain a continuous DEM raster.
 
@@ -294,6 +288,8 @@ def stitch_dem(
         When set to np.nan (default), all areas with nodata in tiles are consistently marked in output as such.
         When set to 0 and converting to ellipsoidal heights, all nodata areas will be filled in with geoid.
         When set to 0 and not converting to ellipsoidal heights, all nodata areas will be 0.
+    geoid_path: str | Path, optional
+        Path to geoid file. If None, then the default geoid is used.
 
     Returns
     -------
@@ -371,6 +367,7 @@ def stitch_dem(
         num_threads_reproj=n_threads_reproj,
         merge_nodata_value=merge_nodata_value,
         n_threads_for_reading_tile_data=n_threads_downloading,
+        geoid_path=geoid_path,
     )
 
     # Close datasets
