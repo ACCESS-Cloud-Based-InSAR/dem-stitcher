@@ -11,6 +11,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## Added
 * Uses ruff exclusively for linting and formatting following OPERA/ARIA linting standards from DIST-S1.
 * Added `geoid_path` to `stitch_dem` to allow for user to specify geoid path. If None, then default geoid is used.
+* Added UserWarning when geoid file does not cover the dateline.
 
 ## Changed
 * Updated `geoid.py` to use the new geoid path for egm08 with 1 arc-second resolution.
