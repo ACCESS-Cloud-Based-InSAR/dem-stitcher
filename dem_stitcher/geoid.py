@@ -36,11 +36,16 @@ def get_geoid_dict() -> dict:
     return geoid_dict.copy()
 
 
+def get_geoid_path(geoid_short_name: str) -> Path:
+    geoid_path = GEOID_PATHS_AGI[geoid_short_name]
+    return geoid_path
+
+
 def get_default_geoid_path(dem_name: str | Path) -> Path:
     if dem_name not in DEM2GEOID.keys():
         raise ValueError(f'DEM name {dem_name} does not have a default geoid.')
     geoid_name = DEM2GEOID[dem_name]
-    geoid_path = GEOID_PATHS_AGI[geoid_name]
+    geoid_path = get_geoid_path(geoid_name)
     return geoid_path
 
 

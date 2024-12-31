@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Callable
+
 import numpy as np
 import pytest
 import rasterio
@@ -9,13 +12,14 @@ from shapely.geometry import box
 
 from dem_stitcher import get_dem_tile_paths, stitch_dem
 from dem_stitcher.datasets import DATASETS
-from dem_stitcher.geoid import read_geoid
+from dem_stitcher.geoid import get_geoid_path, read_geoid
 from dem_stitcher.rio_tools import reproject_arr_to_match_profile, translate_profile
 from dem_stitcher.stitcher import merge_and_transform_dem_tiles, shift_profile_for_pixel_loc
 
 
 """
-See: https://www.usgs.gov/special-topics/significant-topographic-changes-in-the-united-states/science/srtm-ned-vertical?qt-science_center_objects=0#qt-science_center_objects  # noqa: E501
+See: https://www.usgs.gov/special-topics/significant-topographic-changes-in-the-united-states/science/
+srtm-ned-vertical?qt-science_center_objects=0#qt-science_center_objects
 
 Simple test to check if translation is done correctly
 
@@ -36,7 +40,7 @@ transforms = [
 
 
 @pytest.mark.parametrize('src_tag, dst_tag, transform_expected', zip(src_tags, dst_tags, transforms))
-def test_shift_pixel_loc(src_tag, dst_tag, transform_expected):
+def test_shift_pixel_loc(src_tag: str, dst_tag: str, transform_expected: Affine) -> None:
     # Create dummy profile with reference transform
     p = default_gtiff_profile.copy()
     t_ref = Affine(1, 0, 10, 0, -1, 0)
@@ -51,10 +55,10 @@ def test_shift_pixel_loc(src_tag, dst_tag, transform_expected):
 
 
 @pytest.mark.parametrize('dem_name', ['glo_30', 'nasadem'])
-def test_no_change_when_no_transformations_to_tile(get_los_angeles_tile_dataset, dem_name):
-    """Opens a single glo tile, selects bounds contained inside of it and then reprojects the obtained tile back into
-    the tiles original frame to determine if modifications were made.
-    """
+def test_no_change_when_no_transformations_to_tile(
+    get_los_angeles_tile_dataset: Callable[[str], rasterio.DatasetReader], dem_name: str
+) -> None:
+    """Open a single glo tile, selects bounds contained inside of it and makes sure no modifications are made."""
     datasets = [get_los_angeles_tile_dataset(dem_name)]
     X_tile = datasets[0].read(1)
     p_tile = datasets[0].profile
@@ -86,7 +90,7 @@ def test_no_change_when_no_transformations_to_tile(get_los_angeles_tile_dataset,
 
 @pytest.mark.integration
 @pytest.mark.parametrize('dem_name', DATASETS)
-def test_download_dem(dem_name):
+def test_download_dem(dem_name: str) -> None:
     if dem_name == 'glo_90_missing':
         # Missing area
         bounds = [45.5, 39.5, 46.5, 40.5]
@@ -101,7 +105,7 @@ def test_download_dem(dem_name):
     assert np.isnan(p['nodata'])
 
 
-def test_boundary_of_missing_glo_30_data():
+def test_boundary_of_missing_glo_30_data() -> None:
     # See https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/issues/89#issuecomment-1399142499
     bounds = [42.0, 37.0, 44.0, 39.0]
     dem_arr, p = stitch_dem(
@@ -112,7 +116,7 @@ def test_boundary_of_missing_glo_30_data():
 
 
 @pytest.mark.integration
-def test_mask_differences_with_merge_nodata_values_without_ellipsoidal():
+def test_mask_differences_with_merge_nodata_values_without_ellipsoidal() -> None:
     # Aleutian tiles follow chain so there is lots of nodata
     aleutian_bounds = [-167.5, 53.5, -164.5, 54.5]
 
@@ -146,10 +150,8 @@ def test_mask_differences_with_merge_nodata_values_without_ellipsoidal():
 
 
 @pytest.mark.integration
-def test_mask_differences_with_merge_nodata_values_with_ellipsoidal():
-    """Checks that when using merge_nodata_value it
-    provides geoid values in missing data areas
-    """
+def test_mask_differences_with_merge_nodata_values_with_ellipsoidal() -> None:
+    """Check that when using merge_nodata_value it provides geoid values in missing data areas."""
     # Aleutian tiles follow chain so there is lots of nodata
     aleutian_bounds = [-167.5, 53.5, -164.5, 54.5]
 
@@ -167,7 +169,8 @@ def test_mask_differences_with_merge_nodata_values_with_ellipsoidal():
         aleutian_bounds, dem_name='glo_30', dst_ellipsoidal_height=True, dst_area_or_point='Point', merge_nodata_value=0
     )
 
-    X_geoid, p_geoid = read_geoid('egm_08', aleutian_bounds, res_buffer=5)
+    geoid_path = get_geoid_path('egm_08')
+    X_geoid, p_geoid = read_geoid(geoid_path, aleutian_bounds, res_buffer=5)
     p_geoid = translate_profile(p_geoid, -0.5, -0.5)
 
     X_geoid_r, _ = reproject_arr_to_match_profile(X_geoid, p_geoid, p_nan)
@@ -176,13 +179,13 @@ def test_mask_differences_with_merge_nodata_values_with_ellipsoidal():
     assert_almost_equal(X_zero[mask_nan], X_geoid_r[mask_nan], decimal=6)
 
 
-def test_bad_merge_nodata_value():
+def test_bad_merge_nodata_value() -> None:
     with pytest.raises(ValueError):
         stitch_dem([-118.8, 34.6, -118.5, 34.8], dem_name='glo_30', merge_nodata_value=3)
 
 
 @pytest.mark.integration
-def test_get_dem_tile_paths_and_output_vrt(test_dir):
+def test_get_dem_tile_paths_and_output_vrt(test_dir: Path) -> None:
     input_bounds = [-121.5, 34.95, -120.2, 36.25]
     dem_name = 'glo_30'
 
@@ -203,11 +206,11 @@ def test_get_dem_tile_paths_and_output_vrt(test_dir):
 def test_against_golden_datasets(
     location: str,
     hgt_type: str,
-    get_tile_paths_for_comparison_with_golden_dataset,
-    get_golden_dataset_path,
-    get_geoid_for_golden_dataset_test,
-    mocker,
-):
+    get_tile_paths_for_comparison_with_golden_dataset: Callable[[str], list[str]],
+    get_golden_dataset_path: Callable[[str, str], str],
+    get_geoid_for_golden_dataset_test: Callable[[str], tuple[np.ndarray, dict]],
+    mocker: pytest.MonkeyPatch,
+) -> None:
     if location == 'los_angeles':
         bounds = [-118.05, 33.95, -117.95, 34.05]
         dst_resolution = None

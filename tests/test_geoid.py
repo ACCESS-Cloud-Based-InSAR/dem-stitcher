@@ -1,21 +1,24 @@
+from typing import Callable
+
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
 
-from dem_stitcher.geoid import read_geoid, remove_geoid
+from dem_stitcher.geoid import get_geoid_path, read_geoid, remove_geoid
 from dem_stitcher.rio_tools import reproject_arr_to_match_profile
 
 
 """We will test 'geoid_18' over US because we include that in package datasets, i.e. no internet reading is required"""
 
 
-def test_read_geoid():
+def test_read_geoid() -> None:
     # entire geoid
-    X_all, p_all = read_geoid('geoid_18')
+    geoid_path = get_geoid_path('geoid_18')
+    X_all, p_all = read_geoid(geoid_path)
 
     # Over Los Angeles
     la_bounds = [-118.8, 34.6, -118.5, 34.8]
-    X_sub, p_sub = read_geoid('geoid_18', extent=la_bounds, res_buffer=1)
+    X_sub, p_sub = read_geoid(geoid_path, extent=la_bounds, res_buffer=1)
 
     X_sub_r, p_r = reproject_arr_to_match_profile(X_sub, p_sub, p_all)
 
@@ -28,16 +31,18 @@ def test_read_geoid():
 
 
 @pytest.mark.parametrize('dem_res', [0.001, 0.01, 0.1, 1])
-def test_remove_geoid(get_los_angeles_dummy_profile, dem_res):
+def test_remove_geoid(get_los_angeles_dummy_profile: Callable[[float], dict], dem_res: float) -> None:
     """
-    We test removing a geoid against a zero array, which should literally be the entire geoid array
-    reprojected into the DEM reference frame. If the DEM resolution >> geoid resolution, then
+    Test removing a geoid against a zero array.
+
+    Expected: should bereprojected into the DEM reference frame. If the DEM resolution >> geoid resolution, then
     we must select a buffer to read the geoid such that it covers the extended boundary DEM pixel completely.
     If not, then the resampling around the boundary will be different in this test because we only read a subset
     of the geoid array.
     """
     p_ref = get_los_angeles_dummy_profile(res=dem_res)
-    X_geoid, p_geoid = read_geoid('geoid_18')
+    geoid_path = get_geoid_path('geoid_18')
+    X_geoid, p_geoid = read_geoid(geoid_path)
 
     res_buffer_default = 2
 
@@ -47,14 +52,14 @@ def test_remove_geoid(get_los_angeles_dummy_profile, dem_res):
     if dem_res >= 0.1:
         geoid_res = p_geoid['transform'].a
         with pytest.warns(UserWarning):
-            _ = remove_geoid(Y, p_ref, 'geoid_18')
+            _ = remove_geoid(Y, p_ref, geoid_path)
 
         res_buffer_updated = int(np.ceil(dem_res / geoid_res))
         assert res_buffer_default < res_buffer_updated
 
-        X_sub_2 = remove_geoid(Y, p_ref, 'geoid_18', res_buffer=res_buffer_updated)
+        X_sub_2 = remove_geoid(Y, p_ref, geoid_path, res_buffer=res_buffer_updated)
 
     else:
-        X_sub_2 = remove_geoid(Y, p_ref, 'geoid_18', res_buffer=res_buffer_default)
+        X_sub_2 = remove_geoid(Y, p_ref, geoid_path, res_buffer=res_buffer_default)
 
     assert_array_equal(X_sub_2, X_sub)
