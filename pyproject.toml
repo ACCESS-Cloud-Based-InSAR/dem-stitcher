@@ -56,11 +56,11 @@ include-package-data = true
 zip-safe = true
 
 [tool.setuptools.packages.find]
-include = ['dem_stitcher']
-exclude = ['notebooks*', 'tests*']
+where = ["src"]
+exclude = ["notebooks*", "tests*"]
 
 [tool.setuptools.dynamic]
-readme = { file = ['README.md'], content-type = 'text/markdown' }
+readme = { file = ["README.md"], content-type = "text/markdown" }
 
 [tool.setuptools_scm]
 
