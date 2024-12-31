@@ -13,9 +13,11 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 * Added `geoid_path` to `stitch_dem` to allow for user to specify geoid path.
 
 ### Fixed
-* Resolves read_geoid issue [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/96). 
-* Ruff issues and docstring issues by ruff configuration
+* Allows users to bring their own geoid data as noted [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/100). 
+* Ruff linting and docstring issues using the new ruff configuration
 * Updates test action workflow with micromamba.
+* Updated to include library in `src` directory per: https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/
+  * Helps with Ruff, too.
 
 ### Removed
 * Explicit flake8 action.
