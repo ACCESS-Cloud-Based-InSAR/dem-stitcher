@@ -22,11 +22,10 @@ DEM2GEOID = {
     'nasadem': 'egm_96',
 }
 
-
 ARIA_GEOIDS = 'https://aria-geoid.s3.us-west-2.amazonaws.com'
 GEOID_PATHS_AGI = {
     'geoid_18': f'{DATA_PATH}/geoid_18.tif',
-    'egm_08': f'{ARIA_GEOIDS}/egm08_25.tif',
+    'egm_08': f'{ARIA_GEOIDS}/us_nga_egm2008_1_4326__agisoft.tif',
     'egm_96': f'{DATA_PATH}/egm96_15.gtx',
 }
 
