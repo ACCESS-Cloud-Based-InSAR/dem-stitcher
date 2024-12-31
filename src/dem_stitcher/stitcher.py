@@ -17,7 +17,7 @@ from .datasets import get_overlapping_dem_tiles, intersects_missing_glo_30_tiles
 from .dateline import get_dateline_crossing
 from .dem_readers import read_dem, read_nasadem, read_srtm
 from .exceptions import NoDEMCoverage
-from .geoid import get_default_geoid_path, remove_geoid
+from .geoid import get_default_geoid_path, remove_geoid, validate_geoid_path
 from .merge import merge_arrays_with_geometadata, merge_tile_datasets_within_extent
 from .rio_tools import (
     reproject_arr_to_match_profile,
@@ -302,6 +302,11 @@ def stitch_dem(
     # Used for filling in glo_30 missing tiles if needed
     stitcher_kwargs = locals()
 
+    # Make sure geoid kwargs are correct
+    if geoid_path is not None:
+        if not dst_ellipsoidal_height:
+            raise ValueError('Cannot bring your own geoid when dst_ellipsoidal_height is False')
+        validate_geoid_path(geoid_path)
     # This variable is used later to determine if there is intersection with
     # Missing glo_30 tiles. We do not want calling stitch_dem (again)
     # for filling and/or patching glo_30 tiles with glo_90 to raise coverage

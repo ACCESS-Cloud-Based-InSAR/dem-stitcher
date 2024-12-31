@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import rasterio
 from affine import Affine
-from numpy.testing import assert_almost_equal, assert_array_equal
+from numpy.testing import assert_allclose, assert_almost_equal, assert_array_equal
 from osgeo import gdal
 from rasterio import default_gtiff_profile
 from shapely.geometry import box
@@ -240,3 +240,38 @@ def test_against_golden_datasets(
     )
     assert_almost_equal(X_golden, X, decimal=7)
     assert transform_golden == p['transform']
+
+
+@pytest.mark.parametrize('dem_name, geoid_name', [('3dep', 'geoid_18'), ('glo_30', 'egm_08')])
+def test_stitcher_with_bring_your_own_geoid(dem_name: str, geoid_name: str) -> None:
+    bounds = [-115.95, 33.85, -115.85, 33.95]
+    geoid_path = get_geoid_path(geoid_name)
+    X_explicit, p_explicit = stitch_dem(
+        bounds,
+        dem_name=dem_name,
+        dst_ellipsoidal_height=True,
+        dst_area_or_point='Point',
+        dst_resolution=None,
+        geoid_path=geoid_path,
+    )
+
+    X_default, p_default = stitch_dem(
+        bounds,
+        dem_name=dem_name,
+        dst_ellipsoidal_height=True,
+        dst_area_or_point='Point',
+        dst_resolution=None,
+        geoid_path=None,
+    )
+
+    assert_allclose(X_explicit, X_default)
+    assert p_default == p_explicit
+
+
+def test_error_with_bring_your_own_geoid_without_ellipsoidal_height() -> None:
+    bounds = [-115.95, 33.85, -115.85, 33.95]
+    with pytest.raises(ValueError, match='Cannot bring your own geoid when dst_ellipsoidal_height is False'):
+        stitch_dem(bounds, dem_name='glo_30', dst_ellipsoidal_height=False, dst_area_or_point='Point', geoid_path='foo')
+
+    with pytest.raises(FileNotFoundError, match='Geoid file foo does not exist.'):
+        stitch_dem(bounds, dem_name='glo_30', dst_ellipsoidal_height=True, dst_area_or_point='Point', geoid_path='foo')
