@@ -4,11 +4,11 @@ from pathlib import Path
 
 def ensure_earthdata_credentials(
     host: str = 'urs.earthdata.nasa.gov',
-):
+) -> None:
     """
-    Source: DockerizedTopsapp / Authors: Joseph Kennedy, Forrest Williams, and Andrew Johnston
+    Ensure earthdata credentials in netrc are provided in ~/.netrc.
 
-    Ensures Earthdata credentials are provided in ~/.netrc
+    Source: DockerizedTopsapp / Authors: Joseph Kennedy, Forrest Williams, and Andrew Johnston
 
     Earthdata username and password may be provided by, in order of preference, one of:
        * `netrc_file`

@@ -7,9 +7,57 @@ import rasterio
 from affine import Affine
 from pyproj import Transformer
 from rasterio.crs import CRS
-from rasterio.transform import array_bounds, rowcol
+from rasterio.transform import array_bounds, rowcol, xy
 from rasterio.windows import Window
 from shapely.geometry import box
+
+
+def get_cropped_profile(profile: dict, slice_x: slice, slice_y: slice) -> dict:
+    """Return a cropped profile from a reference profile and numpy slices.
+
+    Return a cropped profile from a reference profile and numpy slices (i.e.
+    np.s_[start: stop]) to create a new profile that is within the window of
+    slice_x, slice_y.
+
+    Parameters
+    ----------
+    profile : dict
+        The reference rasterio profile.
+    slice_x : slice
+        The horizontal slice.
+    slice_y : slice
+        The vertical slice.
+
+    Returns
+    -------
+    dict:
+        The rasterio dictionary from cropping.
+    """
+    x_start = slice_x.start or 0
+    y_start = slice_y.start or 0
+    x_stop = slice_x.stop or profile['width']
+    y_stop = slice_y.stop or profile['height']
+
+    if (x_start < 0) | (x_stop < 0) | (y_start < 0) | (y_stop < 0):
+        raise ValueError('Slices must be positive')
+
+    width = x_stop - x_start
+    height = y_stop - y_start
+
+    profile_cropped = profile.copy()
+
+    trans = profile['transform']
+    x_cropped, y_cropped = xy(trans, y_start, x_start, offset='ul')
+    trans_list = list(trans.to_gdal())
+    trans_list[0] = x_cropped
+    trans_list[3] = y_cropped
+    tranform_cropped = Affine.from_gdal(*trans_list)
+    profile_cropped['transform'] = tranform_cropped
+
+    profile_cropped['height'] = height
+    profile_cropped['width'] = width
+
+    return profile_cropped
 
 
 def get_array_bounds(profile: dict) -> list[float]:
@@ -17,10 +65,7 @@ def get_array_bounds(profile: dict) -> list[float]:
 
 
 def transform_bounds(src_bounds: list, src_crs: CRS, dest_crs: CRS) -> list[float]:
-    """
-    Source: https://gis.stackexchange.com/a/392407
-    """
-
+    """Source: https://gis.stackexchange.com/a/392407."""
     proj = Transformer.from_crs(src_crs, dest_crs, always_xy=True)
 
     bl = proj.transform(src_bounds[0], src_bounds[1])
@@ -33,9 +78,10 @@ def transform_bounds(src_bounds: list, src_crs: CRS, dest_crs: CRS) -> list[floa
 def get_indices_from_extent(
     transform: Affine, extent: list[float], shape: tuple = None, res_buffer: int = 0
 ) -> tuple[tuple]:
-    """Obtain Upper left corner and bottom right corner from extents based on
-    geo-transform that specifies resolution and upper left corner of a coordinate
-    system
+    """Obtain upper left corner and bottom right corner from extents.
+
+    Use a geo-transform that specifies resolution and upper left corner of a
+    coordinate system.
 
     Parameters
     ----------
@@ -56,7 +102,6 @@ def get_indices_from_extent(
 
     Notes
     -----
-
     Can use to slice geo-reference arrays based on extents
     """
     xmin, ymin, xmax, ymax = extent
@@ -76,7 +121,7 @@ def get_indices_from_extent(
 
 
 def get_window_from_extent(
-    src_profile: dict, window_extent, window_crs: CRS = CRS.from_epsg(4326), res_buffer: int = 0
+    src_profile: dict, window_extent: list[float], window_crs: CRS = CRS.from_epsg(4326), res_buffer: int = 0
 ) -> Window:
     src_shape = src_profile['height'], src_profile['width']
     src_bounds = get_array_bounds(src_profile)
@@ -126,8 +171,9 @@ def format_window_profile(src_profile: dict, window_arr: np.ndarray, window_tran
 def read_raster_from_window(
     raster_path: str, window_extent: list, window_crs: CRS = CRS.from_epsg(4326), res_buffer: int = 0
 ) -> tuple:
-    """Obtains minimum pixels from original raster (specified by raster_path) that contain
-    window extent. Does not reproject into window extent! Returns only 1st channel.
+    """Obtain minimum pixels from original raster (specified by raster_path) that contains window extent.
+
+    This does not reproject into window extent! Returns only 1st channel.
 
     Parameters
     ----------

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import geopandas as gpd
 import numpy as np
 import pytest
@@ -8,8 +10,9 @@ from rasterio.crs import CRS
 from rasterio.windows import bounds as get_window_bounds
 from shapely.geometry import box
 
-from dem_stitcher.geoid import read_geoid
+from dem_stitcher.geoid import get_geoid_path, read_geoid
 from dem_stitcher.rio_window import get_indices_from_extent, get_window_from_extent, read_raster_from_window
+
 
 """
 This does a simple test of window reading over an extent of the following area:
@@ -70,7 +73,7 @@ extents = [
 
 
 @pytest.mark.parametrize('extent, array, transform', zip(extents, arrays, transforms))
-def test_read_window_4326(test_data_dir, extent, array, transform):
+def test_read_window_4326(test_data_dir: Path, extent: list[float], array: np.ndarray, transform: Affine) -> None:
     raster_path = test_data_dir / 'rio_window' / 'test_window.tif'
 
     window_arr, p = read_raster_from_window(raster_path, extent, CRS.from_epsg(4326), res_buffer=0)
@@ -80,7 +83,7 @@ def test_read_window_4326(test_data_dir, extent, array, transform):
 
 
 @pytest.mark.parametrize('geojson_index, array, transform', zip([0, 1, 2, 3], arrays, transforms))
-def test_read_window_utm(test_data_dir, geojson_index, array, transform):
+def test_read_window_utm(test_data_dir: Path, geojson_index: int, array: np.ndarray, transform: Affine) -> None:
     """Same test using bounds that have been reprojected into an appropriate UTM zone. Ignores index 4."""
     raster_path = test_data_dir / 'rio_window' / 'test_window.tif'
     geojson_path = test_data_dir / 'rio_window' / f'window_utm_{geojson_index}.geojson'
@@ -96,9 +99,8 @@ def test_read_window_utm(test_data_dir, geojson_index, array, transform):
 
 
 @pytest.mark.parametrize('geojson_index, array, transform', zip([0, 1, 2, 3], arrays, transforms))
-def test_get_window_obj_utm(test_data_dir, geojson_index, array, transform):
-    """Checks the window's bounds contains the input extent once intersected with the rasters (sometimes the extent
-    can go beyond the raster)"""
+def test_get_window_obj_utm(test_data_dir: Path, geojson_index: int, array: np.ndarray, transform: Affine) -> None:
+    """Check the window bounds contains the input extent once intersected with the rasters."""
     raster_path = test_data_dir / 'rio_window' / 'test_window.tif'
     geojson_path = test_data_dir / 'rio_window' / f'window_utm_{geojson_index}.geojson'
 
@@ -141,8 +143,8 @@ indices = [
 
 
 @pytest.mark.parametrize('extent, arr_index', zip(extents, indices))
-def test_get_indices(extent, arr_index):
-    """Verifying the get indices for windowed reading returns correct window"""
+def test_get_indices(extent: list[float], arr_index: tuple[tuple[int, int], tuple[int, int]]) -> None:
+    """Verify the get indices for windowed reading returns correct window."""
     t = Affine(1, 0, 10, 0, -1, 0)
     ul, br = get_indices_from_extent(t, extent)
     assert arr_index == (ul, br)
@@ -158,8 +160,8 @@ indices_buffer = [
 
 
 @pytest.mark.parametrize('extent, arr_index', zip(extents, indices_buffer))
-def test_get_indices_buffered(extent, arr_index):
-    """Make sure that windowed extents work correctly with 1 resolution buffer"""
+def test_get_indices_buffered(extent: list[float], arr_index: tuple[tuple[int, int], tuple[int, int]]) -> None:
+    """Make sure that windowed extents work correctly with 1 resolution buffer."""
     t = Affine(1, 0, 10, 0, -1, 0)
     ul, br = get_indices_from_extent(t, extent, res_buffer=1)
     assert arr_index == (ul, br)
@@ -175,8 +177,8 @@ indices_shape = [
 
 
 @pytest.mark.parametrize('extent, arr_index', zip(extents, indices_shape))
-def test_get_indices_shape(extent, arr_index):
-    """Similar test using shape to truncate row_stop and col_stop"""
+def test_get_indices_shape(extent: list[float], arr_index: tuple[tuple[int, int], tuple[int, int]]) -> None:
+    """Similar test using shape to truncate row_stop and col_stop."""
     t = Affine(1, 0, 10, 0, -1, 0)
     ul, br = get_indices_from_extent(t, extent, res_buffer=1, shape=(12, 10))
     assert arr_index == (ul, br)
@@ -211,7 +213,9 @@ transforms_2 = [
 
 
 @pytest.mark.parametrize('extent, array, transform', zip(extents_2, arrays_2, transforms_2))
-def test_read_window_4326_unequal_dims(test_data_dir, extent, array, transform):
+def test_read_window_4326_unequal_dims(
+    test_data_dir: Path, extent: list[float], array: np.ndarray, transform: Affine
+) -> None:
     raster_path = test_data_dir / 'rio_window' / 'test_window_unequal_dim.tif'
 
     window_arr, p = read_raster_from_window(raster_path, extent, CRS.from_epsg(4326), res_buffer=0)
@@ -233,10 +237,10 @@ bad_extents = [
 
 
 @pytest.mark.parametrize('bad_extent', bad_extents)
-def test_rio_window_exception(test_data_dir, bad_extent):
+def test_rio_window_exception(test_data_dir: Path, bad_extent: list[float]) -> None:
     raster_path = test_data_dir / 'rio_window' / 'warning_exception_data.tif'
     with pytest.raises(RuntimeError):
-        X, p = read_raster_from_window(raster_path, bad_extent, CRS.from_epsg(4326), res_buffer=0)
+        read_raster_from_window(raster_path, bad_extent, CRS.from_epsg(4326), res_buffer=0)
 
 
 # The dummy data is a 100 x 200 (.25 deg resolution) raster with origin at
@@ -245,13 +249,13 @@ warn_extents = [[-1, -27, 1, -23], [49, -1, 51, 1]]
 
 
 @pytest.mark.parametrize('warn_extent', warn_extents)
-def test_rio_window_warning(test_data_dir, warn_extent):
+def test_rio_window_warning(test_data_dir: Path, warn_extent: list[float]) -> None:
     raster_path = test_data_dir / 'rio_window' / 'warning_exception_data.tif'
     with pytest.warns(RuntimeWarning):
-        X, p = read_raster_from_window(raster_path, warn_extent, CRS.from_epsg(4326), res_buffer=0)
+        read_raster_from_window(raster_path, warn_extent, CRS.from_epsg(4326), res_buffer=0)
 
 
-def test_riow_window_get_one_pixel(test_data_dir):
+def test_riow_window_get_one_pixel(test_data_dir: Path) -> None:
     raster_path = test_data_dir / 'rio_window' / 'warning_exception_data.tif'
     X, p = read_raster_from_window(raster_path, [0, -25, 0.01, -24.999], CRS.from_epsg(4326), res_buffer=0)
     assert X.shape == (1, 1, 1)
@@ -259,9 +263,10 @@ def test_riow_window_get_one_pixel(test_data_dir):
     assert p['width'] == 1
 
 
-def test_bad_extents_for_window():
+def test_bad_extents_for_window() -> None:
     with pytest.raises(RuntimeError):
         """Outside of Geoid Bounds"""
         bounds = [-180, 34, -179, 35]
 
-        X, p = read_geoid('geoid_18', bounds)
+        geoid_path = get_geoid_path('geoid_18')
+        read_geoid(geoid_path, bounds)

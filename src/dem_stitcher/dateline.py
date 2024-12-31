@@ -28,7 +28,8 @@ def check_4326_bounds(bounds: list) -> bool:
 
 
 def get_dateline_crossing(bounds: list) -> int:
-    """Checks dateline (aka antimeridian) crossing. Returns +/- 180 depending on extents of bounding box provided.
+    """Check if dateline (aka antimeridian) crossing. Returns +/- 180 depending on extents of bounding box provided.
+
     Assumes only 1 dateline can be crossed otherwise exception raised.
 
     Parameters
@@ -69,8 +70,9 @@ def get_dateline_crossing(bounds: list) -> int:
 
 
 def split_extent_across_dateline(extent: list) -> tuple[list]:
-    """If extent crosses the dateline, then we return tuple of left and right hemispheres
-    assuming lat/lon CRS. Otherwise, just returns, extent and empty list
+    """Return tuple of left and right hemispheres when extent crosses antimeridean/dateline.
+
+    Assumes lat/lon CRS. If no crossing, just returns the following tuple: (original extent, empty list).
 
     Parameters
     ----------

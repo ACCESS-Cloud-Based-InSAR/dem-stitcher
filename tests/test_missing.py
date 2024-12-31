@@ -1,3 +1,6 @@
+from pathlib import Path
+
+import numpy as np
 import pytest
 import rasterio
 from numpy.testing import assert_almost_equal
@@ -5,6 +8,7 @@ from numpy.testing import assert_almost_equal
 from dem_stitcher import stitch_dem
 from dem_stitcher.merge import merge_arrays_with_geometadata
 from dem_stitcher.stitcher import intersects_missing_glo_30_tiles
+
 
 extents = [
     # On boundary of missing tiles (both glo-90, glo-30)
@@ -18,7 +22,7 @@ extents = [
 containment = [True, True, False]
 
 
-def _open_one(path):
+def _open_one(path: Path) -> tuple[np.ndarray, dict]:
     with rasterio.open(path) as ds:
         X = ds.read(1)
         p = ds.profile
@@ -26,11 +30,11 @@ def _open_one(path):
 
 
 @pytest.mark.parametrize('extent, containment', zip(extents, containment))
-def test_intersects_missing_tiles(extent, containment):
+def test_intersects_missing_tiles(extent: list[float], containment: bool) -> None:
     assert intersects_missing_glo_30_tiles(extent) == containment
 
 
-def test_merge_glo30_and_glo_90(test_data_dir):
+def test_merge_glo30_and_glo_90(test_data_dir: Path) -> None:
     data_dir = test_data_dir / 'missing'
     glo_30_left_path = data_dir / 'glo_30_left.tif'
     glo_90_right_path = data_dir / 'glo_90_right.tif'
@@ -47,7 +51,7 @@ def test_merge_glo30_and_glo_90(test_data_dir):
 
 
 @pytest.mark.integration
-def test_glo_90_filling(test_data_dir):
+def test_glo_90_filling(test_data_dir: Path) -> None:
     data_dir = test_data_dir / 'missing'
     glo_merged_path = data_dir / 'glo_merged.tif'
 

@@ -13,7 +13,7 @@ def translate_profile(
     x_shift: float,
     y_shift: float,
 ) -> dict:
-    """Shift profile
+    """Shift profile by x and y pixels.
 
     Parameters
     ----------
@@ -42,7 +42,7 @@ def translate_profile(
 
 
 def translate_dataset(dataset: DatasetReader, x_shift: float, y_shift: float) -> tuple[MemoryFile, DatasetReader]:
-    """Creates a new in-memory dataset and translates this. Closes the input dataset.
+    """Create a new in-memory dataset and translates this. Closes the input dataset.
 
     Parameters
     ----------
@@ -58,7 +58,6 @@ def translate_dataset(dataset: DatasetReader, x_shift: float, y_shift: float) ->
     Tuple[MemoryFile, DatasetReader]
         Memory file and DatasetReader in Rasterio
     """
-
     memfile = MemoryFile()
     profile = dataset.profile
     profile_translated = translate_profile(profile, x_shift=x_shift, y_shift=y_shift)
@@ -75,11 +74,12 @@ def reproject_arr_to_match_profile(
     ref_profile: dict,
     nodata: Union[float, int] = None,
     num_threads: int = 1,
-    resampling='bilinear',
+    resampling: str = 'bilinear',
 ) -> tuple[np.ndarray, dict]:
     """
-    Reprojects an array to match a reference profile providing the reprojected
-    array and the new profile.  Simply a wrapper for rasterio.warp.reproject.
+    Reproject an array to match a reference profile providing the reprojected array and the new profile.
+
+    A wrapper for rasterio.warp.reproject.
 
     Parameters
     ----------
@@ -141,8 +141,7 @@ def reproject_arr_to_match_profile(
 
 def get_bounds_dict(profile: dict) -> dict:
     """
-    Get the dictionary with bounds in the relevant CRS with keys 'left',
-    'right', 'top', 'bottom'.
+    Get the dictionary with bounds in the relevant CRS with keys 'left', 'right', 'top', 'bottom'.
 
     Parameters
     ----------
@@ -166,9 +165,7 @@ def get_bounds_dict(profile: dict) -> dict:
 
 
 def reproject_profile_to_new_crs(src_profile: dict, dst_crs: CRS, target_resolution: Union[float, int] = None) -> dict:
-    """
-    Create a new profile into a new CRS based on a dst_crs. May specify
-    resolution.
+    """Create a new profile into a new CRS based on a dst_crs. May specify resolution.
 
     Parameters
     ----------
@@ -255,9 +252,12 @@ def reproject_arr_to_new_crs(
     return dst_array, reprojected_profile
 
 
-def _aligned_target(transform: Affine, width: int, height: int, resolution: Union[float, int, tuple]):
-    """Aligns target to specified resolution; ensures same origin.
-    Source: https://github.com/rasterio/rasterio/blob/master/rasterio/warp.py#L354-L393
+def _aligned_target(
+    transform: Affine, width: int, height: int, resolution: Union[float, int, tuple]
+) -> tuple[Affine, int, int]:
+    """Align target to specified resolution; ensures same origin.
+
+    Source: https://github.com/rasterio/rasterio/blob/master/rasterio/warp.py#L354-L393.
 
     Parameters
     ----------
@@ -268,6 +268,7 @@ def _aligned_target(transform: Affine, width: int, height: int, resolution: Unio
     resolution: tuple (x resolution, y resolution) or float or int
         Target resolution, in units of target coordinate reference
         system.
+
     Returns
     -------
     transform: Affine

@@ -1,5 +1,7 @@
 from pathlib import Path
+from typing import Callable
 
+import numpy as np
 import pytest
 import rasterio
 from affine import Affine
@@ -8,28 +10,28 @@ from rasterio.crs import CRS
 
 
 @pytest.fixture(scope='session')
-def test_dir():
+def test_dir() -> Path:
     test_dir = Path(__file__).resolve().parent
     return test_dir
 
 
 @pytest.fixture(scope='session')
-def test_data_dir():
+def test_data_dir() -> Path:
     data_dir = Path(__file__).resolve().parent / 'data'
     return data_dir
 
 
 @pytest.fixture(scope='session')
-def notebooks_dir():
+def notebooks_dir() -> Path:
     notebook_directory = Path(__file__).resolve().parents[1] / 'notebooks'
     return notebook_directory
 
 
 @pytest.fixture(scope='session')
-def get_los_angeles_tile_dataset():
+def get_los_angeles_tile_dataset() -> Callable[[str], rasterio.DatasetReader]:
     tiles_dir = Path(__file__).resolve().parent / 'data' / 'tiles'
 
-    def _get_tile_dataset(dem_name):
+    def _get_tile_dataset(dem_name: str) -> rasterio.DatasetReader:
         dem_tile_dir = tiles_dir / f'{dem_name}'
         if dem_name == 'glo_30':
             tile_name = 'Copernicus_DSM_COG_10_N34_00_W119_00_DEM.tif'
@@ -44,8 +46,8 @@ def get_los_angeles_tile_dataset():
 
 
 @pytest.fixture(scope='session')
-def get_los_angeles_dummy_profile():
-    def _get_dummy_profile(res: float):
+def get_los_angeles_dummy_profile() -> Callable[[float], dict]:
+    def _get_dummy_profile(res: float) -> dict:
         p_la = default_gtiff_profile.copy()
         t = Affine(res, 0, -118, 0, -res, 35)
         p_la['transform'] = t
@@ -59,7 +61,7 @@ def get_los_angeles_dummy_profile():
 
 
 @pytest.fixture(scope='session')
-def get_tile_paths_for_comparison_with_golden_dataset():
+def get_tile_paths_for_comparison_with_golden_dataset() -> Callable[[str], list[str]]:
     golden_dataset_dir = Path(__file__).resolve().parent / 'data' / 'golden_datasets'
 
     def _get_tile_dataset(location: str) -> list:
@@ -75,7 +77,7 @@ def get_tile_paths_for_comparison_with_golden_dataset():
 
 
 @pytest.fixture(scope='session')
-def get_golden_dataset_path():
+def get_golden_dataset_path() -> Callable[[str, str], str]:
     golden_dataset_dir = Path(__file__).resolve().parent / 'data' / 'golden_datasets'
 
     def _get_golden_dataset_path(location: str, hgt_type: str) -> str:
@@ -87,7 +89,7 @@ def get_golden_dataset_path():
 
 
 @pytest.fixture(scope='session')
-def get_geoid_for_golden_dataset_test():
+def get_geoid_for_golden_dataset_test() -> Callable[[str], tuple[np.ndarray, dict]]:
     golden_dataset_dir = Path(__file__).resolve().parent / 'data' / 'golden_datasets'
 
     def _get_geoid(location: str) -> str:
