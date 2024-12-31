@@ -10,7 +10,7 @@ from rasterio.crs import CRS
 from rasterio.windows import bounds as get_window_bounds
 from shapely.geometry import box
 
-from dem_stitcher.geoid import read_geoid
+from dem_stitcher.geoid import get_geoid_path, read_geoid
 from dem_stitcher.rio_window import get_indices_from_extent, get_window_from_extent, read_raster_from_window
 
 
@@ -268,4 +268,5 @@ def test_bad_extents_for_window() -> None:
         """Outside of Geoid Bounds"""
         bounds = [-180, 34, -179, 35]
 
-        read_geoid('geoid_18', bounds)
+        geoid_path = get_geoid_path('geoid_18')
+        read_geoid(geoid_path, bounds)
