@@ -10,17 +10,20 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Added
 * Uses ruff exclusively for linting and formatting following OPERA/ARIA linting standards from DIST-S1.
-* Added `geoid_path` to `stitch_dem` to allow for user to specify geoid path.
+* Added `geoid_path` to `stitch_dem` to allow for user to specify geoid path. If None, then default geoid is used.
+
+## Changed
+* Updated `geoid.py` to use the new geoid path for egm08 with 1 arc-second resolution.
+* Library is in `src` directory per: https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/
+  * Helps with Ruff, too.
 
 ### Fixed
 * Allows users to bring their own geoid data as noted [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/100). 
 * Ruff linting and docstring issues using the new ruff configuration
-* Updates test action workflow with micromamba.
-* Updated to include library in `src` directory per: https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/
-  * Helps with Ruff, too.
+* Updates test action workflow with micromamba action.
 
 ### Removed
-* Explicit flake8 action.
+* Removed explicit flake8 action (should be handled by ruff).
 
 ## [2.5.8]
 ### Fixed
