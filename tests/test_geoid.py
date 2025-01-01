@@ -1,3 +1,4 @@
+import warnings
 from typing import Callable
 
 import numpy as np
@@ -63,3 +64,18 @@ def test_remove_geoid(get_los_angeles_dummy_profile: Callable[[float], dict], de
         X_sub_2 = remove_geoid(Y, p_ref, geoid_path, res_buffer=res_buffer_default)
 
     assert_array_equal(X_sub_2, X_sub)
+
+
+def test_warning_with_geoid_not_covering_dateline() -> None:
+    geoid_path_not_covering_dateline = 'https://aria-geoid.s3.us-west-2.amazonaws.com/egm08_25.tif'
+    with pytest.warns(UserWarning, match='Geoid file does not cover the dateline'):
+        extent = [-181, -78.176201, -177.884048, -75.697151]
+        _, _ = read_geoid(geoid_path_not_covering_dateline, extent=extent)
+
+    geoid_path_covering_dateline = 'https://aria-geoid.s3.us-west-2.amazonaws.com/us_nga_egm2008_1_4326__agisoft.tif'
+    with warnings.catch_warnings(record=True) as caught_warnings:
+        warnings.simplefilter('always')
+        _, _ = read_geoid(geoid_path_covering_dateline, extent=extent)
+
+        for warning in caught_warnings:
+            assert 'Geoid file does not cover the dateline. May have np.nan' not in str(warning.message)

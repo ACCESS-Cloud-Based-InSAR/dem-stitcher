@@ -77,6 +77,14 @@ def read_geoid(geoid_path: str | Path, extent: list | None = None, res_buffer: i
         if crossing == 0:
             geoid_arr, geoid_profile = read_raster_from_window(geoid_path, extent, extent_crs, res_buffer=res_buffer)
         else:
+            with rasterio.open(geoid_path) as ds:
+                xmin, _, xmax, _ = ds.bounds
+                if xmin > -180 or xmax < 180:
+                    warnings.warn(
+                        'Geoid file does not cover the dateline. May have np.nan values after removal'
+                        ' or unexpected behavior. Recommend using geoid with 1 pixel buffer around dateline.',
+                        category=UserWarning,
+                    )
             extent_l, extent_r = split_extent_across_dateline(extent)
             geoid_arr_l, geoid_profile_l = read_raster_from_window(
                 geoid_path, extent_l, extent_crs, res_buffer=res_buffer

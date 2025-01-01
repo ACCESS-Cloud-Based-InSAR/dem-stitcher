@@ -56,13 +56,13 @@ def get_dateline_crossing(bounds: list) -> int:
 
     # This logic assumes there is intersection within the standard 4326 CRS.
     # There are exactly 2 * 2 = 4 conditions
-    if (xmin > -180) and (xmax < 180):
+    if (xmin >= -180) and (xmax <= 180):
         return 0
 
-    elif (xmin <= -180) and (xmax < 180):
+    elif (xmin < -180) and (xmax < 180):
         return -180
 
-    elif (xmin > -180) and (xmax >= 180):
+    elif (xmin > -180) and (xmax > 180):
         return 180
 
     elif (xmin <= -180) and (xmax >= 180):
