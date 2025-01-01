@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+
 notebooks = [
     'Basic_Demo.ipynb',
     'Comparing_DEMs.ipynb',
@@ -13,7 +14,7 @@ notebooks = [
 @pytest.mark.integration
 @pytest.mark.notebook
 @pytest.mark.parametrize('notebook_file_name', notebooks)
-def test_read_geoid_across_dateline(notebooks_dir, test_data_dir, notebook_file_name):
+def test_read_geoid_across_dateline(notebooks_dir: Path, test_data_dir: Path, notebook_file_name: str) -> None:
     import papermill as pm
 
     test_dir = test_data_dir.parent

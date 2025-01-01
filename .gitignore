@@ -25,7 +25,7 @@ tests/out/
 *.tar.gz
 *.dat
 # Include the tile vector data
-!dem_stitcher/data/*.geojson.zip
+!src/dem_stitcher/data/*.geojson.zip
 
 # .pyenv files
 .python-version
@@ -51,7 +51,7 @@ __pycache__/
 /dist/
 
 # Python egg metadata, regenerated from source files by setuptools.
-/*.egg-info
+**/*.egg-info
 
 # Environments
 .env

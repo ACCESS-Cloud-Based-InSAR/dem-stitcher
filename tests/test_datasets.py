@@ -4,6 +4,7 @@ import pytest
 
 from dem_stitcher.datasets import get_overlapping_dem_tiles
 
+
 extents = [
     # This is overlapping with Points/LineString for missing tiles
     # See https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/issues/89#issuecomment-1399142499
@@ -15,12 +16,12 @@ dem_names = ['glo_90_missing', 'glo_30']
 
 
 @pytest.mark.parametrize('extent, dem_name', zip(extents, dem_names))
-def test_empty_tiles(extent, dem_name):
+def test_empty_tiles(extent: list[float], dem_name: str) -> None:
     df_tiles = get_overlapping_dem_tiles(extent, dem_name)
     assert df_tiles.empty
 
 
-def test_dateline_warning():
+def test_dateline_warning() -> None:
     extent_no_dateline = [-121.5, 34.95, -120.2, 36.25]
     with warnings.catch_warnings():
         warnings.simplefilter('error', category=UserWarning)

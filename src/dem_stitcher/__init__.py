@@ -6,6 +6,7 @@ from importlib_metadata import PackageNotFoundError, version
 from .datasets import get_global_dem_tile_extents, get_overlapping_dem_tiles
 from .stitcher import get_dem_tile_paths, stitch_dem
 
+
 try:
     __version__ = version(__name__)
 except PackageNotFoundError:

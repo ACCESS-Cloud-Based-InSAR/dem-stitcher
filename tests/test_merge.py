@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 import rasterio
@@ -5,6 +7,7 @@ from affine import Affine
 from numpy.testing import assert_array_equal
 
 from dem_stitcher.stitcher import merge_tile_datasets_within_extent
+
 
 # from dem_stitcher.datasets import DATASETS
 
@@ -72,7 +75,7 @@ transforms = [
 
 
 @pytest.mark.parametrize('extent, array, transform', zip(extents, arrays, transforms))
-def test_merge_tiles(test_data_dir, extent, array, transform):
+def test_merge_tiles(test_data_dir: Path, extent: list[float], array: np.ndarray, transform: Affine) -> None:
     merge_dir = test_data_dir / 'stitcher' / 'merge_tiles'
     upper_left = merge_dir / 'ul.tif'
     upper_right = merge_dir / 'ur.tif'

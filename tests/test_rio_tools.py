@@ -1,14 +1,13 @@
+from pathlib import Path
+
 import rasterio
 from numpy.testing import assert_almost_equal
 
 from dem_stitcher.rio_tools import reproject_arr_to_match_profile, translate_dataset, update_profile_resolution
 
 
-def test_update_resolution(test_data_dir):
-    """Checks that reprojection to higher resolution via bilinear interpolation preservers geotransform and correctly
-    resamples
-    """
-
+def test_update_resolution(test_data_dir: Path) -> None:
+    """Check that reprojection to higher resolution via bilinear interpolation preservers geotransform correctly."""
     data_dir = test_data_dir / 'rio_tools' / 'update_resolution'
     assert data_dir.exists()
 
@@ -36,7 +35,7 @@ def test_update_resolution(test_data_dir):
     assert t_quarter_deg == p_higher_res['transform']
 
 
-def test_dataset_translation(test_data_dir):
+def test_dataset_translation(test_data_dir: Path) -> None:
     data_dir = test_data_dir / 'dateline' / 'translate_datasets'
 
     assert data_dir.exists()

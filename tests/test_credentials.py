@@ -1,11 +1,14 @@
+from pathlib import Path
+
 import pytest
 
 from dem_stitcher.credentials import ensure_earthdata_credentials
 
+
 """From DockerizedTopsapp - author Joe Kennedy and Forrest Williams"""
 
 
-def test_main_check_earthdata_credentials(tmp_path, monkeypatch):
+def test_main_check_earthdata_credentials(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv('HOME', str(tmp_path))
     netrc = tmp_path / '.netrc'
     netrc.write_text('machine foobar.nasa.gov login foo password bar')

@@ -52,7 +52,7 @@ def merge_tile_datasets_within_extent(
             window = get_window_from_extent(profile, extent, window_crs=CRS.from_epsg(4326))
         return window
 
-    def read_in_window(dataset: rasterio.DatasetReader, window: rasterio.windows.Window):
+    def read_in_window(dataset: rasterio.DatasetReader, window: rasterio.windows.Window) -> np.ndarray:
         return dataset.read(window=window)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=n_threads) as executor:
@@ -88,10 +88,10 @@ def merge_tile_datasets_within_extent(
 def merge_arrays_with_geometadata(
     arrays: list[np.ndarray],
     profiles: list[dict],
-    resampling='bilinear',
+    resampling: str = 'bilinear',
     nodata: Union[float, int] = np.nan,
     dtype: str = None,
-    method='first',
+    method: str = 'first',
 ) -> tuple[np.ndarray, dict]:
     n_dim = arrays[0].shape
     if len(n_dim) not in [2, 3]:
