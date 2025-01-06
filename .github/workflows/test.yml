@@ -32,7 +32,7 @@ jobs:
         with:
           environment-name: dem-stitcher
           environment-file: environment.yml
-          extra-specs: |
+          create-args: >-
             python=${{ matrix.python-version }}
 
 
