@@ -1,5 +1,6 @@
 import warnings
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 import rasterio
@@ -40,7 +41,7 @@ def get_geoid_path(geoid_short_name: str) -> Path:
     return geoid_path
 
 
-def get_default_geoid_path(dem_name: str | Path) -> Path:
+def get_default_geoid_path(dem_name: Union[str, Path]) -> Path:
     if dem_name not in DEM2GEOID.keys():
         raise ValueError(f'DEM name {dem_name} does not have a default geoid.')
     geoid_name = DEM2GEOID[dem_name]
@@ -48,7 +49,7 @@ def get_default_geoid_path(dem_name: str | Path) -> Path:
     return geoid_path
 
 
-def validate_geoid_path(geoid_path: str | Path) -> None:
+def validate_geoid_path(geoid_path: Union[str, Path]) -> None:
     if isinstance(geoid_path, str):
         if geoid_path in DEM2GEOID.values():
             return
@@ -65,7 +66,7 @@ def validate_geoid_path(geoid_path: str | Path) -> None:
     raise TypeError(f'Geoid path {geoid_path} is not of type str or Path.')
 
 
-def read_geoid(geoid_path: str | Path, extent: list | None = None, res_buffer: int = 1) -> tuple:
+def read_geoid(geoid_path: Union[str, Path], extent: Union[list, None] = None, res_buffer: int = 1) -> tuple:
     if extent is None:
         with rasterio.open(geoid_path) as ds:
             geoid_arr = ds.read()
@@ -109,7 +110,11 @@ def read_geoid(geoid_path: str | Path, extent: list | None = None, res_buffer: i
 
 
 def remove_geoid(
-    dem_arr: np.ndarray, dem_profile: dict, geoid_path: str | Path, dem_area_or_point: str = 'Area', res_buffer: int = 2
+    dem_arr: np.ndarray,
+    dem_profile: dict,
+    geoid_path: Union[str, Path],
+    dem_area_or_point: str = 'Area',
+    res_buffer: int = 2,
 ) -> np.ndarray:
     assert dem_area_or_point in ['Point', 'Area']
 

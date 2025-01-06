@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.11]
+
+## Fixed
+* Python 3.13 compatibility (was not listed properly in pyproject.toml)
+
+
+## [2.5.10]
+
+## Fixed
+* 3.9 compatibility due to 3.10+ type hints.
+* Adds 3.13 compatibility.
+* Fixes the github action for tests to correctly use python versions specified by the matrix
+
+## Changed
+* Removes `|` in type hints for 3.9 compatibility.
+
 ## [2.5.9]
 
 ## Added

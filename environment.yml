@@ -8,7 +8,6 @@ dependencies:
  - pip
  - affine
  - boto3
- - build
  - dateparser
  - fiona
  - flake8
