@@ -167,7 +167,7 @@ def merge_and_transform_dem_tiles(
     num_threads_reproj: int = 5,
     merge_nodata_value: float = np.nan,
     n_threads_for_reading_tile_data: int = 5,
-    geoid_path: str | Path | None = None,
+    geoid_path: Union[str, Path, None] = None,
 ) -> tuple[np.ndarray, dict]:
     dem_arr, dem_profile = merge_tile_datasets_within_extent(
         datasets, bounds, nodata=merge_nodata_value, dtype=np.float32, n_threads=n_threads_for_reading_tile_data
@@ -257,7 +257,7 @@ def stitch_dem(
     n_threads_downloading: int = 10,
     fill_in_glo_30: bool = True,
     merge_nodata_value: float = np.nan,
-    geoid_path: str | Path = None,
+    geoid_path: Union[str, Path] = None,
 ) -> tuple[np.ndarray, dict]:
     """Specify extents (xmin, ymin, xmax, ymax) to obtain a continuous DEM raster.
 
