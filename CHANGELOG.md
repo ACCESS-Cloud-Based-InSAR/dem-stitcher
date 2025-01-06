@@ -10,6 +10,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Fixed
 * 3.9 compatibility due to 3.10+ type hints.
+* Adds 3.13 compatibility.
 * Fixes the github action for tests to correctly use python versions specified by the matrix
 
 ## Changed
