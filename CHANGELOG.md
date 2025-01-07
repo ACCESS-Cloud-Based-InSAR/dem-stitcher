@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.11]
+
+## Fixed
+* Python 3.13 compatibility (was not listed properly in pyproject.toml)
+
+
 ## [2.5.10]
 
 ## Fixed
