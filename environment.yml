@@ -1,8 +1,6 @@
 name: dem-stitcher
 channels:
  - conda-forge
- - anaconda
- - defaults
 dependencies:
  - python>=3.9
  - pip

@@ -5,8 +5,10 @@ import pytest
 import rasterio
 from affine import Affine
 from numpy.testing import assert_array_equal
+from rasterio.crs import CRS
+from rasterio.transform import from_origin
 
-from dem_stitcher.stitcher import merge_tile_datasets_within_extent
+from dem_stitcher.merge import merge_arrays_with_geometadata, merge_tile_datasets_within_extent
 
 
 # from dem_stitcher.datasets import DATASETS
@@ -90,3 +92,80 @@ def test_merge_tiles(test_data_dir: Path, extent: list[float], array: np.ndarray
     array = array[np.newaxis, ...]
     assert_array_equal(X, array)
     assert p['transform'] == transform
+
+
+def test_merge_in_memory() -> None:
+    size = 11
+    array_1 = np.ones((size, size), dtype=np.float32)
+    array_2 = np.ones((size, size), dtype=np.float32) * 2
+
+    array_1[1:3, size - 1] = np.nan
+    array_2[0:2, 0] = np.nan
+
+    resolution = 0.1
+    transform_1 = from_origin(-50, 25, resolution, resolution)
+    transform_2 = from_origin(-49, 25, resolution, resolution)
+
+    profile_1 = {
+        'driver': 'GTiff',
+        'dtype': np.float32,
+        'count': 1,
+        'height': size,
+        'width': size,
+        'crs': CRS.from_epsg(4326),
+        'transform': transform_1,
+        'nodata': np.nan,
+    }
+
+    profile_2 = {
+        'driver': 'GTiff',
+        'dtype': np.float32,
+        'count': 1,
+        'height': size,
+        'width': size,
+        'crs': CRS.from_epsg(4326),
+        'transform': transform_2,
+        'nodata': np.nan,
+    }
+
+    # Calculate merged array dimensions
+    merged_height = 11  # Same width as original arrays
+    merged_width = 21  # (11 + 11 - 1) for overlap
+
+    # Create merged array
+    merged_array_expected = np.zeros((1, merged_height, merged_width), dtype=np.float32)
+    merged_array_expected[0, :, :size] = 1
+    merged_array_expected[0, :, -size:] = 2
+    merged_array_expected[0, 3:, size - 1] = 3
+    # Nan in array 2
+    merged_array_expected[0, 0, size - 1] = 1
+    # Nan in both arrays
+    merged_array_expected[0, 1, size - 1] = np.nan
+    # Nan in array 1
+    merged_array_expected[0, 2, size - 1] = 2
+
+    # Create merged profile
+    merged_transform = from_origin(-50, 25, resolution, resolution)
+    merged_profile_expected = {
+        'driver': 'GTiff',
+        'dtype': np.float32,
+        'count': 1,
+        'height': merged_height,
+        'width': merged_width,
+        'crs': CRS.from_epsg(4326),
+        'transform': merged_transform,
+        'nodata': None,
+    }
+
+    merged_array_actual, merged_profile_actual = merge_arrays_with_geometadata(
+        [array_1, array_2], [profile_1, profile_2], method='sum'
+    )
+    assert_array_equal(merged_array_actual, merged_array_expected)
+    assert all(
+        [
+            val_expected == merged_profile_actual[key]
+            for (key, val_expected) in merged_profile_expected.items()
+            if key != 'nodata'
+        ]
+    )
+    assert np.isnan(merged_profile_actual['nodata'])

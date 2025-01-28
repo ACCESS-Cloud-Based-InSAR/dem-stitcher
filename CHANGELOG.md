@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.12] - 2025-01-29
+
+## Fixed
+* Ruff linting and formatting
+* In-memory merge of files - preserving nodata and dtypes correctly
+
+## Added
+* Tests for in-memory merge
+* Tests for crop profile
+* Allows users to specify `dst_tile_dir` for location of tiles
+* Allows users to specify `overwrite_existing_tiles` for overwriting existing tiles (should tiles need to be re-used in the same directory)
+
+## Removed
+* Dependency of environment.yml on anaconda and default distributions (now only `conda-forge`). This is purely ascethetic as the package's highest priority channel is `conda-forge`.
+
+
 ## [2.5.11]
 
 ## Fixed
@@ -44,7 +60,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.5.8]
 ### Fixed
-* Resolves read_geoid issue [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/96). 
+* Resolves read_geoid issue [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/96).
   * Update geoid url for egm08 (again) creating public bucket for ACCESS processing
   * Included egm96 as gtx in the data directory
   * egm08 and egm96 data comes from here: https://download.osgeo.org/proj/vdatum/
@@ -56,7 +72,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   * when no credentials in netrc are present when requesting data for `nasadem` or `srtm_v3`, there is a human readable error instructing user to update their `~/.netrc`.
 * Updates some ruff linting
   * Ensures ruff in `environment.yml`
-  * Ensure single quotes for consistency. 
+  * Ensure single quotes for consistency.
 ### Changed
 * egm08 is now using 2.5 deg raster rather than 1 deg.
 

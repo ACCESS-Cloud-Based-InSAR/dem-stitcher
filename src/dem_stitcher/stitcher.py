@@ -54,7 +54,13 @@ def _download_and_write_one_tile_to_gtiff(url: str, dest_path: Path, reader: Cal
     return dem_profile
 
 
-def download_tiles_to_gtiff(urls: list, dem_name: str, dest_dir: Path, max_workers_for_download: int = 5) -> list[Path]:
+def download_tiles_to_gtiff(
+    urls: list,
+    dem_name: str,
+    dest_dir: Path,
+    max_workers_for_download: int = 5,
+    overwrite_existing_tiles: bool = False,
+) -> list[Path]:
     tile_ids = list(map(lambda x: x.split('/')[-1], urls))
 
     def extract_dest_path_from_url(tile_id: str) -> Path:
@@ -73,12 +79,16 @@ def download_tiles_to_gtiff(urls: list, dem_name: str, dest_dir: Path, max_worke
     def download_and_write_one_partial(zipped_data: list) -> dict:
         return _download_and_write_one_tile_to_gtiff(zipped_data[0], zipped_data[1], reader, dem_name)
 
-    data_list = zip(urls, dest_paths)
+    # filter non existing destination path
+    if not overwrite_existing_tiles:
+        data_list = [(u, d) for u, d in zip(urls, dest_paths) if not d.exists()]
+    else:
+        data_list = list(zip(urls, dest_paths))
     with ThreadPoolExecutor(max_workers=max_workers_for_download) as executor:
         list(
             tqdm(
                 executor.map(download_and_write_one_partial, data_list),
-                total=len(urls),
+                total=len(data_list),
                 desc=f'Downloading {dem_name} tiles',
             )
         )
@@ -92,7 +102,8 @@ def get_dem_tile_paths(
     dem_name: str,
     localize_tiles_to_gtiff: bool = False,
     n_threads_downloading: int = 5,
-    tile_dir: Union[str, Path] = None,
+    tile_dir: Union[str, Path, None] = None,
+    overwrite_existing_tiles: bool = False,
 ) -> list[str]:
     """Obtain paths or urls to DEM tiles.
 
@@ -115,6 +126,8 @@ def get_dem_tile_paths(
         Number of workers for downloading, by default 5
     tile_dir : Path | str, optional
         Directory to localize files, by default None, which saves to `dem_name`.
+    overwrite_existing_tiles : bool, optional
+        If True, overwrite existing tiles, by default False
 
     Returns
     -------
@@ -137,9 +150,15 @@ def get_dem_tile_paths(
         if tile_dir is None:
             tile_dir = Path(dem_name)
         if tile_dir.exists():
-            warn(f'The directory{tile_dir} exists; ' 'We are writing new files to this directory', category=UserWarning)
+            warn(f'The directory{tile_dir} exists; We are writing new files to this directory', category=UserWarning)
         tile_dir.mkdir(exist_ok=True, parents=True)
-        dem_paths = download_tiles_to_gtiff(urls, dem_name, tile_dir, max_workers_for_download=n_threads_downloading)
+        dem_paths = download_tiles_to_gtiff(
+            urls,
+            dem_name,
+            tile_dir,
+            max_workers_for_download=n_threads_downloading,
+            overwrite_existing_tiles=overwrite_existing_tiles,
+        )
     return dem_paths
 
 
@@ -258,6 +277,8 @@ def stitch_dem(
     fill_in_glo_30: bool = True,
     merge_nodata_value: float = np.nan,
     geoid_path: Union[str, Path] = None,
+    dst_tile_dir: Union[Path, str, None] = None,
+    overwrite_existing_tiles: bool = False,
 ) -> tuple[np.ndarray, dict]:
     """Specify extents (xmin, ymin, xmax, ymax) to obtain a continuous DEM raster.
 
@@ -290,6 +311,10 @@ def stitch_dem(
         When set to 0 and not converting to ellipsoidal heights, all nodata areas will be 0.
     geoid_path: str | Path, optional
         Path to geoid file. If None, then the default geoid is used.
+    dst_tile_dir: Path | str, optional
+        If not None do not remove tiles already downloaded, and use them instead of downloading.
+    overwrite_existing_tiles: bool, optional
+        If True, overwrite existing tiles, by default False
 
     Returns
     -------
@@ -320,17 +345,17 @@ def stitch_dem(
 
     # Random unique identifier
     tmp_id = str(uuid.uuid4())
-    tile_dir = Path(f'tmp_{tmp_id}')
+    tile_dir = dst_tile_dir or Path(f'tmp_{tmp_id}')
 
     if dem_name in ['srtm_v3', 'nasadem']:
         ensure_earthdata_credentials()
-
     dem_paths = get_dem_tile_paths(
         bounds=bounds,
         dem_name=dem_name,
-        localize_tiles_to_gtiff=False,
+        localize_tiles_to_gtiff=dst_tile_dir is not None,
         n_threads_downloading=n_threads_downloading,
         tile_dir=tile_dir,
+        overwrite_existing_tiles=overwrite_existing_tiles,
     )
 
     # Opening is capped at 5 threads because more leads to errors
@@ -379,7 +404,7 @@ def stitch_dem(
     list(map(lambda dataset: dataset.close(), datasets))
 
     # Delete orginal tiles if downloaded
-    if tile_dir.exists():
+    if tile_dir.exists() and dst_tile_dir is None:
         shutil.rmtree(str(tile_dir))
 
     # Created in memory file containers if there is a dateline crossing for translation

@@ -136,7 +136,7 @@ def get_window_from_extent(
 
     if intersection_geo.geom_type != 'Polygon':
         raise RuntimeError(
-            'The intersection geometry is degenerate (i.e. a ' f'Point or LineString: {intersection_geo.geom_type}'
+            f'The intersection geometry is degenerate (i.e. a Point or LineString: {intersection_geo.geom_type}'
         )
     if not intersection_geo.is_empty:
         window_extent_r = intersection_geo.bounds
@@ -147,7 +147,7 @@ def get_window_from_extent(
                 category=RuntimeWarning,
             )
     else:
-        raise RuntimeError('The extent you specified does not overlap' ' the specified raster as a Polygon.')
+        raise RuntimeError('The extent you specified does not overlap the specified raster as a Polygon.')
 
     corner_ul, corner_br = get_indices_from_extent(
         src_profile['transform'], window_extent_r, shape=src_shape, res_buffer=res_buffer
