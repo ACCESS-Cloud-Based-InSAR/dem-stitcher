@@ -104,10 +104,10 @@ def merge_arrays_with_geometadata(
     resampling : str, optional
         See acceptable values rasterio.enums.Resampling, by default 'bilinear'
     nodata : float, optional
-        Nodata value to be put into merged profile. If None, uses the nodata value from the first profile,
+        Nodata value to be inserted into merged profile. If None, uses the nodata value from the first profile,
         by default None
     dtype : str, optional
-        Dtype to be put into merged profile. If None, uses the dtype from the first profile, by default None
+        Dtype to be inserted into merged profile. If None, uses the dtype from the first profile, by default None
     method : str, optional
         See acceptable values in rasterio.merge.merge, by default 'first'
 
@@ -143,8 +143,13 @@ def merge_arrays_with_geometadata(
 
     if dtype is None:
         dst_dtype = profiles[0]['dtype']
+    else:
+        dst_dtype = dtype
+
     if nodata is None:
         dst_nodata = profiles[0]['nodata']
+    else:
+        dst_nodata = nodata
 
     merged_arr, merged_trans = merge(
         datasets, resampling=Resampling[resampling], method=method, nodata=dst_nodata, dtype=dst_dtype
