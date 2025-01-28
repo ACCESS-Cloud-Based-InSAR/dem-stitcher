@@ -7,11 +7,17 @@ import rasterio
 from affine import Affine
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
+from rasterio.transform import from_origin
 from rasterio.windows import bounds as get_window_bounds
 from shapely.geometry import box
 
 from dem_stitcher.geoid import get_geoid_path, read_geoid
-from dem_stitcher.rio_window import get_indices_from_extent, get_window_from_extent, read_raster_from_window
+from dem_stitcher.rio_window import (
+    get_cropped_profile,
+    get_indices_from_extent,
+    get_window_from_extent,
+    read_raster_from_window,
+)
 
 
 """
@@ -270,3 +276,39 @@ def test_bad_extents_for_window() -> None:
 
         geoid_path = get_geoid_path('geoid_18')
         read_geoid(geoid_path, bounds)
+
+
+def test_get_cropped_profile() -> None:
+    o_x = 10
+    o_y = 10
+    res = 0.1
+    transform = from_origin(o_x, o_y, res, res)
+    profile = {
+        'driver': 'GTiff',
+        'height': 100,
+        'width': 100,
+        'count': 1,
+        'dtype': np.uint8,
+        'nodata': 255,
+        'crs': CRS.from_epsg(4326),
+        'transform': transform,
+    }
+
+    start_x = 5
+    start_y = 4
+    end_x = 15
+    end_y = 24
+    transform_cropped = from_origin(10 + start_x * res, 10 - start_y * res, res, res)
+    profile_cropped_expected = {
+        'driver': 'GTiff',
+        'height': 20,
+        'width': 10,
+        'count': 1,
+        'dtype': np.uint8,
+        'nodata': 255,
+        'crs': CRS.from_epsg(4326),
+        'transform': transform_cropped,
+    }
+
+    profile_cropped_actual = get_cropped_profile(profile, np.s_[start_x:end_x], np.s_[start_y:end_y])
+    assert all(profile_cropped_actual[k] == profile_cropped_expected[k] for k in profile_cropped_expected.keys())

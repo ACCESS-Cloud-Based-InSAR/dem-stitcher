@@ -83,7 +83,7 @@ def get_overlapping_dem_tiles(bounds: list, dem_name: str) -> gpd.GeoDataFrame:
     if crossing:
         warn(
             'Getting tiles across dateline on the opposite hemisphere; '
-            f'The source tiles will be {- 2 * crossing} deg along the'
+            f'The source tiles will be {-2 * crossing} deg along the'
             'longitudinal axis from the extent requested',
             category=UserWarning,
         )

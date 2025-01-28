@@ -89,13 +89,43 @@ def merge_arrays_with_geometadata(
     arrays: list[np.ndarray],
     profiles: list[dict],
     resampling: str = 'bilinear',
-    nodata: Union[float, int] = np.nan,
+    nodata: float = None,
     dtype: str = None,
     method: str = 'first',
 ) -> tuple[np.ndarray, dict]:
+    """Merge arrays in memory with geometadata.
+
+    Parameters
+    ----------
+    arrays : list[np.ndarray]
+        Arrays to merge (must be in the same CRS)
+    profiles : list[dict]
+        Geometadata for each array
+    resampling : str, optional
+        See acceptable values rasterio.enums.Resampling, by default 'bilinear'
+    nodata : float, optional
+        Nodata value to be put into merged profile. If None, uses the nodata value from the first profile,
+        by default None
+    dtype : str, optional
+        Dtype to be put into merged profile. If None, uses the dtype from the first profile, by default None
+    method : str, optional
+        See acceptable values in rasterio.merge.merge, by default 'first'
+
+    Returns
+    -------
+    tuple[np.ndarray, dict]
+        Merged array and profile
+
+    Raises
+    ------
+    ValueError
+        * If arrays are not in BIP format
+        * If arrays have different number of dimensions (i.e. 2 or 3)
+        * If number of profiles is not the same as number of arrays
+    """
     n_dim = arrays[0].shape
     if len(n_dim) not in [2, 3]:
-        raise ValueError('Currently arrays must be in BIP format' 'i.e. channels x height x width or flat array')
+        raise ValueError('Currently arrays must be in BIP formati.e. channels x height x width or flat array')
     if len(set([len(arr.shape) for arr in arrays])) != 1:
         raise ValueError('All arrays must have same number of dimensions i.e. 2 or 3')
 
@@ -111,8 +141,13 @@ def merge_arrays_with_geometadata(
     datasets = [mfile.open(**p) for (mfile, p) in zip(memfiles, profiles)]
     [ds.write(arr) for (ds, arr) in zip(datasets, arrays_input)]
 
+    if dtype is None:
+        dst_dtype = profiles[0]['dtype']
+    if nodata is None:
+        dst_nodata = profiles[0]['nodata']
+
     merged_arr, merged_trans = merge(
-        datasets, resampling=Resampling[resampling], method=method, nodata=nodata, dtype=dtype
+        datasets, resampling=Resampling[resampling], method=method, nodata=dst_nodata, dtype=dst_dtype
     )
 
     prof_merged = profiles[0].copy()
@@ -120,10 +155,8 @@ def merge_arrays_with_geometadata(
     prof_merged['count'] = merged_arr.shape[0]
     prof_merged['height'] = merged_arr.shape[1]
     prof_merged['width'] = merged_arr.shape[2]
-    if nodata is not None:
-        prof_merged['nodata'] = nodata
-    if nodata is not None:
-        prof_merged['dtype'] = dtype
+    prof_merged['nodata'] = dst_nodata
+    prof_merged['dtype'] = dst_dtype
 
     [ds.close() for ds in datasets]
     [mfile.close() for mfile in memfiles]

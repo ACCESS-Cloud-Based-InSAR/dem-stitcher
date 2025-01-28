@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.12] - 2025-01-29
+
+## Fixed
+* Ruff linting and formatting
+* In-memory merge of files - preserving nodata and dtypes correctly
+
+## Added
+* Tests for in-memory merge
+* Tests for crop profile
+
+## Removed
+* Dependency of environment.yml on anaconda and default distributions (now only `conda-forge`). This is purely ascethetic as the package's highest priority channel is `conda-forge`.
+
+
 ## [2.5.11]
 
 ## Fixed
