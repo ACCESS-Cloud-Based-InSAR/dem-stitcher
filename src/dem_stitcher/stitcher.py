@@ -137,7 +137,7 @@ def get_dem_tile_paths(
         if tile_dir is None:
             tile_dir = Path(dem_name)
         if tile_dir.exists():
-            warn(f'The directory{tile_dir} exists; ' 'We are writing new files to this directory', category=UserWarning)
+            warn(f'The directory{tile_dir} exists; We are writing new files to this directory', category=UserWarning)
         tile_dir.mkdir(exist_ok=True, parents=True)
         dem_paths = download_tiles_to_gtiff(urls, dem_name, tile_dir, max_workers_for_download=n_threads_downloading)
     return dem_paths
