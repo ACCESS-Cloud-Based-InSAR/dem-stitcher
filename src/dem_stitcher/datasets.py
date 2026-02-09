@@ -17,7 +17,9 @@ DATA_PATH = Path(__file__).parents[0].absolute() / 'data'
 
 # Get Datasets
 _DATASET_PATHS = list(DATA_PATH.glob('*.geojson.zip'))
-DATASETS = list(map(lambda x: x.name.split('.')[0], _DATASET_PATHS))
+_DATASETS_ALL = list(map(lambda x: x.name.split('.')[0], _DATASET_PATHS))
+_DATASETS_TO_EXCLUDE = ['srtm_v3', 'nasadem']  # removed from LPDAAC and moving s3 (see issue #138)
+DATASETS = [ds for ds in _DATASETS_ALL if ds not in _DATASETS_TO_EXCLUDE]
 
 
 def get_available_datasets() -> list[str]:
