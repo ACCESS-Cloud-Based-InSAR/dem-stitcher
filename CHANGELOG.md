@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.13] - 2026-02-09
+
+### Removed
+* Support for `srtm_v3` on account of lpdaac is no longer hosting the tiles (see Issue linked below). When new urls are added, we will include this.
+  * https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/138
+
+
 ## [2.5.12] - 2025-01-29
 
 ## Fixed
