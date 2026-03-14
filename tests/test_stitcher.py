@@ -1,5 +1,7 @@
+import shutil
+import subprocess
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Union
 
 import numpy as np
 import pytest
@@ -8,6 +10,8 @@ from affine import Affine
 from numpy.testing import assert_allclose, assert_almost_equal, assert_array_equal
 from osgeo import gdal
 from rasterio import default_gtiff_profile
+from rasterio.crs import CRS
+from rasterio.io import MemoryFile
 from shapely.geometry import box
 
 from dem_stitcher import get_dem_tile_paths, stitch_dem
@@ -86,6 +90,120 @@ def test_no_change_when_no_transformations_to_tile(
     tile_data = X_tile[~mask]
 
     assert_array_equal(subset_data, tile_data)
+
+
+def _make_memory_dem_dataset_4269() -> tuple[MemoryFile, rasterio.DatasetReader, list[float]]:
+    profile = default_gtiff_profile.copy()
+    profile.update(
+        {
+            'dtype': np.float32,
+            'count': 1,
+            'height': 64,
+            'width': 64,
+            'crs': CRS.from_epsg(4269),
+            'transform': Affine(1.0 / 3600.0, 0, -120, 0, -(1.0 / 3600.0), 35),
+            'nodata': np.nan,
+        }
+    )
+    arr = np.arange(64 * 64, dtype=np.float32).reshape(64, 64)
+    memfile = MemoryFile()
+    dataset = memfile.open(**profile)
+    dataset.write(arr[None, ...])
+    dataset.update_tags(AREA_OR_POINT='Area')
+    bounds = [-119.998, 34.985, -119.985, 34.998]
+    return memfile, dataset, bounds
+
+
+@pytest.mark.parametrize(
+    'dst_resolution, expected_res_xy',
+    [
+        (0.0005, (0.0005, 0.0005)),
+        ((0.0005, 0.00075), (0.0005, 0.00075)),
+    ],
+)
+def test_output_profile_matches_requested_crs_and_resolution_for_4269_input(
+    dst_resolution: Union[float, tuple[float, float]], expected_res_xy: tuple[float, float]
+) -> None:
+    memfile, dataset, bounds = _make_memory_dem_dataset_4269()
+    try:
+        dem_arr, dem_profile = merge_and_transform_dem_tiles(
+            datasets=[dataset],
+            bounds=bounds,
+            dem_name='3dep',
+            dst_ellipsoidal_height=False,
+            dst_area_or_point='Area',
+            dst_resolution=dst_resolution,
+        )
+    finally:
+        dataset.close()
+        memfile.close()
+
+    assert dem_arr.shape[0] == 1
+    assert dem_profile['crs'] == CRS.from_epsg(4326)
+    assert dem_profile['transform'].a == expected_res_xy[0]
+    assert abs(dem_profile['transform'].e) == expected_res_xy[1]
+
+
+def test_4269_reprojection_branch_matches_rio_warp(tmp_path: Path) -> None:
+    src_path = tmp_path / 'src_4269.tif'
+    expected_path = tmp_path / 'expected_4326.tif'
+    rio = shutil.which('rio')
+    if rio is None:
+        pytest.skip('rio CLI is required for this test')
+
+    memfile, dataset, _ = _make_memory_dem_dataset_4269()
+    try:
+        with rasterio.open(src_path, 'w', **dataset.profile) as src_ds:
+            src_ds.write(dataset.read())
+            src_ds.update_tags(**dataset.tags())
+    finally:
+        dataset.close()
+        memfile.close()
+
+    subprocess.run(
+        [
+            rio,
+            'warp',
+            str(src_path),
+            str(expected_path),
+            '--dst-crs',
+            'EPSG:4326',
+            '--resampling',
+            'bilinear',
+            '--threads',
+            '1',
+            '--overwrite',
+        ],
+        check=True,
+    )
+
+    with rasterio.open(src_path) as src_ds:
+        bounds = [
+            src_ds.bounds.left,
+            src_ds.bounds.bottom,
+            src_ds.bounds.right,
+            src_ds.bounds.top,
+        ]
+        dem_arr, dem_profile = merge_and_transform_dem_tiles(
+            datasets=[src_ds],
+            bounds=bounds,
+            dem_name='3dep',
+            dst_ellipsoidal_height=False,
+            dst_area_or_point='Area',
+            dst_resolution=None,
+            num_threads_reproj=1,
+            n_threads_for_reading_tile_data=1,
+        )
+
+    with rasterio.open(expected_path) as expected_ds:
+        expected_arr = expected_ds.read()
+        expected_profile = expected_ds.profile
+
+    assert dem_profile['crs'] == expected_profile['crs']
+    assert dem_profile['transform'] == expected_profile['transform']
+    assert dem_profile['width'] == expected_profile['width']
+    assert dem_profile['height'] == expected_profile['height']
+    assert_allclose(dem_arr, expected_arr, equal_nan=True, atol=1e-6)
 
 
 @pytest.mark.integration
