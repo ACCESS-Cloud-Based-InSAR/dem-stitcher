@@ -7,8 +7,10 @@ from affine import Affine
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 from rasterio.transform import from_origin
+from shapely.geometry import box
 
 from dem_stitcher.merge import merge_arrays_with_geometadata, merge_tile_datasets_within_extent
+from dem_stitcher.rio_window import format_window_profile, get_window_from_extent
 
 
 # from dem_stitcher.datasets import DATASETS
@@ -169,3 +171,39 @@ def test_merge_in_memory() -> None:
         ]
     )
     assert np.isnan(merged_profile_actual['nodata'])
+
+
+@pytest.mark.parametrize('extent', extents)
+def test_direct_merge_matches_windowed_merge(test_data_dir: Path, extent: list[float]) -> None:
+    """The direct rasterio.merge path must match the old windowed-read path."""
+    import warnings
+
+    merge_dir = test_data_dir / 'stitcher' / 'merge_tiles'
+    tile_paths = [merge_dir / f'{name}.tif' for name in ('ul', 'ur', 'bl')]
+
+    # New path
+    datasets = [rasterio.open(p) for p in tile_paths]
+    arr_new, prof_new = merge_tile_datasets_within_extent(datasets, extent)
+    [ds.close() for ds in datasets]
+
+    # Old path: filter -> windowed reads -> MemoryFile -> merge
+    datasets = [rasterio.open(p) for p in tile_paths]
+    extent_box = box(*extent)
+    datasets = [
+        ds
+        for ds in datasets
+        if box(*ds.bounds).intersects(extent_box) and box(*ds.bounds).intersection(extent_box).geom_type == 'Polygon'
+    ]
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=RuntimeWarning)
+        windows = [get_window_from_extent(ds.profile, extent, window_crs=ds.crs) for ds in datasets]
+    arrs = [ds.read(window=w) for ds, w in zip(datasets, windows)]
+    profs = [
+        format_window_profile(ds.profile, arr, ds.window_transform(w)) for ds, arr, w in zip(datasets, arrs, windows)
+    ]
+    arr_old, prof_old = merge_arrays_with_geometadata(arrs, profs, method='first')
+    [ds.close() for ds in datasets]
+
+    assert_array_equal(arr_new, arr_old)
+    assert prof_new['transform'] == prof_old['transform']
+    assert arr_new.shape == arr_old.shape

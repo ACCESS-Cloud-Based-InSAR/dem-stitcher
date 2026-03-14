@@ -1,4 +1,3 @@
-import concurrent.futures
 import warnings
 from typing import Union
 
@@ -7,12 +6,28 @@ import rasterio
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
 from rasterio.io import MemoryFile
-from rasterio.merge import merge
-from rasterio.windows import Window
+from rasterio.merge import copy_first, merge
 from shapely.geometry import box
 from tqdm import tqdm
 
-from .rio_window import format_window_profile, get_window_from_extent
+from .rio_window import get_window_from_extent
+
+
+def _union_of_tile_windows(
+    datasets: list[rasterio.DatasetReader], extent: list[float]
+) -> tuple[float, float, float, float]:
+    xmin = ymin = float('inf')
+    xmax = ymax = float('-inf')
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=RuntimeWarning)
+        for ds in datasets:
+            w = get_window_from_extent(ds.profile, extent, window_crs=ds.crs)
+            left, bottom, right, top = ds.window_bounds(w)
+            xmin = min(xmin, left)
+            ymin = min(ymin, bottom)
+            xmax = max(xmax, right)
+            ymax = max(ymax, top)
+    return (xmin, ymin, xmax, ymax)
 
 
 def merge_tile_datasets_within_extent(
@@ -44,42 +59,44 @@ def merge_tile_datasets_within_extent(
             )
         ]
 
-    src_profiles = [ds.profile for ds in datasets_filtered]
+    if not datasets_filtered:
+        raise ValueError('No datasets intersect requested extent')
 
-    def window_partial(profile: dict) -> Window:
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', category=RuntimeWarning)
-            window = get_window_from_extent(profile, extent, window_crs=CRS.from_epsg(4326))
-        return window
+    src_profile = datasets_filtered[0].profile.copy()
+    dst_dtype = src_profile['dtype'] if dtype is None else dtype
+    dst_nodata = src_profile['nodata'] if nodata is None else nodata
 
-    def read_in_window(dataset: rasterio.DatasetReader, window: rasterio.windows.Window) -> np.ndarray:
-        return dataset.read(window=window)
+    # Snap merge bounds outward to each tile's pixel grid so output dimensions
+    # match the old windowed-read path (extent typically exceeds individual tiles,
+    # so the per-tile "shrinking bounds" warnings are suppressed internally).
+    merge_bounds = _union_of_tile_windows(datasets_filtered, extent)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=n_threads) as executor:
-        windows = list(
-            tqdm(executor.map(window_partial, src_profiles[:]), total=len(src_profiles), desc='Reading tile metadata')
-        )
-        assert len(datasets_filtered) == len(windows), 'input_lengths of datasets and windows not aligned'
-        arrs_window = list(
-            tqdm(
-                executor.map(read_in_window, datasets_filtered, windows),
-                total=len(windows),
-                desc='Reading tile imagery',
+    with tqdm(total=len(datasets_filtered), desc='Reading tile imagery') as pbar:
+
+        def _copy_first_progress(*args: object, **kwargs: object) -> None:
+            copy_first(*args, **kwargs)
+            pbar.update(1)
+
+        with rasterio.Env(GDAL_NUM_THREADS=n_threads):
+            arr_merged, merged_transform = merge(
+                datasets_filtered,
+                bounds=merge_bounds,
+                resampling=Resampling[resampling],
+                method=_copy_first_progress,
+                nodata=dst_nodata,
+                dtype=dst_dtype,
             )
-        )
 
-    # arrs_window = [ds.read(window=window) for (ds, window) in zip(datasets_filtered, windows)]
-    if dtype is not None:
-        arrs_window = [arr.astype(dtype) for arr in arrs_window]
-    trans_window = [ds.window_transform(window=window) for (ds, window) in zip(datasets_filtered, windows)]
-    profs_window = [
-        format_window_profile(p_s, arr_w, tran_w)
-        for (p_s, arr_w, tran_w) in zip(src_profiles, arrs_window, trans_window)
-    ]
-
-    arr_merged, prof_merged = merge_arrays_with_geometadata(
-        arrs_window, profs_window, resampling=resampling, method='first', nodata=nodata, dtype=dtype
+    prof_merged = src_profile.copy()
+    prof_merged.update(
+        transform=merged_transform,
+        count=arr_merged.shape[0],
+        height=arr_merged.shape[1],
+        width=arr_merged.shape[2],
+        nodata=dst_nodata,
+        dtype=dst_dtype,
     )
+
     if inputs_str:
         [ds.close() for ds in datasets_objs]
     return arr_merged, prof_merged
