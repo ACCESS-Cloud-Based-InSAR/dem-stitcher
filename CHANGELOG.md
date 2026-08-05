@@ -14,6 +14,9 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 * `flake8` and its plugins dropped from the develop extra in favor of `ruff`, which is exposed as the `lint`/`format`/`fix` pixi tasks.
 * Type hints modernized to PEP 604 unions (`X | Y`) now that python 3.10 is the floor.
 
+### Fixed
+* `test_mask_differences_with_merge_nodata_values_with_ellipsoidal` compared `float32` geoid values at `decimal=6`, which is below `float32` resolution at those magnitudes; it now uses `assert_allclose` with a `1e-6` relative tolerance so single-ULP differences across GDAL builds do not fail the suite.
+
 ### Removed
 * `environment.yml` - superseded by the pixi manifest in `pyproject.toml`.
 

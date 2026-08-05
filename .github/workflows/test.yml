@@ -21,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - uses: extractions/netrc@v3
         with:
@@ -34,6 +36,4 @@ jobs:
           environments: ${{ matrix.environment }}
 
       - name: Pytest in pixi environment
-        run: |
-          pixi run -e ${{ matrix.environment }} python -m pip install --no-deps .
-          pixi run -e ${{ matrix.environment }} pytest . -m 'not notebook'
+        run: pixi run -e ${{ matrix.environment }} pytest . -m 'not notebook'

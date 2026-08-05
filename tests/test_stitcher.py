@@ -176,7 +176,7 @@ def test_mask_differences_with_merge_nodata_values_with_ellipsoidal() -> None:
     X_geoid_r, _ = reproject_arr_to_match_profile(X_geoid, p_geoid, p_nan)
     X_geoid_r = X_geoid_r[0, ...]
 
-    assert_almost_equal(X_zero[mask_nan], X_geoid_r[mask_nan], decimal=6)
+    assert_allclose(X_zero[mask_nan], X_geoid_r[mask_nan], rtol=1e-6, atol=1e-6)
 
 
 def test_bad_merge_nodata_value() -> None:
