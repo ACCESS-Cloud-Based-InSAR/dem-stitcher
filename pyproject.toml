@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = 'dem_stitcher'
-requires-python = '>=3.9'
+requires-python = '>=3.10'
 authors = [
     {name ='Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard, Joseph H. Kennedy, Simran Sangha, Grace Bato', email ='access_cloud_based_insar@jpl.nasa.gov'}
 ]
@@ -14,9 +14,7 @@ classifiers = [
     'Intended Audience :: Science/Research',
     'Natural Language :: English',
     'Operating System :: OS Independent',
-    'Natural Language :: English',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.9',
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
@@ -42,10 +40,8 @@ dependencies = [
 develop = [
     "pytest",
     "pytest-cov",
-    "flake8",
-    "flake8-import-order",
-    "flake8-blind-except",
-    "flake8-builtins",
+    "pytest-mock",
+    "ruff",
 ]
 
 [project.urls]
@@ -120,3 +116,62 @@ convention = "numpy"
 [tool.ruff.lint.isort]
 case-sensitive = true
 lines-after-imports = 2
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64"]
+
+[tool.pixi.pypi-dependencies]
+dem_stitcher = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+lint = "ruff check src tests"
+format = "ruff format src tests"
+fix = "ruff check --fix src tests"
+test = "pytest . -m 'not notebook'"
+
+[tool.pixi.dependencies]
+python = ">=3.10,<4"
+affine = ">=2.4.0,<3"
+boto3 = ">=1.43.64,<2"
+dateparser = ">=1.4.2,<2"
+fiona = ">=1.10.1,<2"
+gdal = ">=3.10.3,<4"
+geopandas = ">=1.1.4,<2"
+jinja2 = ">=3.1.6,<4"
+joblib = ">=1.5.3,<2"
+matplotlib = ">=3.10.9,<4"
+numpy = ">=2.2.6,<3"
+pyproj = ">=3.7.1,<4"
+requests = ">=2.34.2,<3"
+pytest = ">=9.1.1,<10"
+pytest-cov = ">=7.1.0,<8"
+pytest-mock = ">=3.15.1,<4"
+rasterio = ">=1.4.3,<2"
+ruff = ">=0.16.1,<0.17"
+setuptools = ">=61.0"
+setuptools_scm = ">=6.2"
+shapely = ">=2.1.2,<3"
+tqdm = ">=4.70.0,<5"
+importlib_metadata = ">=9.0.0,<10"
+jupyterlab = ">=4.6.2,<5"
+jupyter-collaboration = ">=5.0.0,<6"
+
+[tool.pixi.feature.py310.dependencies]
+python = "3.10.*"
+
+[tool.pixi.feature.py311.dependencies]
+python = "3.11.*"
+
+[tool.pixi.feature.py312.dependencies]
+python = "3.12.*"
+
+[tool.pixi.feature.py313.dependencies]
+python = "3.13.*"
+
+[tool.pixi.environments]
+default = { features = ["py313"], solve-group = "py313" }
+py310 = { features = ["py310"], solve-group = "py310" }
+py311 = { features = ["py311"], solve-group = "py311" }
+py312 = { features = ["py312"], solve-group = "py312" }
+py313 = { features = ["py313"], solve-group = "py313" }

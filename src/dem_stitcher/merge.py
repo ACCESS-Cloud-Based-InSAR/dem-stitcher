@@ -1,6 +1,5 @@
 import concurrent.futures
 import warnings
-from typing import Union
 
 import numpy as np
 import rasterio
@@ -16,12 +15,12 @@ from .rio_window import format_window_profile, get_window_from_extent
 
 
 def merge_tile_datasets_within_extent(
-    datasets: Union[list[rasterio.DatasetReader], list[str]],
+    datasets: list[rasterio.DatasetReader] | list[str],
     extent: list,
     resampling: str = 'nearest',
     nodata: float = None,
     n_threads: int = 5,
-    dtype: Union[str, np.dtype] = None,
+    dtype: str | np.dtype = None,
 ) -> tuple[np.ndarray, dict]:
     # 4269 is North American epsg similar to 4326 and used for 3dep DEM
     inputs_str = isinstance(datasets[0], str)

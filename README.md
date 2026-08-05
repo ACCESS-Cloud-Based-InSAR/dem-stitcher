@@ -38,10 +38,6 @@ The rasters are returned in the global lat/lon projection `epsg:4326` and the AP
 
 # Installation
 
-In order to easily manage dependencies, we recommend using dedicated project environments
-via [Anaconda/Miniconda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html).
-or [Python virtual environments](https://docs.python.org/3/tutorial/venv.html).
-
 `dem_stitcher` can be installed into a conda environment with
 
 ```
@@ -54,7 +50,27 @@ or into a virtual environment with
 python -m pip install dem_stitcher
 ```
 
-Currently, python 3.9+ is supported.
+Currently, python 3.10+ is supported.
+
+### Pixi (recommended for development)
+
+Install [pixi](https://pixi.sh/latest/#installation), then:
+
+```bash
+git clone https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher.git
+cd dem-stitcher
+pixi install
+pixi run python -c "import dem_stitcher; print(dem_stitcher.__version__)"
+```
+
+For JupyterLab (with `jupyter-collaboration` for real-time collaborative editing):
+
+```bash
+pixi run jupyter lab
+```
+
+The default environment uses python 3.13. Environments named `py310`, `py311`, `py312`, and
+`py313` are also defined and can be selected with `pixi run -e py312 ...`.
 
 ## With ISCE2 or gdal
 
@@ -130,12 +146,17 @@ We assume that the supplied bounds overlap the standard lat/lon CRS grid i.e. lo
 
 # For Development
 
-This is almost identical to normal installation:
-
 1. Clone this repo `git clone https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher.git`
 2. Navigate with your terminal to the repo.
-3. Create a new environment and install requirements using `conda env update --file environment.yml` (or use [`mamba`](https://github.com/mamba-org/mamba) to speed the install up)
-4. Install the package from cloned repo using `python -m pip install -e .`
+3. Run `pixi install` - this creates the environment and installs `dem_stitcher` in editable mode.
+
+Linting and formatting are handled by `ruff` and exposed as pixi tasks:
+
+```bash
+pixi run lint
+pixi run format
+pixi run fix
+```
 
 ## DEM Urls
 
@@ -148,10 +169,7 @@ The former is the more likely. When re-generating tiles, make sure to run all te
 
 # Testing
 
-For the test suite:
-
-1. Install `pytest` via `conda-forge`
-2. Run `pytest tests`
+For the test suite, run `pixi run pytest tests` (or `pixi run test`, which skips the notebook tests).
 
 There are two category of tests: unit tests and integration tests. The former can be run using `pytest tests -m 'not integration'` and similarly the latter with `pytest tests -m 'integration'`. Our unit tests are those marked without the `integration` tag (via `pytest`) that use synthetic data or data within the library to verify correct outputs of the library (e.g. that a small input raster is modified correctly). Integration tests ensure the `dem-stitcher` API works as expected, downloading the DEM tiles from their respective servers to ensure the stitcher runs to completion - the integration tests only make very basic checks to ensure the format of the ouptut data is correct (e.g. checking the output raster has a particular shape or that nodata is `np.nan`). Our integration tests also include tests that run the notebooks that serve as documentation via `papermill` (such tests have an additional tag `notebook`). Integration tests will require the `~/.netrc` setup above and working internet. Our testing workflow via Github actions currently runs the entire test suite except those tagged with `notebook`, as these tests take considerably longer to run.
 
@@ -164,7 +182,7 @@ We welcome contributions to this open-source package. To do so:
 3. Make your modifications in your own fork
 4. Make a pull-request (PR) in this repo with the code in your fork and tag the repo owner or a relevant contributor.
 
-We use `flake8` and associated linting packages to ensure some basic code quality (see the `environment.yml`). These will be checked for each commit in a PR. Try to write tests wherever possible.
+We use `ruff` to ensure some basic code quality (configured in `pyproject.toml`). These will be checked for each commit in a PR. Try to write tests wherever possible.
 
 # Support
 

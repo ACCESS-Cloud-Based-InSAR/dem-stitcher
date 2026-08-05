@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.14] - 2026-08-05
+
+### Changed
+* Environment management migrated from conda/mamba to [pixi](https://pixi.sh); all configuration lives under `[tool.pixi.*]` in `pyproject.toml` and `pixi.lock` is committed.
+* Minimum supported python raised from 3.9 to 3.10; CI matrix now runs the `py310`-`py313` pixi environments via `prefix-dev/setup-pixi`.
+* `flake8` and its plugins dropped from the develop extra in favor of `ruff`, which is exposed as the `lint`/`format`/`fix` pixi tasks.
+* Type hints modernized to PEP 604 unions (`X | Y`) now that python 3.10 is the floor.
+
+### Removed
+* `environment.yml` - superseded by the pixi manifest in `pyproject.toml`.
+
+
 ## [2.5.13] - 2026-02-09
 
 ### Removed
