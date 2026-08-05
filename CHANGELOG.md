@@ -11,7 +11,8 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 * Environment management migrated from conda/mamba to [pixi](https://pixi.sh); all configuration lives under `[tool.pixi.*]` in `pyproject.toml` and `pixi.lock` is committed.
 * Minimum supported python raised from 3.9 to 3.10; CI matrix now runs the `py310`-`py313` pixi environments via `prefix-dev/setup-pixi`.
-* `flake8` and its plugins dropped from the develop extra in favor of `ruff`, which is exposed as the `lint`/`format`/`fix` pixi tasks.
+* `flake8` and its plugins dropped from the develop extra in favor of `ruff`, which is exposed as the `lint`/`format`/`fix`/`format-check` pixi tasks.
+* `static-analysis.yml` no longer calls the ASFHyP3 reusable ruff workflow, which set its environment up with `mamba-org/setup-micromamba` and `environment.yml`; the ruff job is inlined and runs through pixi so CI uses the same pinned `ruff` as local development. The reusable secrets-analysis workflow is unchanged.
 * Type hints modernized to PEP 604 unions (`X | Y`) now that python 3.10 is the floor.
 
 ### Fixed
@@ -19,6 +20,7 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 * `environment.yml` - superseded by the pixi manifest in `pyproject.toml`.
+* The `python -m pip install --no-deps .` step in `test.yml` - `dem_stitcher` is registered under `[tool.pixi.pypi-dependencies]` as an editable install, so `pixi install` already puts it in every environment.
 
 
 ## [2.5.13] - 2026-02-09
