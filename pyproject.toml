@@ -160,6 +160,7 @@ importlib_metadata = ">=9.0.0,<10"
 jupyterlab = ">=4.6.2,<5"
 jupyter-collaboration = ">=5.0.0,<6"
 pip = ">=26.2.1,<27"
+papermill = ">=2.7.0,<3"
 
 [tool.pixi.feature.py310.dependencies]
 python = "3.10.*"
