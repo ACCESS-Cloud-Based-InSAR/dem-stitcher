@@ -1,8 +1,8 @@
 import shutil
 import uuid
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import Callable, Union
 from warnings import warn
 
 import numpy as np
@@ -102,7 +102,7 @@ def get_dem_tile_paths(
     dem_name: str,
     localize_tiles_to_gtiff: bool = False,
     n_threads_downloading: int = 5,
-    tile_dir: Union[str, Path, None] = None,
+    tile_dir: str | Path | None = None,
     overwrite_existing_tiles: bool = False,
 ) -> list[str]:
     """Obtain paths or urls to DEM tiles.
@@ -182,11 +182,11 @@ def merge_and_transform_dem_tiles(
     dem_name: str,
     dst_ellipsoidal_height: bool = True,
     dst_area_or_point: str = 'Area',
-    dst_resolution: Union[float, tuple[float]] = None,
+    dst_resolution: float | tuple[float] = None,
     num_threads_reproj: int = 5,
     merge_nodata_value: float = np.nan,
     n_threads_for_reading_tile_data: int = 5,
-    geoid_path: Union[str, Path, None] = None,
+    geoid_path: str | Path | None = None,
 ) -> tuple[np.ndarray, dict]:
     dem_arr, dem_profile = merge_tile_datasets_within_extent(
         datasets, bounds, nodata=merge_nodata_value, dtype=np.float32, n_threads=n_threads_for_reading_tile_data
@@ -271,13 +271,13 @@ def stitch_dem(
     dem_name: str,
     dst_ellipsoidal_height: bool = True,
     dst_area_or_point: str = 'Area',
-    dst_resolution: Union[float, tuple[float]] = None,
+    dst_resolution: float | tuple[float] = None,
     n_threads_reproj: int = 5,
     n_threads_downloading: int = 10,
     fill_in_glo_30: bool = True,
     merge_nodata_value: float = np.nan,
-    geoid_path: Union[str, Path] = None,
-    dst_tile_dir: Union[Path, str, None] = None,
+    geoid_path: str | Path = None,
+    dst_tile_dir: Path | str | None = None,
     overwrite_existing_tiles: bool = False,
 ) -> tuple[np.ndarray, dict]:
     """Specify extents (xmin, ymin, xmax, ymax) to obtain a continuous DEM raster.

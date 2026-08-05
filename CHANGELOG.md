@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.14] - 2026-08-05
+
+### Changed
+* Environment management migrated from conda/mamba to [pixi](https://pixi.sh); all configuration lives under `[tool.pixi.*]` in `pyproject.toml` and `pixi.lock` is committed.
+* Minimum supported python raised from 3.9 to 3.10; CI matrix now runs the `py310`-`py313` pixi environments via `prefix-dev/setup-pixi`.
+* `flake8` and its plugins dropped from the develop extra in favor of `ruff`, which is exposed as the `lint`/`format`/`fix`/`format-check` pixi tasks.
+* `static-analysis.yml` no longer calls the ASFHyP3 reusable ruff workflow, which set its environment up with `mamba-org/setup-micromamba` and `environment.yml`; the ruff job is inlined and runs through pixi so CI uses the same pinned `ruff` as local development. The reusable secrets-analysis workflow is unchanged.
+* Type hints modernized to PEP 604 unions (`X | Y`) now that python 3.10 is the floor.
+
+### Fixed
+* `test_mask_differences_with_merge_nodata_values_with_ellipsoidal` compared `float32` geoid values at `decimal=6`, which is below `float32` resolution at those magnitudes; it now uses `assert_allclose` with a `1e-6` relative tolerance so single-ULP differences across GDAL builds do not fail the suite.
+
+### Removed
+* `environment.yml` - superseded by the pixi manifest in `pyproject.toml`.
+* The `python -m pip install --no-deps .` step in `test.yml` - `dem_stitcher` is registered under `[tool.pixi.pypi-dependencies]` as an editable install, so `pixi install` already puts it in every environment.
+
+
 ## [2.5.13] - 2026-02-09
 
 ### Removed
