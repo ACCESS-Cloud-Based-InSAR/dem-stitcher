@@ -5,21 +5,16 @@ from warnings import warn
 
 import geopandas as gpd
 import pandas as pd
-from rasterio.crs import CRS
 from shapely.geometry import box
 
 from .dateline import check_4326_bounds, get_dateline_crossing
 from .exceptions import DEMNotSupported
-from .geojson_io import read_geojson_gzip
 
 
 DATA_PATH = Path(__file__).parents[0].absolute() / 'data'
 
-# Get Datasets
-_DATASET_PATHS = list(DATA_PATH.glob('*.geojson.zip'))
-_DATASETS_ALL = list(map(lambda x: x.name.split('.')[0], _DATASET_PATHS))
-_DATASETS_TO_EXCLUDE = ['srtm_v3', 'nasadem']  # removed from LPDAAC and moving s3 (see issue #138)
-DATASETS = [ds for ds in _DATASETS_ALL if ds not in _DATASETS_TO_EXCLUDE]
+_DATASET_PATHS = list(DATA_PATH.glob('*.parquet'))
+DATASETS = sorted(map(lambda x: x.stem, _DATASET_PATHS))
 
 
 def get_available_datasets() -> list[str]:
@@ -48,9 +43,8 @@ def get_global_dem_tile_extents(dataset: str) -> gpd.GeoDataFrame:
     """
     if dataset not in DATASETS:
         raise DEMNotSupported(f'{dataset} must be in {", ".join(DATASETS)}')
-    df = read_geojson_gzip(DATA_PATH / f'{dataset}.geojson.zip')
+    df = gpd.read_parquet(DATA_PATH / f'{dataset}.parquet')
     df['dem_name'] = dataset
-    df.crs = CRS.from_epsg(4326)
     return df
 
 

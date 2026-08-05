@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-08-05
+
+### Added
+* Support for `srtm_v3` and `nasadem` restored; tile urls now point to the LP DAAC Earthdata Cloud archive (`https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/...`), which replaced the retired `e4ftl01.cr.usgs.gov` hosting (see Issue #138 and this [Earthdata forum thread](https://forum.earthdata.nasa.gov/viewtopic.php?p=25179)). Earthdata credentials in `~/.netrc` are still required.
+* `pyarrow` as a runtime dependency for reading the geoparquet tile tables.
+
+### Changed
+* Tile tables migrated from `*.geojson.zip` (gzipped GeoJSON) to geoparquet (`*.parquet` with `zstd` compression); `datasets.py` reads them with `gpd.read_parquet`. The `geojson_io` module remains available.
+* The `organize_tile_data` notebooks write geoparquet and form the new LP DAAC cloud urls.
+
+
 ## [2.5.14] - 2026-08-05
 
 ### Changed

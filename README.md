@@ -95,7 +95,7 @@ machine urs.earthdata.nasa.gov
 We have notebooks to demonstrate common usage:
 
 + [Basic Demo](notebooks/Basic_Demo.ipynb)
-+ [Comparing DEMs](notebooks/Comparing_DEMs.ipynb) - `srtm_v3` and `nasadem` are currently being migrated so this no longer works.
++ [Comparing DEMs](notebooks/Comparing_DEMs.ipynb)
 + [Generating a VRT from source DEM tiles](notebooks/Merging_DEM_Tiles_into_a_VRT.ipynb)
 + [Staging a DEM for ISCE2](notebooks/Staging_a_DEM_for_ISCE2.ipynb) - this notebook requires the installation of a few extra libraries including ISCE2 via `conda-forge`
 
@@ -107,19 +107,19 @@ The [DEMs](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/tree/main/de
 
 ```
 In [1]: from dem_stitcher.datasets import DATASETS; DATASETS
-Out[1]: ['srtm_v3', 'nasadem', 'glo_90_missing', 'glo_30', '3dep', 'glo_90']
+Out[1]: ['3dep', 'glo_30', 'glo_90', 'glo_90_missing', 'nasadem', 'srtm_v3']
 ```
 The shortnames aboves are the strings required to use `stitch_dem`. Below, we expound upon these DEM shortnames and link to their respective data repositories.
 
 1. `glo_30`/`glo_90`: Copernicus GLO-30/GLO-90 DEM. The tile sets are the 30 and 90 meter resolution, respectively [[link](https://registry.opendata.aws/copernicus-dem/)].
 2. The USGS DEM `3dep`: 3Dep 1/3 arc-second over North America - we are storing the ~10 meter resolution dataset. There are many more as noted [here](https://www.usgs.gov/the-national-map-data-delivery/gis-data-download?qt-science_support_page_related_con=0#qt-science_support_page_related_con). The files for these DEMs are [here](https://prd-tnm.s3.amazonaws.com/index.html?prefix=StagedProducts/)
-3. `srtm_v3`: SRTM v3 [[link](https://dwtkns.com/srtm30m/)] - being migrated - currently not supported
-4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)] - being migrated - currently not supported
+3. `srtm_v3`: SRTM v3 [[link](https://lpdaac.usgs.gov/products/srtmgl1v003/)] - tiles are downloaded from the LP DAAC Earthdata Cloud archive and require Earthdata credentials in `~/.netrc` (see [Credentials](#credentials))
+4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)] - tiles are downloaded from the LP DAAC Earthdata Cloud archive and require Earthdata credentials in `~/.netrc` (see [Credentials](#credentials))
 5. `glo_90_missing`: these are tiles that are in `glo_90` but not in `glo_30`. They are over the countries Armenia and Azerbaijan. Used internally to help fill in gaps in coverage of `glo_30`.
 
  All the tiles are given in lat/lon CRS (i.e. `epsg:4326` for global tiles or `epsg:4269` for USGS tiles in North America). A notable omission to the tile sets is the Artic DEM [here](https://www.pgc.umn.edu/data/arcticdem/), which is suitable for DEMs merged at the north pole of the globe due to lat/lon distortion.
 
- If there are issues with obtaining dem tiles from urls embedded within the geojson tiles (e.g. a `404` error as [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/48)), please see the [Development](#for-development) section below and/or open an issue ticket.
+ If there are issues with obtaining dem tiles from urls embedded within the geoparquet tile tables (e.g. a `404` error as [here](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/48)), please see the [Development](#for-development) section below and/or open an issue ticket.
 
 # DEM Transformations
 
@@ -162,7 +162,7 @@ pixi run fix
 
 If urls or readers need to be updated (they consistently do) or you want to add a new global or large DEM, then there are two points of contact:
 
-1. The notebooks that format the geojsons used for this library are [here](notebooks/organize_tile_data/)
+1. The notebooks that format the geoparquet tile tables used for this library are [here](notebooks/organize_tile_data/)
 2. The readers are [here](dem_stitcher/dem_readers.py)
 
 The former is the more likely. When re-generating tiles, make sure to run all tests including integration tests (i.e. `pytest tests`). For example, if regenerating `glo` tiles, `glo-30` requires both resolution parameters (30 meters and 90 meters) and an additional notebook for filling in missing 30 meter tiles. These should be clearly spelled out in the notebook linked above.
