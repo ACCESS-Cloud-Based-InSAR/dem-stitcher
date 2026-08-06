@@ -198,7 +198,7 @@ def merge_and_transform_dem_tiles(
     bounds: list,
     dem_name: str,
     dst_ellipsoidal_height: bool = True,
-    dst_area_or_point: str = 'Point',
+    dst_area_or_point: str | None = None,
     dst_resolution: float | tuple[float] = None,
     num_threads_reproj: int = 5,
     merge_nodata_value: float = np.nan,
@@ -212,6 +212,7 @@ def merge_and_transform_dem_tiles(
     # to be np.nan
     dem_profile['nodata'] = np.nan
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
+    dst_area_or_point = dst_area_or_point or src_area_or_point
 
     # Reproject to 4326 for USGS DEMs over North America
     # Note 4269 is almost identical to 4326 and often no changes are made
@@ -288,7 +289,7 @@ def stitch_dem(
     bounds: list,
     dem_name: str,
     dst_ellipsoidal_height: bool = True,
-    dst_area_or_point: str = 'Point',
+    dst_area_or_point: str | None = None,
     dst_resolution: float | tuple[float] = None,
     n_threads_reproj: int = 5,
     n_threads_downloading: int = 10,
@@ -309,11 +310,12 @@ def stitch_dem(
     dst_ellipsoidal_height : bool, optional
         If True, removes the geoid. If not, then they are in the reference geoid height. By default True.
         `nisar_dem` is distributed with ellipsoidal heights so requires True.
-    dst_area_or_point : str, optional
-        Can be 'Area' or 'Point'. The former means each pixel is referenced with respect to the upper
-        left corner. The latter means the pixel is centered at its own center. By default 'Point', which keeps
-        the output on the native grid of pixel-centered DEMs (e.g. `glo_30`) and matches the NISAR DEM.
-        This is a pure relabeling of the transform; the height samples are identical either way.
+    dst_area_or_point : str | None, optional
+        Can be 'Area', 'Point', or None. 'Area' means each pixel is referenced with respect to its upper
+        left corner; 'Point' means the pixel is referenced at its own center. By default None, which inherits
+        the source DEM's registration so the output stays on the native grid - 'Point' for all supported DEMs
+        except `3dep` ('Area') - and matches the NISAR DEM for `glo_30`.
+        This is a pure relabeling of the transform; the height samples are identical in all cases.
     dst_resolution : float | tuple[float], optional
         Can be float (square pixel with float resolution) or (x_res, y_res). When None is specified,
         then the DEM tile resolution is used. By default None
@@ -348,6 +350,8 @@ def stitch_dem(
     # Used for filling in glo_30 missing tiles if needed
     stitcher_kwargs = locals()
 
+    if dst_area_or_point not in ['Area', 'Point', None]:
+        raise ValueError("dst_area_or_point must be 'Area', 'Point', or None")
     # Make sure geoid kwargs are correct
     if geoid_path is not None:
         if not dst_ellipsoidal_height:

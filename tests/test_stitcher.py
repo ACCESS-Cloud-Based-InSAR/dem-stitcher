@@ -120,6 +120,36 @@ def test_area_and_point_outputs_have_identical_samples(
     assert p_area['transform'] == translate_profile(p_point, 0.5, 0.5)['transform']
 
 
+def test_dst_area_or_point_none_inherits_source_registration(
+    get_los_angeles_tile_dataset: Callable[[str], rasterio.DatasetReader],
+) -> None:
+    """The default `dst_area_or_point=None` keeps the source registration ('Point' for glo_30 tiles)."""
+    bounds = [-118.8, 34.6, -118.5, 34.8]
+
+    results = {}
+    for tag in [None, 'Point']:
+        datasets = [get_los_angeles_tile_dataset('glo_30')]
+        results[tag] = merge_and_transform_dem_tiles(
+            datasets,
+            bounds,
+            dem_name='glo_30',
+            dst_ellipsoidal_height=False,
+            dst_area_or_point=tag,
+        )
+        datasets[0].close()
+
+    X_inherited, p_inherited = results[None]
+    X_point, p_point = results['Point']
+
+    assert p_inherited['transform'] == p_point['transform']
+    assert_array_equal(X_inherited, X_point)
+
+
+def test_bad_dst_area_or_point() -> None:
+    with pytest.raises(ValueError, match="dst_area_or_point must be 'Area', 'Point', or None"):
+        stitch_dem([-118.8, 34.6, -118.5, 34.8], dem_name='glo_30', dst_area_or_point='foo')
+
+
 @pytest.mark.integration
 @pytest.mark.parametrize('dem_name', DATASETS)
 def test_download_dem(dem_name: str) -> None:

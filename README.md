@@ -45,7 +45,7 @@ X, p = stitch_dem(bounds,
                   dem_name='glo_30',
                   # The defaults, spelled out
                   dst_ellipsoidal_height=True,   # remove EGM2008 
-                  dst_area_or_point='Point',     # keep the native pixel-centered Copernicus grid
+                  dst_area_or_point=None,        # inherit the source registration; glo_30 is pixel-centered ('Point')
                   dst_resolution=None)           # keep the native tile resolution
 ```
 
@@ -53,23 +53,13 @@ agrees with `stitch_dem(bounds, dem_name='nisar_dem')` pixel-for-pixel in georef
 
 # Installation
 
-`dem_stitcher` can be installed into a conda environment with
+We recommend [pixi](https://pixi.sh/latest/#installation). To add `dem_stitcher` to your own project:
 
-```
-conda install -c conda-forge dem_stitcher
-```
-
-or into a virtual environment with
-
-```
-python -m pip install dem_stitcher
+```bash
+pixi add dem_stitcher
 ```
 
-Currently, python 3.10+ is supported.
-
-### Pixi (recommended for development)
-
-Install [pixi](https://pixi.sh/latest/#installation), then:
+To work from a clone of this repo (which installs `dem_stitcher` in editable mode along with the notebook and test dependencies):
 
 ```bash
 git clone https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher.git
@@ -86,6 +76,22 @@ pixi run jupyter lab
 
 The default environment uses python 3.13. Environments named `py310`, `py311`, `py312`, and
 `py313` are also defined and can be selected with `pixi run -e py312 ...`.
+
+## Other installation methods
+
+`dem_stitcher` can also be installed into a conda environment with
+
+```
+conda install -c conda-forge dem_stitcher
+```
+
+or into a virtual environment with
+
+```
+python -m pip install dem_stitcher
+```
+
+Currently, python 3.10+ is supported.
 
 ## With ISCE2 or gdal
 
@@ -156,6 +162,7 @@ Wherever possible, we do not resample the original DEMs unless specified by the 
 3. Georeferenced rasters can be tied to map coordintaes using either (a) upper-left corners of pixels or (b) the pixel centers i.e. `Point` and `Area` tags in `gdal`, respectively, and seen as `{'AREA_OR_POINT: 'Point'}`. Note that tying a pixel to the upper-left cortner (i.e. `Area` tag) is the *default* pixel reference for `gdal` as indicated [here](https://gdal.org/tutorials/geotransforms_tut.html). Some helpful resources in reference to DEMs about this book-keeping are below.
    + SRTM v3, NASADEM, and TDX are [Pixel-centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904), i.e. `{'AREA_OR_POINT: 'Point'}`.
    + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects), i.e. `{'AREA_OR_POINT: 'Area'}`.
+   + By default (`dst_area_or_point=None`), the output inherits the source registration: `'Point'` for all supported DEMs except `3dep`, which is `'Area'`. Passing `'Area'` or `'Point'` explicitly relabels the output transform by half a pixel; the height samples are identical in all cases since the geoid is removed on the native grid beforehand.
 4. Transform geoid heights to WGS84 Ellipsoidal height. This is done using the rasters [here](https://www.agisoft.com/downloads/geoids/). We:
    + Interpolate the geoid (with cubic resampling) at the *native* DEM sample locations, i.e. before any `Area`/`Point` relabeling of the output grid, so that `dst_area_or_point` only shifts the output transform by half a pixel and never changes the height samples (see [#151](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/151))
    + Adjust the vertical datum
