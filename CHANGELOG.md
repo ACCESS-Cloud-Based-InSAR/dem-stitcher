@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.6.0] - 2026-08-05
+## [3.0.0] - 2026-08-05
 
 ### Added
 * Support for the NISAR DEM v1.2 (`nisar_dem`) - the Copernicus GLO-30 (2023_1) re-referenced to the WGS84 ellipsoid by JPL and hosted in the NASA Earthdata cloud ([docs](https://nisar-docs.asf.alaska.edu/nisar-dem/)). Only the `epsg:4326` tile set is cataloged (64,800 global 1 x 1 degree COG tiles enumerated from the nested source VRTs). Tiles are read directly as COGs; Earthdata credentials in `~/.netrc` are required and `earthdata_gdal_env` provides a `rasterio.Env` with the GDAL netrc/cookie options for the Earthdata cloud redirect.
