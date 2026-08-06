@@ -177,9 +177,11 @@ def test_merge_in_memory_datasets_drop_creation_options(monkeypatch: pytest.Monk
     """Creation options from a source COG must not reach the in-memory datasets that `merge` reads back.
 
     `compress` puts GDAL into multi-threaded compression, which returns nodata to those read backs when
-    `GDAL_NUM_THREADS` is large.
+    `GDAL_NUM_THREADS` is large. Aligned grids normally take the numpy fast path and never open a
+    MemoryFile, so the fallback is forced here to keep the guard covered.
     See: https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/157
     """
+    monkeypatch.setattr('dem_stitcher.merge._merge_aligned_arrays', lambda *args: None)
     open_kwargs = []
     memory_file_open = MemoryFile.open
 
@@ -216,3 +218,66 @@ def test_merge_in_memory_datasets_drop_creation_options(monkeypatch: pytest.Monk
     assert_array_equal(merged_array[0, :, size:], arrays[1])
     # The returned profile still describes how the merged array should be written
     assert merged_profile['compress'] == 'deflate'
+
+
+def _random_aligned_inputs(nodata: float, seed: int = 42) -> tuple[list[np.ndarray], list[dict]]:
+    rng = np.random.default_rng(seed)
+    size = 16
+    resolution = 0.1
+    offsets_px = [(0, 0), (8, 4), (3, 11), (-5, 20)]
+    arrays, profiles = [], []
+    for dx, dy in offsets_px:
+        array = rng.uniform(1, 10, (size, size)).astype(np.float32)
+        array[rng.uniform(size=(size, size)) < 0.2] = nodata
+        arrays.append(array)
+        profiles.append(
+            {
+                'driver': 'GTiff',
+                'dtype': np.float32,
+                'count': 1,
+                'height': size,
+                'width': size,
+                'crs': CRS.from_epsg(4326),
+                'transform': from_origin(-50 + dx * resolution, 25 + dy * resolution, resolution, resolution),
+                'nodata': nodata,
+            }
+        )
+    return arrays, profiles
+
+
+@pytest.mark.parametrize('method', ['first', 'last', 'min', 'max', 'sum', 'count'])
+@pytest.mark.parametrize('nodata', [np.nan, 0.0])
+def test_aligned_numpy_merge_matches_rasterio_merge(
+    method: str, nodata: float, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The numpy fast path for pixel-aligned grids must be bit-identical to the MemoryFile + rasterio.merge path."""
+    arrays, profiles = _random_aligned_inputs(nodata)
+
+    arr_fast, prof_fast = merge_arrays_with_geometadata(arrays, profiles, method=method)
+
+    monkeypatch.setattr('dem_stitcher.merge._merge_aligned_arrays', lambda *args: None)
+    arr_slow, prof_slow = merge_arrays_with_geometadata(arrays, profiles, method=method)
+
+    assert_array_equal(arr_fast, arr_slow)
+    assert prof_fast['transform'] == prof_slow['transform']
+    assert (prof_fast['height'], prof_fast['width']) == (prof_slow['height'], prof_slow['width'])
+    assert np.isnan(nodata) and np.isnan(prof_fast['nodata']) or prof_fast['nodata'] == prof_slow['nodata']
+
+
+def test_numpy_merge_declines_unaligned_grids() -> None:
+    from dem_stitcher.merge import _merge_aligned_arrays
+
+    arrays, profiles = _random_aligned_inputs(np.nan)
+    arrays = [arr[np.newaxis, ...] for arr in arrays]
+    assert _merge_aligned_arrays(arrays, profiles, np.nan, np.float32, 'first') is not None
+
+    resolution = 0.1
+    for transform in [
+        from_origin(-50 + 0.5 * resolution, 25, resolution, resolution),  # sub-pixel offset
+        from_origin(-50, 25, resolution / 3, resolution / 3),  # different resolution
+    ]:
+        profiles_unaligned = [profiles[0], {**profiles[1], 'transform': transform}]
+        assert _merge_aligned_arrays(arrays[:2], profiles_unaligned, np.nan, np.float32, 'first') is None
+
+    profiles_other_crs = [profiles[0], {**profiles[1], 'crs': CRS.from_epsg(4269)}]
+    assert _merge_aligned_arrays(arrays[:2], profiles_other_crs, np.nan, np.float32, 'first') is None

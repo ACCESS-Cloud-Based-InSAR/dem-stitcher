@@ -34,7 +34,7 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
    ds.write(X, 1)
    ds.update_tags(AREA_OR_POINT='Point')
 ```
-The rasters are returned in the global lat/lon projection `epsg:4326` and the API assumes that bounds are supplied in this format.
+The rasters are returned in the global lat/lon projection `epsg:4326` and the API assumes that bounds are supplied in this format. We try to do the resampling and transformations all in memory to avoid unnecessary i/o and forgotten files.
 
 ## Matching the NISAR DEM
 
