@@ -74,8 +74,9 @@ For JupyterLab (with `jupyter-collaboration` for real-time collaborative editing
 pixi run jupyter lab
 ```
 
-The default environment uses python 3.13. Environments named `py310`, `py311`, `py312`, and
-`py313` are also defined and can be selected with `pixi run -e py312 ...`.
+The default environment is the only one installed locally and uses python 3.14. Environments
+named `py310` through `py313` are declared for the CI matrix and are built on demand with
+`pixi run -e py312 ...`; remove one again with `pixi clean -e py312`.
 
 ## Other installation methods
 

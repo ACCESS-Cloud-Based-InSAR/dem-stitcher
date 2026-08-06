@@ -6,9 +6,11 @@ import rasterio
 from affine import Affine
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
+from rasterio.io import MemoryFile
 from rasterio.transform import from_origin
 
 from dem_stitcher.merge import merge_arrays_with_geometadata, merge_tile_datasets_within_extent
+from dem_stitcher.rio_tools import GEOMETADATA_KEYS
 
 
 # from dem_stitcher.datasets import DATASETS
@@ -169,3 +171,48 @@ def test_merge_in_memory() -> None:
         ]
     )
     assert np.isnan(merged_profile_actual['nodata'])
+
+
+def test_merge_in_memory_datasets_drop_creation_options(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Creation options from a source COG must not reach the in-memory datasets that `merge` reads back.
+
+    `compress` puts GDAL into multi-threaded compression, which returns nodata to those read backs when
+    `GDAL_NUM_THREADS` is large.
+    See: https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/157
+    """
+    open_kwargs = []
+    memory_file_open = MemoryFile.open
+
+    def record_open(self: MemoryFile, **kwargs: dict) -> rasterio.DatasetReader:
+        open_kwargs.append(kwargs)
+        return memory_file_open(self, **kwargs)
+
+    monkeypatch.setattr(MemoryFile, 'open', record_open)
+
+    size = 8
+    cog_profile = {
+        'driver': 'GTiff',
+        'dtype': np.float32,
+        'count': 1,
+        'height': size,
+        'width': size,
+        'crs': CRS.from_epsg(4326),
+        'transform': from_origin(-50, 25, 0.1, 0.1),
+        'nodata': np.nan,
+        'compress': 'deflate',
+        'tiled': True,
+        'blockxsize': 256,
+        'blockysize': 256,
+        'interleave': 'band',
+    }
+    profile_right = {**cog_profile, 'transform': from_origin(-50 + size * 0.1, 25, 0.1, 0.1)}
+    arrays = [np.ones((size, size), dtype=np.float32), np.full((size, size), 2, dtype=np.float32)]
+
+    merged_array, merged_profile = merge_arrays_with_geometadata(arrays, [cog_profile, profile_right])
+
+    assert len(open_kwargs) == 2
+    assert all(set(kwargs) <= set(GEOMETADATA_KEYS) for kwargs in open_kwargs)
+    assert_array_equal(merged_array[0, :, :size], arrays[0])
+    assert_array_equal(merged_array[0, :, size:], arrays[1])
+    # The returned profile still describes how the merged array should be written
+    assert merged_profile['compress'] == 'deflate'

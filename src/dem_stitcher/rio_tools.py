@@ -6,6 +6,20 @@ from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, aligned_target, calculate_default_transform, reproject
 
 
+GEOMETADATA_KEYS = ('driver', 'dtype', 'nodata', 'width', 'height', 'count', 'crs', 'transform')
+
+
+def in_memory_profile(profile: dict) -> dict:
+    """Strip creation options (compression, tiling, interleaving) from a profile.
+
+    In-memory datasets are written and then read back before they are closed. Creation options inherited from a
+    source COG - notably `compress` - put GDAL into multi-threaded compression, whose queued writes are not
+    reliably visible to those read backs when `GDAL_NUM_THREADS` is large.
+    See: https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/157
+    """
+    return {**{key: profile[key] for key in GEOMETADATA_KEYS if key in profile}, 'driver': 'GTiff'}
+
+
 def translate_profile(
     profile: dict,
     x_shift: float,
@@ -59,7 +73,7 @@ def translate_dataset(dataset: DatasetReader, x_shift: float, y_shift: float) ->
     memfile = MemoryFile()
     profile = dataset.profile
     profile_translated = translate_profile(profile, x_shift=x_shift, y_shift=y_shift)
-    dataset_new = memfile.open(**profile_translated)
+    dataset_new = memfile.open(**in_memory_profile(profile_translated))
     dataset_new.write(dataset.read())
     dataset.close()
 

@@ -11,6 +11,7 @@ from rasterio.windows import Window
 from shapely.geometry import box
 from tqdm import tqdm
 
+from .rio_tools import in_memory_profile
 from .rio_window import format_window_profile, get_window_from_extent
 
 
@@ -137,7 +138,7 @@ def merge_arrays_with_geometadata(
         raise ValueError('Length of arrays and profiles needs to be the same')
 
     memfiles = [MemoryFile() for p in profiles]
-    datasets = [mfile.open(**p) for (mfile, p) in zip(memfiles, profiles)]
+    datasets = [mfile.open(**in_memory_profile(p)) for (mfile, p) in zip(memfiles, profiles)]
     [ds.write(arr) for (ds, arr) in zip(datasets, arrays_input)]
 
     if dtype is None:

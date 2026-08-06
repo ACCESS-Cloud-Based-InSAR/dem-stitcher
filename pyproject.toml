@@ -19,6 +19,7 @@ classifiers = [
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
 ]
 
 dynamic = ['version', 'readme']
@@ -174,8 +175,13 @@ python = "3.12.*"
 [tool.pixi.feature.py313.dependencies]
 python = "3.13.*"
 
+[tool.pixi.feature.py314.dependencies]
+python = "3.14.*"
+
+# `default` is the newest supported python and the only environment installed locally.
+# The pyXYZ environments exist for the CI matrix; `pixi run -e py310 ...` builds one on demand.
 [tool.pixi.environments]
-default = { features = ["py313"], solve-group = "py313" }
+default = { features = ["py314"], solve-group = "py314" }
 py310 = { features = ["py310"], solve-group = "py310" }
 py311 = { features = ["py311"], solve-group = "py311" }
 py312 = { features = ["py312"], solve-group = "py312" }

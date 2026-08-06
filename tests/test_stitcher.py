@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import rasterio
 from affine import Affine
-from numpy.testing import assert_allclose, assert_almost_equal, assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 from osgeo import gdal
 from rasterio import default_gtiff_profile
 from shapely.geometry import box
@@ -299,7 +299,9 @@ def test_against_golden_datasets(
         dst_area_or_point='Point',
         dst_resolution=dst_resolution,
     )
-    assert_almost_equal(X_golden, X, decimal=7)
+    # The golden GeoTIFFs are float32, so a single ULP at DEM magnitudes (~150 m) is already ~1.5e-5.
+    # GDAL/numpy builds across the CI matrix differ by an ULP on isolated pixels; compare at 0.1 mm instead.
+    assert_allclose(X_golden, X, rtol=1e-6, atol=1e-4)
     assert transform_golden == p['transform']
 
 
