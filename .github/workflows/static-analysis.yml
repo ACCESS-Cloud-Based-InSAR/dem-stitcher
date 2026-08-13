@@ -9,7 +9,7 @@ jobs:
   check-with-ruff:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: prefix-dev/setup-pixi@v0.9.1
         with:
