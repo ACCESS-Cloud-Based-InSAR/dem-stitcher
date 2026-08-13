@@ -22,6 +22,7 @@ from .merge import merge_arrays_with_geometadata, merge_tile_datasets_within_ext
 from .rio_tools import (
     reproject_arr_to_match_profile,
     reproject_arr_to_new_crs,
+    reproject_profile_to_new_crs,
     translate_dataset,
     translate_profile,
     update_profile_resolution,
@@ -45,6 +46,8 @@ ELLIPSOIDAL_HEIGHT_DEMS = ['nisar_dem']
 DEFAULT_GTIFF_PROFILE = default_gtiff_profile.copy()
 DEFAULT_GTIFF_PROFILE.pop('nodata')
 DEFAULT_GTIFF_PROFILE.pop('dtype')
+EPSG_4269 = CRS.from_epsg(4269)
+EPSG_4326 = CRS.from_epsg(4326)
 # Datasets read through GDAL (as opposed to `requests`) that require Earthdata login
 GDAL_EARTHDATA_DEMS = ['nisar_dem']
 
@@ -65,12 +68,12 @@ def _download_and_write_one_tile_to_gtiff(url: str, dest_path: Path, reader: Cal
 
 
 def download_tiles_to_gtiff(
-    urls: list,
+    urls: list[str],
     dem_name: str,
     dest_dir: Path,
     max_workers_for_download: int = 5,
     overwrite_existing_tiles: bool = False,
-) -> list[Path]:
+) -> list[str]:
     tile_ids = list(map(lambda x: x.split('/')[-1], urls))
 
     def extract_dest_path_from_url(tile_id: str) -> Path:
@@ -86,7 +89,7 @@ def download_tiles_to_gtiff(
     dest_paths = list(map(extract_dest_path_from_url, tile_ids))
     reader = RASTER_READERS[dem_name]
 
-    def download_and_write_one_partial(zipped_data: list) -> dict:
+    def download_and_write_one_partial(zipped_data: tuple[str, Path]) -> dict:
         return _download_and_write_one_tile_to_gtiff(zipped_data[0], zipped_data[1], reader, dem_name)
 
     # filter non existing destination path
@@ -103,8 +106,7 @@ def download_tiles_to_gtiff(
             )
         )
 
-    dest_paths_str = list(map(str, dest_paths))
-    return dest_paths_str
+    return list(map(str, dest_paths))
 
 
 def get_dem_tile_paths(
@@ -153,30 +155,25 @@ def get_dem_tile_paths(
     if dem_name in EARTHDATA_DEMS:
         ensure_earthdata_credentials()
 
-    if not localize_tiles_to_gtiff:
-        # Datasets that permit direct reading
-        if dem_name in DIRECT_READ_DEMS:
-            dem_paths = urls
-        else:
-            warn(f'We need to localize the tiles as a Geotiff. Saving to {str(tile_dir)}', category=UserWarning)
+    # Datasets that permit direct reading
+    if (dem_name in DIRECT_READ_DEMS) and not localize_tiles_to_gtiff:
+        return urls
 
-    if (dem_name not in DIRECT_READ_DEMS) or localize_tiles_to_gtiff:
-        if isinstance(tile_dir, str):
-            tile_dir = Path(tile_dir)
-        if tile_dir is None:
-            tile_dir = Path(dem_name)
-        if tile_dir.exists():
-            warn(f'The directory{tile_dir} exists; We are writing new files to this directory', category=UserWarning)
-        tile_dir.mkdir(exist_ok=True, parents=True)
-        with get_gdal_env(dem_name):
-            dem_paths = download_tiles_to_gtiff(
-                urls,
-                dem_name,
-                tile_dir,
-                max_workers_for_download=n_threads_downloading,
-                overwrite_existing_tiles=overwrite_existing_tiles,
-            )
-    return dem_paths
+    tile_dir = Path(tile_dir) if tile_dir is not None else Path(dem_name)
+    if not localize_tiles_to_gtiff:
+        warn(f'We need to localize the tiles as a Geotiff. Saving to {tile_dir}', category=UserWarning)
+    if tile_dir.exists():
+        warn(f'The directory {tile_dir} exists; We are writing new files to this directory', category=UserWarning)
+    tile_dir.mkdir(exist_ok=True, parents=True)
+
+    with get_gdal_env(dem_name):
+        return download_tiles_to_gtiff(
+            urls,
+            dem_name,
+            tile_dir,
+            max_workers_for_download=n_threads_downloading,
+            overwrite_existing_tiles=overwrite_existing_tiles,
+        )
 
 
 def shift_profile_for_pixel_loc(src_profile: dict, src_area_or_point: str, dst_area_or_point: str) -> dict:
@@ -193,13 +190,27 @@ def shift_profile_for_pixel_loc(src_profile: dict, src_area_or_point: str, dst_a
     return profile_shifted
 
 
+def _build_target_profile(src_profile: dict, dst_resolution: float | tuple[float] | None) -> dict:
+    dst_profile = src_profile.copy()
+
+    # Reproject to 4326 for USGS DEMs over North America
+    # (Note 4269 is almost identical to 4326 and often no changes are made)
+    if dst_profile['crs'] == EPSG_4269:
+        dst_profile = reproject_profile_to_new_crs(dst_profile, EPSG_4326)
+
+    if dst_resolution is not None:
+        dst_profile = update_profile_resolution(dst_profile, dst_resolution)
+
+    return dst_profile
+
+
 def merge_and_transform_dem_tiles(
-    datasets: list,
-    bounds: list,
+    datasets: list[rasterio.DatasetReader],
+    bounds: list[float],
     dem_name: str,
     dst_ellipsoidal_height: bool = True,
     dst_area_or_point: str | None = None,
-    dst_resolution: float | tuple[float] = None,
+    dst_resolution: float | tuple[float] | None = None,
     num_threads_reproj: int = 5,
     merge_nodata_value: float = np.nan,
     n_threads_for_reading_tile_data: int = 5,
@@ -208,18 +219,21 @@ def merge_and_transform_dem_tiles(
     dem_arr, dem_profile = merge_tile_datasets_within_extent(
         datasets, bounds, nodata=merge_nodata_value, dtype=np.float32, n_threads=n_threads_for_reading_tile_data
     )
+    if dem_profile['crs'] not in (EPSG_4269, EPSG_4326):
+        raise ValueError('CRS must be epsg 4269 or 4326')
+
     # We could have merge_nodata_value that is zero and we want the final metadata
-    # to be np.nan
+    # to be np.nan.
     dem_profile['nodata'] = np.nan
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
     dst_area_or_point = dst_area_or_point or src_area_or_point
 
     # Reproject to 4326 for USGS DEMs over North America
     # Note 4269 is almost identical to 4326 and often no changes are made
-    if dem_profile['crs'] == CRS.from_epsg(4269):
-        dem_arr, dem_profile = reproject_arr_to_new_crs(dem_arr, dem_profile, CRS.from_epsg(4326))
+    if dem_profile['crs'] == EPSG_4269:
+        dem_arr, dem_profile = reproject_arr_to_new_crs(dem_arr, dem_profile, EPSG_4326)
 
-    if dem_profile['crs'] != CRS.from_epsg(4326):
+    if dem_profile['crs'] != EPSG_4326:
         raise ValueError('CRS must be epsg 4269 or 4326')
 
     # Remove the geoid on the native grid so it is sampled where the DEM samples physically are;
@@ -234,11 +248,15 @@ def merge_and_transform_dem_tiles(
         )
 
     dem_profile = shift_profile_for_pixel_loc(dem_profile, src_area_or_point, dst_area_or_point)
+    target_profile = _build_target_profile(dem_profile, dst_resolution)
 
-    if dst_resolution is not None:
-        dem_profile_res = update_profile_resolution(dem_profile, dst_resolution)
+    if dem_profile != target_profile:
         dem_arr, dem_profile = reproject_arr_to_match_profile(
-            dem_arr, dem_profile, dem_profile_res, num_threads=num_threads_reproj, resampling='bilinear'
+            dem_arr,
+            dem_profile,
+            target_profile,
+            num_threads=num_threads_reproj,
+            resampling='bilinear',
         )
 
     # Ensure dem_arr has correct shape
@@ -286,16 +304,16 @@ def _translate_one_tile_across_dateline(
 
 
 def stitch_dem(
-    bounds: list,
+    bounds: list[float],
     dem_name: str,
     dst_ellipsoidal_height: bool = True,
     dst_area_or_point: str | None = None,
-    dst_resolution: float | tuple[float] = None,
+    dst_resolution: float | tuple[float] | None = None,
     n_threads_reproj: int = 5,
     n_threads_downloading: int = 10,
     fill_in_glo_30: bool = True,
     merge_nodata_value: float = np.nan,
-    geoid_path: str | Path = None,
+    geoid_path: str | Path | None = None,
     dst_tile_dir: Path | str | None = None,
     overwrite_existing_tiles: bool = False,
 ) -> tuple[np.ndarray, dict]:
@@ -375,7 +393,8 @@ def stitch_dem(
 
     # Random unique identifier
     tmp_id = str(uuid.uuid4())
-    tile_dir = dst_tile_dir or Path(f'tmp_{tmp_id}')
+    tile_dir = Path(dst_tile_dir) if dst_tile_dir is not None else Path(f'tmp_{tmp_id}')
+    memory_files = []
 
     if dem_name in EARTHDATA_DEMS:
         ensure_earthdata_credentials()
@@ -417,7 +436,7 @@ def stitch_dem(
         crossing = get_dateline_crossing(bounds)
         if crossing:
             zipped_data = list(map(lambda ds: _translate_one_tile_across_dateline(ds, crossing), datasets))
-            memory_files, datasets = zip(*zipped_data)
+            memory_files, datasets = map(list, zip(*zipped_data))
 
         dem_arr, dem_profile = merge_and_transform_dem_tiles(
             datasets,
@@ -440,8 +459,7 @@ def stitch_dem(
         shutil.rmtree(str(tile_dir))
 
     # Created in memory file containers if there is a dateline crossing for translation
-    if crossing:
-        list(map(lambda mf: mf.close(), memory_files))
+    list(map(lambda mf: mf.close(), memory_files))
 
     # This is the case when we have overlap of the requested extent and glo_30
     # and glo_90 tiles that are missing from glo_30.
