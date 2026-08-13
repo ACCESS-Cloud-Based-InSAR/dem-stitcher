@@ -1,7 +1,5 @@
 import shutil
 import subprocess
-from pathlib import Path
-from typing import Callable, Union
 from collections.abc import Callable
 from pathlib import Path
 
@@ -124,7 +122,7 @@ def _make_memory_dem_dataset_4269() -> tuple[MemoryFile, rasterio.DatasetReader,
     ],
 )
 def test_output_profile_matches_requested_crs_and_resolution_for_4269_input(
-    dst_resolution: Union[float, tuple[float, float]], expected_res_xy: tuple[float, float]
+    dst_resolution: float | tuple[float, float], expected_res_xy: tuple[float, float]
 ) -> None:
     memfile, dataset, bounds = _make_memory_dem_dataset_4269()
     try:
