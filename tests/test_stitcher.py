@@ -204,6 +204,8 @@ def test_4269_reprojection_branch_matches_rio_warp(tmp_path: Path) -> None:
     assert dem_profile['width'] == expected_profile['width']
     assert dem_profile['height'] == expected_profile['height']
     assert_allclose(dem_arr, expected_arr, equal_nan=True, atol=1e-6)
+
+
 def test_area_and_point_outputs_have_identical_samples(
     get_los_angeles_tile_dataset: Callable[[str], rasterio.DatasetReader],
 ) -> None:
