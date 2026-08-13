@@ -4,7 +4,23 @@ on: push
 
 jobs:
   call-secrets-analysis-workflow:
-    uses: ASFHyP3/actions/.github/workflows/reusable-secrets-analysis.yml@v0.21.0
-  
-  call-ruff-workflow:
-    uses: ASFHyP3/actions/.github/workflows/reusable-ruff.yml@v0.21.0
+    uses: ASFHyP3/actions/.github/workflows/reusable-secrets-analysis.yml@v0.21.1
+
+  check-with-ruff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: prefix-dev/setup-pixi@v0.10.1
+        with:
+          pixi-version: latest
+          environments: default
+
+      - name: ruff check
+        run: |
+          pixi run ruff check --output-format=github src tests || (echo 'Run `pixi run fix` to automatically fix errors where possible.' && exit 1)
+
+      - name: ruff format
+        if: ${{ !cancelled() }}
+        run: |
+          pixi run ruff format --diff src tests || (echo 'Run `pixi run format` to automatically re-format.' && exit 1)
