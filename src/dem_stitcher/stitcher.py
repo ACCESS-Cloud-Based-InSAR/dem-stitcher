@@ -21,7 +21,7 @@ from .geoid import get_default_geoid_path, remove_geoid, validate_geoid_path
 from .merge import merge_arrays_with_geometadata, merge_tile_datasets_within_extent
 from .rio_tools import (
     reproject_arr_to_match_profile,
-    reproject_arr_to_new_crs,
+    reproject_profile_to_new_crs,
     translate_dataset,
     translate_profile,
     update_profile_resolution,
@@ -45,6 +45,8 @@ ELLIPSOIDAL_HEIGHT_DEMS = ['nisar_dem']
 DEFAULT_GTIFF_PROFILE = default_gtiff_profile.copy()
 DEFAULT_GTIFF_PROFILE.pop('nodata')
 DEFAULT_GTIFF_PROFILE.pop('dtype')
+EPSG_4269 = CRS.from_epsg(4269)
+EPSG_4326 = CRS.from_epsg(4326)
 # Datasets read through GDAL (as opposed to `requests`) that require Earthdata login
 GDAL_EARTHDATA_DEMS = ['nisar_dem']
 
@@ -193,6 +195,20 @@ def shift_profile_for_pixel_loc(src_profile: dict, src_area_or_point: str, dst_a
     return profile_shifted
 
 
+def _build_target_profile(src_profile: dict, dst_resolution: Union[float, tuple[float], None]) -> dict:
+    dst_profile = src_profile.copy()
+
+    # Reproject to 4326 for USGS DEMs over North America
+    # (Note 4269 is almost identical to 4326 and often no changes are made)
+    if dst_profile['crs'] == EPSG_4269:
+        dst_profile = reproject_profile_to_new_crs(dst_profile, EPSG_4326)
+
+    if dst_resolution is not None:
+        dst_profile = update_profile_resolution(dst_profile, dst_resolution)
+
+    return dst_profile
+
+
 def merge_and_transform_dem_tiles(
     datasets: list,
     bounds: list,
@@ -208,8 +224,11 @@ def merge_and_transform_dem_tiles(
     dem_arr, dem_profile = merge_tile_datasets_within_extent(
         datasets, bounds, nodata=merge_nodata_value, dtype=np.float32, n_threads=n_threads_for_reading_tile_data
     )
+    if dem_profile['crs'] not in (EPSG_4269, EPSG_4326):
+        raise ValueError('CRS must be epsg 4269 or 4326')
+
     # We could have merge_nodata_value that is zero and we want the final metadata
-    # to be np.nan
+    # to be np.nan.
     dem_profile['nodata'] = np.nan
     src_area_or_point = datasets[0].tags().get('AREA_OR_POINT', 'Area')
     dst_area_or_point = dst_area_or_point or src_area_or_point
@@ -235,10 +254,17 @@ def merge_and_transform_dem_tiles(
 
     dem_profile = shift_profile_for_pixel_loc(dem_profile, src_area_or_point, dst_area_or_point)
 
-    if dst_resolution is not None:
+    dem_profile = shift_profile_for_pixel_loc(dem_profile, src_area_or_point, dst_area_or_point)
+    target_profile = _build_target_profile(dem_profile, dst_resolution)
+    
+    if (dst_resolution is not None) or (dem_profile != target_profile):
         dem_profile_res = update_profile_resolution(dem_profile, dst_resolution)
         dem_arr, dem_profile = reproject_arr_to_match_profile(
-            dem_arr, dem_profile, dem_profile_res, num_threads=num_threads_reproj, resampling='bilinear'
+            dem_arr,
+            dem_profile,
+            target_profile,
+            num_threads=num_threads_reproj,
+            resampling='bilinear',
         )
 
     # Ensure dem_arr has correct shape
