@@ -1,11 +1,23 @@
-from typing import Union
-
 import numpy as np
 from affine import Affine
 from rasterio import DatasetReader
 from rasterio.crs import CRS
 from rasterio.io import MemoryFile
 from rasterio.warp import Resampling, aligned_target, calculate_default_transform, reproject
+
+
+GEOMETADATA_KEYS = ('driver', 'dtype', 'nodata', 'width', 'height', 'count', 'crs', 'transform')
+
+
+def in_memory_profile(profile: dict) -> dict:
+    """Strip creation options (compression, tiling, interleaving) from a profile.
+
+    In-memory datasets are written and then read back before they are closed. Creation options inherited from a
+    source COG - notably `compress` - put GDAL into multi-threaded compression, whose queued writes are not
+    reliably visible to those read backs when `GDAL_NUM_THREADS` is large.
+    See: https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/157
+    """
+    return {**{key: profile[key] for key in GEOMETADATA_KEYS if key in profile}, 'driver': 'GTiff'}
 
 
 def translate_profile(
@@ -61,7 +73,7 @@ def translate_dataset(dataset: DatasetReader, x_shift: float, y_shift: float) ->
     memfile = MemoryFile()
     profile = dataset.profile
     profile_translated = translate_profile(profile, x_shift=x_shift, y_shift=y_shift)
-    dataset_new = memfile.open(**profile_translated)
+    dataset_new = memfile.open(**in_memory_profile(profile_translated))
     dataset_new.write(dataset.read())
     dataset.close()
 
@@ -72,7 +84,7 @@ def reproject_arr_to_match_profile(
     src_array: np.ndarray,
     src_profile: dict,
     ref_profile: dict,
-    nodata: Union[float, int] = None,
+    nodata: float | int = None,
     num_threads: int = 1,
     resampling: str = 'bilinear',
 ) -> tuple[np.ndarray, dict]:
@@ -123,7 +135,7 @@ def reproject_arr_to_match_profile(
     reproject_profile.update({'dtype': src_dtype, 'nodata': nodata, 'count': count})
 
     height, width = ref_profile['height'], ref_profile['width']
-    dst_array = np.zeros((count, height, width))
+    dst_array = np.zeros((count, height, width), dtype=src_dtype)
 
     reproject(
         src_array,
@@ -136,7 +148,7 @@ def reproject_arr_to_match_profile(
         resampling=Resampling[resampling],
         num_threads=num_threads,
     )
-    return dst_array.astype(src_dtype), reproject_profile
+    return dst_array, reproject_profile
 
 
 def get_bounds_dict(profile: dict) -> dict:
@@ -164,7 +176,7 @@ def get_bounds_dict(profile: dict) -> dict:
     return bounds_dict
 
 
-def reproject_profile_to_new_crs(src_profile: dict, dst_crs: CRS, target_resolution: Union[float, int] = None) -> dict:
+def reproject_profile_to_new_crs(src_profile: dict, dst_crs: CRS, target_resolution: float | int = None) -> dict:
     """Create a new profile into a new CRS based on a dst_crs. May specify resolution.
 
     Parameters
@@ -234,7 +246,10 @@ def reproject_arr_to_new_crs(
     tr = target_resolution
     reprojected_profile = reproject_profile_to_new_crs(src_profile, dst_crs, target_resolution=tr)
     resampling = Resampling[resampling]
-    dst_array = np.zeros((reprojected_profile['count'], reprojected_profile['height'], reprojected_profile['width']))
+    dst_array = np.zeros(
+        (reprojected_profile['count'], reprojected_profile['height'], reprojected_profile['width']),
+        dtype=src_profile['dtype'],
+    )
 
     reproject(
         # Source parameters
@@ -253,7 +268,7 @@ def reproject_arr_to_new_crs(
 
 
 def _aligned_target(
-    transform: Affine, width: int, height: int, resolution: Union[float, int, tuple]
+    transform: Affine, width: int, height: int, resolution: float | int | tuple
 ) -> tuple[Affine, int, int]:
     """Align target to specified resolution; ensures same origin.
 
@@ -293,7 +308,7 @@ def _aligned_target(
     return dst_transform, dst_width, dst_height
 
 
-def update_profile_resolution(src_profile: dict, resolution: Union[float, tuple[float]]) -> dict:
+def update_profile_resolution(src_profile: dict, resolution: float | tuple[float]) -> dict:
     transform = src_profile['transform']
     width = src_profile['width']
     height = src_profile['height']

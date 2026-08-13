@@ -1,6 +1,6 @@
 # DEM Tile Sources
 
-The best reference is the [notebook](Format_and_Organize_Data.ipynb) in this directory. We want to illustrate how the zip files used in `dem-stitcher`'s were generated. Below are some notes.
+The best reference is the [notebook](0_Format_and_Organize_Data.ipynb) in this directory. We want to illustrate how the geoparquet tile tables used in `dem-stitcher` were generated (stored in `src/dem_stitcher/data/*.parquet` with `zstd` compression). Below are some notes.
 
 ## Copernicus Glo-30
 
@@ -36,12 +36,15 @@ We were originally using these tiles as reference, but again the links have beco
 
 Ned1 geojson: https://cugir.library.cornell.edu/catalog/cugir-009096
 
-## SRTM
+## SRTM and NASADEM
 
-Located at the LP DAAC.
+Located at the LP DAAC Earthdata Cloud archive (the old `e4ftl01.cr.usgs.gov` urls are dead; see this [forum thread](https://forum.earthdata.nasa.gov/viewtopic.php?p=25179)). Downloading requires Earthdata login credentials in `~/.netrc`.
 
 ### Tiles
 
-Shapefile with data: https://figshare.com/articles/dataset/Vector_grid_of_SRTM_1x1_degree_tiles/1332753 and then using the raster urls as seen at this [site](https://dwtkns.com/srtm30m/). These urls are formatted as `f'http://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL1.003/2000.02.11/{tile_id}.SRTMGL1.hgt.zip'` e.g. [http://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL1.003/2000.02.11/N43W121.SRTMGL1.hgt.zip](http://e4ftl01.cr.usgs.gov/MEASURES/SRTMGL1.003/2000.02.11/N43W121.SRTMGL1.hgt.zip).
+Shapefile with tile extents: https://figshare.com/articles/dataset/Vector_grid_of_SRTM_1x1_degree_tiles/1332753.
 
-At some point, we should determine the s3 bucket in which these DEM tiles are located.
+The urls are formatted as:
+
+- SRTM: `f'https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/SRTMGL1.003/{tile_id}.SRTMGL1.hgt/{tile_id}.SRTMGL1.hgt.zip'` e.g. [N43W121](https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/SRTMGL1.003/N43W121.SRTMGL1.hgt/N43W121.SRTMGL1.hgt.zip)
+- NASADEM: `f'https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/NASADEM_HGT.001/NASADEM_HGT_{tile_id.lower()}/NASADEM_HGT_{tile_id.lower()}.zip'` e.g. [n43w121](https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/NASADEM_HGT.001/NASADEM_HGT_n43w121/NASADEM_HGT_n43w121.zip)

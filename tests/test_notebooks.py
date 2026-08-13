@@ -28,5 +28,8 @@ def test_read_geoid_across_dateline(notebooks_dir: Path, test_data_dir: Path, no
         parameters = dict(out_directory_name=str(out_tif_dir))
 
     pm.execute_notebook(
-        notebooks_dir / notebook_file_name, output_path=(out_dir / notebook_file_name), parameters=parameters
+        notebooks_dir / notebook_file_name,
+        output_path=(out_dir / notebook_file_name),
+        parameters=parameters,
+        kernel_name='python3',
     )

@@ -1,5 +1,8 @@
 import netrc
+import tempfile
 from pathlib import Path
+
+import rasterio
 
 
 def ensure_earthdata_credentials(
@@ -21,3 +24,23 @@ def ensure_earthdata_credentials(
         _, _, _ = dot_netrc.authenticators(host)
     except (FileNotFoundError, netrc.NetrcParseError, TypeError):
         raise ValueError(f'Please provide valid Earthdata login credentials via {netrc_file}')
+
+
+def earthdata_gdal_env(**kwargs: str) -> rasterio.Env:
+    """Get a rasterio environment that authenticates with Earthdata login (via ~/.netrc) when reading urls.
+
+    Earthdata cloud redirects through urs.earthdata.nasa.gov and requires a cookie jar to persist the session.
+
+    Use as a context manager around `rasterio.open` and any reads from the opened datasets:
+
+        with earthdata_gdal_env():
+            with rasterio.open(url) as ds:
+                arr = ds.read()
+    """
+    cookie_path = str(Path(tempfile.gettempdir()) / 'dem_stitcher_earthdata_cookies.txt')
+    return rasterio.Env(
+        GDAL_HTTP_NETRC='YES',
+        GDAL_HTTP_COOKIEFILE=cookie_path,
+        GDAL_HTTP_COOKIEJAR=cookie_path,
+        **kwargs,
+    )

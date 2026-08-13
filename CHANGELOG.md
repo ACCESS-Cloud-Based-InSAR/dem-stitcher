@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-08-05
+
+### Added
+* Support for the NISAR DEM v1.2 (`nisar_dem`) - the Copernicus GLO-30 (2023_1) re-referenced to the WGS84 ellipsoid by JPL and hosted in the NASA Earthdata cloud ([docs](https://nisar-docs.asf.alaska.edu/nisar-dem/)). Only the `epsg:4326` tile set is cataloged (64,800 global 1 x 1 degree COG tiles enumerated from the nested source VRTs). Tiles are read directly as COGs; Earthdata credentials in `~/.netrc` are required and `earthdata_gdal_env` provides a `rasterio.Env` with the GDAL netrc/cookie options for the Earthdata cloud redirect.
+* `stitch_dem` raises a `ValueError` for `nisar_dem` when `dst_ellipsoidal_height=False` or when a `geoid_path` is supplied, since the geoid has already been removed from that DEM.
+* Support for `srtm_v3` and `nasadem` restored; tile urls now point to the LP DAAC Earthdata Cloud archive (`https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/...`), which replaced the retired `e4ftl01.cr.usgs.gov` hosting (see Issue #138 and this [Earthdata forum thread](https://forum.earthdata.nasa.gov/viewtopic.php?p=25179)). Earthdata credentials in `~/.netrc` are still required.
+* `pyarrow` as a runtime dependency for reading the geoparquet tile tables.
+* An integration test verifying the default `egm_08` geoid on the ARIA S3 bucket is identical (registration and values) to the Agisoft upstream NGA EGM2008 1 arcminute grid it was copied from; the upstream differs only in metadata labels (EPSG:4979/`Point` vs EPSG:4326/`Area`), which the stitcher ignores.
+
+### Fixed
+* In-memory datasets are now opened with georeferencing keys only, dropping the creation options (`compress`, `tiled`, `blockxsize`, `interleave`) that `merge_arrays_with_geometadata` and `translate_dataset` inherited from the source COG profile. Those options put GDAL into multi-threaded compression, whose queued block writes were read back by `rasterio.merge` before the datasets were closed; with a large ambient `GDAL_NUM_THREADS` (64+ on an HPC node) the read backs returned nodata and `stitch_dem` produced a correctly shaped, entirely `np.nan` array (see #157). The returned profile is unchanged and still carries the source creation options.
+* The geoid translation applied for `dst_area_or_point='Point'` was expressed in *geoid* pixels rather than *DEM* pixels, displacing the sampled geoid by ~30 arcseconds (half a geoid pixel) and biasing ellipsoidal heights by up to several centimeters wherever the geoid has a gradient (see #151). Geoid removal is now performed on the *native* DEM grid before any `Area`/`Point` relabeling, so the geoid is always interpolated where the DEM samples physically are and no geoid translation exists at all; `dst_area_or_point` becomes a pure half-pixel relabeling of the output transform that never changes the height samples. The golden test datasets with ellipsoidal heights were regenerated (they moved by up to ~3 cm).
+
+### Changed
+* `dst_area_or_point` now accepts `None` and defaults to it (**breaking**, previously `'Area'`) in `stitch_dem` and `merge_and_transform_dem_tiles`: `None` inherits the source DEM's registration, so the default output stays on the native grid of the source tiles - `'Point'` for every supported DEM except `3dep` (`'Area'`) - and matches the NISAR DEM exactly in georeferencing for `glo_30`. Passing `'Area'` or `'Point'` explicitly relabels the output transform by half a pixel; since geoid removal precedes the relabeling, this changes only the output transform/tag, never the height samples.
+* The geoid is no longer assumed to be in `epsg:4326`: `read_geoid` gains an `extent_crs` argument and `remove_geoid` passes the DEM profile's CRS through, so geoid grids in any geographic CRS (e.g. `geoid_18` in EPSG:6318 / NAD83(2011)) are windowed and resampled through their own CRS. Note `geoid_18` remains a hybrid NAVD88 geoid: using it in place of EGM2008 moves a stitched `glo_30` ~9 cm away from the NISAR DEM, so it is not a path to closer NISAR agreement.
+* `remove_geoid` no longer takes `dem_area_or_point` (**breaking**): it interpolates the geoid at the sample locations implied by the given profile's transform and must be applied before pixel-registration relabeling. It gains a `resampling` argument that defaults to `'cubic'` (previously hard-coded `'bilinear'`), which empirically halves the residual against JPL's independently interpolated EGM2008. Stitched `glo_30` with ellipsoidal heights now agrees with the NISAR DEM to ~1 mm (std) in a Los Angeles test area and to ~0.25 mm over sampled high-latitude tiles, verified by a new integration test over randomly selected (seeded) tiles.
+* Tile tables migrated from `*.geojson.zip` (gzipped GeoJSON) to geoparquet (`*.parquet` with `zstd` compression); `datasets.py` reads them with `gpd.read_parquet`. The `geojson_io` module remains available.
+* The `organize_tile_data` notebooks write geoparquet and form the new LP DAAC cloud urls.
+* `merge_arrays_with_geometadata` composites pixel-aligned inputs (same CRS, same resolution, origins offset by whole pixels - the case for all DEM tile merges) directly in numpy, skipping the in-memory GTiff round-trip entirely; ~40x faster than the previous compressed round-trip on a 4-tile glo_30-sized merge. rasterio's own per-method compositing functions (`rasterio.merge.MERGE_METHODS`) are reused so results are bit-identical, verified by a parametrized regression test against the `rasterio.merge` path across methods and nodata values. Non-aligned grids and callable `method`s fall back to `rasterio.merge` unchanged.
+
+
+## [2.5.14] - 2026-08-05
+
+### Changed
+* Environment management migrated from conda/mamba to [pixi](https://pixi.sh); all configuration lives under `[tool.pixi.*]` in `pyproject.toml` and `pixi.lock` is committed.
+* Minimum supported python raised from 3.9 to 3.10; CI matrix now runs the `py310`-`py313` pixi environments via `prefix-dev/setup-pixi`.
+* `flake8` and its plugins dropped from the develop extra in favor of `ruff`, which is exposed as the `lint`/`format`/`fix`/`format-check` pixi tasks.
+* `static-analysis.yml` no longer calls the ASFHyP3 reusable ruff workflow, which set its environment up with `mamba-org/setup-micromamba` and `environment.yml`; the ruff job is inlined and runs through pixi so CI uses the same pinned `ruff` as local development. The reusable secrets-analysis workflow is unchanged.
+* Type hints modernized to PEP 604 unions (`X | Y`) now that python 3.10 is the floor.
+
+### Fixed
+* `test_mask_differences_with_merge_nodata_values_with_ellipsoidal` compared `float32` geoid values at `decimal=6`, which is below `float32` resolution at those magnitudes; it now uses `assert_allclose` with a `1e-6` relative tolerance so single-ULP differences across GDAL builds do not fail the suite.
+
+### Removed
+* `environment.yml` - superseded by the pixi manifest in `pyproject.toml`.
+* The `python -m pip install --no-deps .` step in `test.yml` - `dem_stitcher` is registered under `[tool.pixi.pypi-dependencies]` as an editable install, so `pixi install` already puts it in every environment.
+
+
 ## [2.5.13] - 2026-02-09
 
 ### Removed

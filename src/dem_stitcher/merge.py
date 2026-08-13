@@ -1,27 +1,29 @@
 import concurrent.futures
+import math
 import warnings
-from typing import Union
 
 import numpy as np
 import rasterio
+from affine import Affine
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
 from rasterio.io import MemoryFile
-from rasterio.merge import merge
+from rasterio.merge import MERGE_METHODS, merge
 from rasterio.windows import Window
 from shapely.geometry import box
 from tqdm import tqdm
 
+from .rio_tools import in_memory_profile
 from .rio_window import format_window_profile, get_window_from_extent
 
 
 def merge_tile_datasets_within_extent(
-    datasets: Union[list[rasterio.DatasetReader], list[str]],
+    datasets: list[rasterio.DatasetReader] | list[str],
     extent: list,
     resampling: str = 'nearest',
     nodata: float = None,
     n_threads: int = 5,
-    dtype: Union[str, np.dtype] = None,
+    dtype: str | np.dtype = None,
 ) -> tuple[np.ndarray, dict]:
     # 4269 is North American epsg similar to 4326 and used for 3dep DEM
     inputs_str = isinstance(datasets[0], str)
@@ -85,6 +87,94 @@ def merge_tile_datasets_within_extent(
     return arr_merged, prof_merged
 
 
+def _integer_pixel_offset(value: float) -> int | None:
+    offset = round(value)
+    return offset if abs(value - offset) < 1e-6 else None
+
+
+def _aligned_pixel_offsets(profiles: list[dict]) -> list[tuple[int | None, int | None]] | None:
+    t_ref = profiles[0]['transform']
+    transforms = [p['transform'] for p in profiles]
+    north_up = all(t.b == 0 and t.d == 0 and t.a > 0 and t.e < 0 for t in transforms)
+    same_crs = all(p['crs'] == profiles[0]['crs'] for p in profiles)
+    same_res = all(
+        math.isclose(t.a, t_ref.a, rel_tol=1e-9) and math.isclose(t.e, t_ref.e, rel_tol=1e-9) for t in transforms
+    )
+    if not (north_up and same_crs and same_res):
+        return None
+    offsets = [
+        (_integer_pixel_offset((t.f - t_ref.f) / t_ref.e), _integer_pixel_offset((t.c - t_ref.c) / t_ref.a))
+        for t in transforms
+    ]
+    return None if any(None in offset for offset in offsets) else offsets
+
+
+def _nodata_representable(nodataval: float, dt: np.dtype) -> bool:
+    if np.issubdtype(dt, np.integer):
+        info = np.iinfo(dt)
+        return bool(info.min <= nodataval <= info.max)
+    if math.isfinite(nodataval):
+        info = np.finfo(dt)
+        return bool(info.min <= nodataval <= info.max) and np.can_cast(np.min_scalar_type(nodataval), dt)
+    return True
+
+
+def _merge_aligned_arrays(
+    arrays: list[np.ndarray],
+    profiles: list[dict],
+    nodata: float | None,
+    dtype: str | np.dtype,
+    method: str,
+) -> tuple[np.ndarray, Affine] | None:
+    """Composite pixel-aligned arrays with numpy, mirroring `rasterio.merge.merge`.
+
+    Applies when all arrays share a CRS, resolution, and pixel-congruent origins - then merging is index
+    arithmetic and `rasterio.merge` would never resample. Reuses rasterio's own per-method compositing
+    functions (`MERGE_METHODS`) so the semantics are identical; only the in-memory GTiff round-trip is
+    skipped. Returns None when the grids are not aligned so the caller can fall back to `rasterio.merge`.
+    """
+    offsets = _aligned_pixel_offsets(profiles)
+    if offsets is None:
+        return None
+    dt = np.dtype(dtype)
+    if nodata is not None and not _nodata_representable(nodata, dt):
+        return None
+    nodataval = 0 if nodata is None else nodata
+
+    copyto = MERGE_METHODS[method]
+    t_ref = profiles[0]['transform']
+    row_offs, col_offs = zip(*offsets)
+    row_min, col_min = min(row_offs), min(col_offs)
+    height = max(r - row_min + arr.shape[1] for r, arr in zip(row_offs, arrays))
+    width = max(c - col_min + arr.shape[2] for c, arr in zip(col_offs, arrays))
+
+    dest = np.full((arrays[0].shape[0], height, width), nodataval, dtype=dt)
+    for arr, profile, (row_off, col_off) in zip(arrays, profiles, offsets):
+        data = np.asarray(arr, dtype=np.dtype(profile['dtype']))
+        rows = slice(row_off - row_min, row_off - row_min + data.shape[1])
+        cols = slice(col_off - col_min, col_off - col_min + data.shape[2])
+        region = dest[:, rows, cols]
+        if math.isnan(nodataval):
+            region_mask = np.isnan(region)
+        elif np.issubdtype(dt, np.integer):
+            region_mask = region == nodataval
+        else:
+            region_mask = np.isclose(region, nodataval)
+        src_nodata = profile['nodata']
+        if src_nodata is None:
+            data_mask = np.zeros(data.shape, dtype=bool)
+        elif math.isnan(src_nodata):
+            data_mask = np.isnan(data)
+        else:
+            data_mask = data == src_nodata
+        copyto(region, data, region_mask, data_mask)
+
+    merged_transform = Affine.translation(t_ref.c + col_min * t_ref.a, t_ref.f + row_min * t_ref.e) * Affine.scale(
+        t_ref.a, t_ref.e
+    )
+    return dest, merged_transform
+
+
 def merge_arrays_with_geometadata(
     arrays: list[np.ndarray],
     profiles: list[dict],
@@ -137,10 +227,6 @@ def merge_arrays_with_geometadata(
     if (len(arrays)) != (len(profiles)):
         raise ValueError('Length of arrays and profiles needs to be the same')
 
-    memfiles = [MemoryFile() for p in profiles]
-    datasets = [mfile.open(**p) for (mfile, p) in zip(memfiles, profiles)]
-    [ds.write(arr) for (ds, arr) in zip(datasets, arrays_input)]
-
     if dtype is None:
         dst_dtype = profiles[0]['dtype']
     else:
@@ -151,9 +237,21 @@ def merge_arrays_with_geometadata(
     else:
         dst_nodata = nodata
 
-    merged_arr, merged_trans = merge(
-        datasets, resampling=Resampling[resampling], method=method, nodata=dst_nodata, dtype=dst_dtype
-    )
+    merged = None
+    if method in MERGE_METHODS:
+        merged = _merge_aligned_arrays(arrays_input, profiles, dst_nodata, dst_dtype, method)
+
+    if merged is not None:
+        merged_arr, merged_trans = merged
+    else:
+        memfiles = [MemoryFile() for p in profiles]
+        datasets = [mfile.open(**in_memory_profile(p)) for (mfile, p) in zip(memfiles, profiles)]
+        [ds.write(arr) for (ds, arr) in zip(datasets, arrays_input)]
+        merged_arr, merged_trans = merge(
+            datasets, resampling=Resampling[resampling], method=method, nodata=dst_nodata, dtype=dst_dtype
+        )
+        [ds.close() for ds in datasets]
+        [mfile.close() for mfile in memfiles]
 
     prof_merged = profiles[0].copy()
     prof_merged['transform'] = merged_trans
@@ -162,8 +260,5 @@ def merge_arrays_with_geometadata(
     prof_merged['width'] = merged_arr.shape[2]
     prof_merged['nodata'] = dst_nodata
     prof_merged['dtype'] = dst_dtype
-
-    [ds.close() for ds in datasets]
-    [mfile.close() for mfile in memfiles]
 
     return merged_arr, prof_merged

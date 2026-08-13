@@ -1,6 +1,5 @@
 import warnings
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 import rasterio
@@ -41,7 +40,7 @@ def get_geoid_path(geoid_short_name: str) -> Path:
     return geoid_path
 
 
-def get_default_geoid_path(dem_name: Union[str, Path]) -> Path:
+def get_default_geoid_path(dem_name: str | Path) -> Path:
     if dem_name not in DEM2GEOID.keys():
         raise ValueError(f'DEM name {dem_name} does not have a default geoid.')
     geoid_name = DEM2GEOID[dem_name]
@@ -49,7 +48,7 @@ def get_default_geoid_path(dem_name: Union[str, Path]) -> Path:
     return geoid_path
 
 
-def validate_geoid_path(geoid_path: Union[str, Path]) -> None:
+def validate_geoid_path(geoid_path: str | Path) -> None:
     if isinstance(geoid_path, str):
         if geoid_path in DEM2GEOID.values():
             return
@@ -66,13 +65,17 @@ def validate_geoid_path(geoid_path: Union[str, Path]) -> None:
     raise TypeError(f'Geoid path {geoid_path} is not of type str or Path.')
 
 
-def read_geoid(geoid_path: Union[str, Path], extent: Union[list, None] = None, res_buffer: int = 1) -> tuple:
+def read_geoid(
+    geoid_path: str | Path,
+    extent: list | None = None,
+    res_buffer: int = 1,
+    extent_crs: CRS = CRS.from_epsg(4326),
+) -> tuple:
     if extent is None:
         with rasterio.open(geoid_path) as ds:
             geoid_arr = ds.read()
             geoid_profile = ds.profile
     else:
-        extent_crs = CRS.from_epsg(4326)
         crossing = get_dateline_crossing(extent)
 
         if crossing == 0:
@@ -112,16 +115,22 @@ def read_geoid(geoid_path: Union[str, Path], extent: Union[list, None] = None, r
 def remove_geoid(
     dem_arr: np.ndarray,
     dem_profile: dict,
-    geoid_path: Union[str, Path],
-    dem_area_or_point: str = 'Area',
+    geoid_path: str | Path,
     res_buffer: int = 2,
+    resampling: str = 'cubic',
 ) -> np.ndarray:
-    assert dem_area_or_point in ['Point', 'Area']
+    """Interpolate the geoid at the sample locations implied by `dem_profile['transform']` and add it to the DEM.
 
+    Must be applied on the native DEM grid *before* any Area/Point pixel-registration relabeling so the geoid
+    is sampled where the DEM samples physically are.
+    See: https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/151
+    """
     extent = array_bounds(dem_profile['height'], dem_profile['width'], dem_profile['transform'])
 
     validate_geoid_path(geoid_path)
-    geoid_arr, geoid_profile = read_geoid(geoid_path, extent=list(extent), res_buffer=res_buffer)
+    geoid_arr, geoid_profile = read_geoid(
+        geoid_path, extent=list(extent), res_buffer=res_buffer, extent_crs=dem_profile['crs']
+    )
 
     t_dem = dem_profile['transform']
     t_geoid = geoid_profile['transform']
@@ -129,7 +138,8 @@ def remove_geoid(
     res_geoid = max(t_geoid.a, abs(t_geoid.e))
 
     if res_geoid * res_buffer <= res_dem:
-        buffer_recommendation = int(np.ceil(res_dem / res_geoid))
+        # Extra 2 geoid pixels cover the 4x4 cubic kernel at the window boundary
+        buffer_recommendation = int(np.ceil(res_dem / res_geoid)) + 2
         warning = (
             'The dem resolution is larger than the geoid resolution and its buffer; '
             'Edges resampled with bilinear interpolation will be inconsistent so select larger buffer.'
@@ -137,12 +147,7 @@ def remove_geoid(
         )
         warnings.warn(warning, category=UserWarning)
 
-    # Translate geoid if necessary as all geoids have Area tag
-    if dem_area_or_point == 'Point':
-        shift = -0.5
-        geoid_profile = translate_profile(geoid_profile, shift, shift)
-
-    geoid_offset, _ = reproject_arr_to_match_profile(geoid_arr, geoid_profile, dem_profile, resampling='bilinear')
+    geoid_offset, _ = reproject_arr_to_match_profile(geoid_arr, geoid_profile, dem_profile, resampling=resampling)
 
     dem_arr_offset = dem_arr + geoid_offset
     return dem_arr_offset
