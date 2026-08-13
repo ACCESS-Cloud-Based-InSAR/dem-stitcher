@@ -256,9 +256,9 @@ def merge_and_transform_dem_tiles(
 
     dem_profile = shift_profile_for_pixel_loc(dem_profile, src_area_or_point, dst_area_or_point)
     target_profile = _build_target_profile(dem_profile, dst_resolution)
-    
+
     if (dst_resolution is not None) or (dem_profile != target_profile):
-        dem_profile_res = update_profile_resolution(dem_profile, dst_resolution)
+        dem_profile = update_profile_resolution(dem_profile, dst_resolution)
         dem_arr, dem_profile = reproject_arr_to_match_profile(
             dem_arr,
             dem_profile,
