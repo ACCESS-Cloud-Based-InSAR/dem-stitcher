@@ -72,7 +72,5 @@ def test_reproject_to_new_crs_preserves_dtype(test_data_dir: Path) -> None:
     assert src_profile['dtype'] == 'float32'
 
     # UTM zone 32N covers the test tile's location (lon 10-12, lat -2 to 0)
-    result_arr, _ = reproject_arr_to_new_crs(
-        src_arr, src_profile, CRS.from_epsg(32632), resampling='bilinear'
-    )
+    result_arr, _ = reproject_arr_to_new_crs(src_arr, src_profile, CRS.from_epsg(32632), resampling='bilinear')
     assert result_arr.dtype == np.float32

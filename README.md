@@ -34,27 +34,32 @@ with rasterio.open('dem.tif', 'w', **p) as ds:
    ds.write(X, 1)
    ds.update_tags(AREA_OR_POINT='Point')
 ```
-The rasters are returned in the global lat/lon projection `epsg:4326` and the API assumes that bounds are supplied in this format.
+The rasters are returned in the global lat/lon projection `epsg:4326` and the API assumes that bounds are supplied in this format. We try to do the resampling and transformations all in memory to avoid unnecessary i/o and forgotten files.
+
+## Matching the NISAR DEM
+
+The default keyword arguments of `stitch_dem` reproduce the [NISAR DEM](https://nisar-docs.asf.alaska.edu/nisar-dem/) from `glo_30`, i.e.
+
+```
+X, p = stitch_dem(bounds,
+                  dem_name='glo_30',
+                  # The defaults, spelled out
+                  dst_ellipsoidal_height=True,   # remove EGM2008 
+                  dst_area_or_point=None,        # inherit the source registration; glo_30 is pixel-centered ('Point')
+                  dst_resolution=None)           # keep the native tile resolution
+```
+
+agrees with `stitch_dem(bounds, dem_name='nisar_dem')` pixel-for-pixel in georeferencing and to ~1 mm in height (the residual is NISAR DEM's EGM2008 grid/interpolation vs the 1 arcminute grid used here). This is verified by an integration test over randomly selected tiles and demonstrated in this [notebook](notebooks/analysis_and_comparison/2_Comparison_with_NISAR_DEM.ipynb).
 
 # Installation
 
-`dem_stitcher` can be installed into a conda environment with
+We recommend [pixi](https://pixi.sh/latest/#installation). To add `dem_stitcher` to your own project:
 
-```
-conda install -c conda-forge dem_stitcher
-```
-
-or into a virtual environment with
-
-```
-python -m pip install dem_stitcher
+```bash
+pixi add dem_stitcher
 ```
 
-Currently, python 3.10+ is supported.
-
-### Pixi (recommended for development)
-
-Install [pixi](https://pixi.sh/latest/#installation), then:
+To work from a clone of this repo (which installs `dem_stitcher` in editable mode along with the notebook and test dependencies):
 
 ```bash
 git clone https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher.git
@@ -69,8 +74,25 @@ For JupyterLab (with `jupyter-collaboration` for real-time collaborative editing
 pixi run jupyter lab
 ```
 
-The default environment uses python 3.13. Environments named `py310`, `py311`, `py312`, and
-`py313` are also defined and can be selected with `pixi run -e py312 ...`.
+The default environment is the only one installed locally and uses python 3.14. Environments
+named `py310` through `py313` are declared for the CI matrix and are built on demand with
+`pixi run -e py312 ...`; remove one again with `pixi clean -e py312`.
+
+## Other installation methods
+
+`dem_stitcher` can also be installed into a conda environment with
+
+```
+conda install -c conda-forge dem_stitcher
+```
+
+or into a virtual environment with
+
+```
+python -m pip install dem_stitcher
+```
+
+Currently, python 3.10+ is supported.
 
 ## With ISCE2 or gdal
 
@@ -82,12 +104,22 @@ The creation metadata unrelated to georeferencing (e.g. the `compress` key or va
 
 ## Credentials
 
-The accessing of NASADEM and SRTM require earthdata login credentials to be put into the `~/.netrc` file. If these are not present, the stitcher will
+The accessing of NASADEM, SRTM, and the NISAR DEM require earthdata login credentials to be put into the `~/.netrc` file. If these are not present, the stitcher will
 fail with `ValueError` asking you to update the `~/.netrc`. The appropriate entry appears as:
 ```
 machine urs.earthdata.nasa.gov
     login <username>
     password <password>
+```
+For `nisar_dem`, the tiles are read directly with `rasterio`/GDAL, so the stitcher opens and reads them within a `rasterio.Env` that sets `GDAL_HTTP_NETRC`, `GDAL_HTTP_COOKIEFILE`, and `GDAL_HTTP_COOKIEJAR` so GDAL can authenticate through the Earthdata cloud redirect. If you get `nisar_dem` urls from `get_dem_tile_paths` and open them yourself, use the same environment:
+
+```python
+import rasterio
+from dem_stitcher.credentials import earthdata_gdal_env
+
+with earthdata_gdal_env():
+    with rasterio.open(url) as ds:
+        dem_arr = ds.read(1)
 ```
 
 # Notebooks
@@ -107,7 +139,7 @@ The [DEMs](https://github.com/ACCESS-Cloud-Based-InSAR/dem_stitcher/tree/main/de
 
 ```
 In [1]: from dem_stitcher.datasets import DATASETS; DATASETS
-Out[1]: ['3dep', 'glo_30', 'glo_90', 'glo_90_missing', 'nasadem', 'srtm_v3']
+Out[1]: ['3dep', 'glo_30', 'glo_90', 'glo_90_missing', 'nasadem', 'nisar_dem', 'srtm_v3']
 ```
 The shortnames aboves are the strings required to use `stitch_dem`. Below, we expound upon these DEM shortnames and link to their respective data repositories.
 
@@ -116,6 +148,7 @@ The shortnames aboves are the strings required to use `stitch_dem`. Below, we ex
 3. `srtm_v3`: SRTM v3 [[link](https://lpdaac.usgs.gov/products/srtmgl1v003/)] - tiles are downloaded from the LP DAAC Earthdata Cloud archive and require Earthdata credentials in `~/.netrc` (see [Credentials](#credentials))
 4. `nasadem`: Nasadem [[link](https://lpdaac.usgs.gov/products/nasadem_hgtv001/)] - tiles are downloaded from the LP DAAC Earthdata Cloud archive and require Earthdata credentials in `~/.netrc` (see [Credentials](#credentials))
 5. `glo_90_missing`: these are tiles that are in `glo_90` but not in `glo_30`. They are over the countries Armenia and Azerbaijan. Used internally to help fill in gaps in coverage of `glo_30`.
+6. `nisar_dem`: the NISAR mission DEM v1.2 [[link](https://nisar-docs.asf.alaska.edu/nisar-dem/)] - the Copernicus GLO-30 (2023_1) re-referenced to the WGS84 ellipsoid by JPL NISAR team. Only the `epsg:4326` tile set is cataloged (global coverage including ocean tiles). Since the EGM2008 geoid has already been removed from this DEM, only `dst_ellipsoidal_height=True` is supported and no geoid is applied by the stitcher. Requires Earthdata credentials in `~/.netrc` (see [Credentials](#credentials)).
 
  All the tiles are given in lat/lon CRS (i.e. `epsg:4326` for global tiles or `epsg:4269` for USGS tiles in North America). A notable omission to the tile sets is the Artic DEM [here](https://www.pgc.umn.edu/data/arcticdem/), which is suitable for DEMs merged at the north pole of the globe due to lat/lon distortion.
 
@@ -127,13 +160,19 @@ Wherever possible, we do not resample the original DEMs unless specified by the 
 
 1. All DEMs are resampled to `epsg:4326`. Most DEMs are already in this CRS except the USGS DEMs over North America, which are in `epsg:4269`, whose `xy` projection is also `lon/lat` but has different vertical data. For our purposes, these two CRSs are almost identical. The nuanced differences between these CRS's is noted [here](https://gis.stackexchange.com/a/170854).
 2. All DEM outputs will have origin and pixel spacing aligning with the original DEM tiles unless a resolution for the final product is specified, which will alter the pixel spacing.
-3. Georeferenced rasters can be tied to map coordintaes using either (a) upper-left corners of pixels or (b) the pixel centers i.e. `Point` and `Area` tags in `gdal`, respectively, and seen as `{'AREA_OR_POINT: 'Point'}`. Note that tying a pixel to the upper-left cortner (i.e. `Area` tag) is the *default* pixel reference for `gdal` as indicated [here](https://gdal.org/tutorials/geotransforms_tut.html). Some helpful resources in reference to DEMs about this book-keeping are below.
+3. The 'AREA_OR_POINT' gdal tag should not have any impact on georeferencing as noted in the data model [page](https://gdal.org/en/stable/user/raster_data_model.html):
+   > AREA_OR_POINT: May be either "Area" (the default) or "Point". Indicates whether a pixel value should be assumed to represent a sampling over the region of the pixel or a point sample at the center of the pixel. **This is not intended to influence interpretation of georeferencing which remains area oriented.**
+However, at some point this has become a confusing issue in part because SRTM legitimately created a half pixel shift as noted [here](https://www.usgs.gov/special-topics/significant-topographic-changes-in-the-united-states/science/srtm-ned-vertical?qt-science_center_objects=0#qt-science_center_objects), the image comparing NED to SRTM is reproduced below:
+![srtm_v_ned](https://d9-wret.s3.us-west-2.amazonaws.com/assets/palladium/production/s3fs-public/thumbnails/image/tc7.gif)
+In this interpretation, georeferenced rasters can be tied to map coordintaes using either (a) upper-left corners of pixels or (b) the pixel centers i.e. `Point` and `Area` tags in `gdal`, respectively, and seen as `{'AREA_OR_POINT: 'Point'}`. Note that tying a pixel to the upper-left cortner (i.e. `Area` tag) is the *default* pixel reference for `gdal` as indicated [here](https://gdal.org/tutorials/geotransforms_tut.html). Some helpful resources in reference to DEMs about this book-keeping are below.
    + SRTM v3, NASADEM, and TDX are [Pixel-centered](https://github.com/OSGeo/gdal/issues/1505#issuecomment-489469904), i.e. `{'AREA_OR_POINT: 'Point'}`.
    + The USGS DEMs are [not](https://www.usgs.gov/core-science-systems/eros/topochange/science/srtm-ned-vertical-differencing?qt-science_center_objects=0#qt-science_center_objects), i.e. `{'AREA_OR_POINT: 'Area'}`.
+   + By default (`dst_area_or_point=None`), the output inherits the source registration: `'Point'` for all supported DEMs except `3dep`, which is `'Area'`. Passing `'Area'` or `'Point'` explicitly relabels the output transform by half a pixel; the height samples are identical in all cases since the geoid is removed on the native grid beforehand.
 4. Transform geoid heights to WGS84 Ellipsoidal height. This is done using the rasters [here](https://www.agisoft.com/downloads/geoids/). We:
-   + Adjust the geoid to pixel/area coordinates
-   + resample the geoids into the DEM reference frame
+   + Interpolate the geoid (with cubic resampling) at the *native* DEM sample locations, i.e. before any `Area`/`Point` relabeling of the output grid, so that `dst_area_or_point` only shifts the output transform by half a pixel and never changes the height samples (see [#151](https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/151))
    + Adjust the vertical datum
+
+   Stitching `glo_30` with `dst_ellipsoidal_height=True` agrees with the independently produced [NISAR DEM](https://nisar-docs.asf.alaska.edu/nisar-dem/) (Copernicus GLO-30 with EGM2008 removed at the source by the NISAR team at JPL) at the millimeter level; the residual is the difference between NISAR DEM's EGM2008 grid/interpolation and the 1 arcminute grid used here. See this [notebook](notebooks/analysis_and_comparison/2_Comparison_with_NISAR_DEM.ipynb).
 5. All DEMs are converted to `float32` and have nodata `np.nan`. Although this can increase data size of certain rasters (SRTM is distributed in which pixels are recorded as integers), this ensures (a) easy comparison across DEMs and (b) no side-effects of the stitcher due to dtypes and/or nodata values. There is one caveat: the user can ensure that DEM nodata pixels are set to `0` using `merge_nodata_value` in `stitch_dem`, in which case `0` is filled in where `np.nan` was. We note specifying this "fill value" via `merge_nodata_value` does *not* change the nodata value of output DEM dataset (i.e. `nodata` in the rasterio profile will remain `np.nan`). When transforming to ellipsoidal heights and setting `0` as `merge_nodata_value`, the geoid values are filled in the DEMs nodata areas; if the geoid has nodata in the bounding box, this will be the source of subsequent no data.  For reference, this datatype and nodata is specified in `merge_tile_datasets` in `merge.py`. Other nodata values can be specified outside the stitcher for the application of choice (e.g. ISCE2 requires nodata to be filled as `0`).
 
 There are some [notebooks](notebooks/analysis_and_comparison) that illustrate how tiles are merged by comparing the output of our stitcher with the original tiles.

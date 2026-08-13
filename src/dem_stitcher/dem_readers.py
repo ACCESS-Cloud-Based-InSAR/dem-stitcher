@@ -5,6 +5,19 @@ import numpy as np
 import rasterio
 import requests
 from rasterio.io import MemoryFile
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+
+def _get_retrying_session() -> requests.Session:
+    session = requests.Session()
+    retries = Retry(total=5, connect=5, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
+    session.mount('https://', HTTPAdapter(max_retries=retries))
+    session.mount('http://', HTTPAdapter(max_retries=retries))
+    return session
+
+
+SESSION = _get_retrying_session()
 
 
 def read_dem(dem_path: str) -> rasterio.DatasetReader:
@@ -17,7 +30,8 @@ def read_dem(dem_path: str) -> rasterio.DatasetReader:
 def read_dem_bytes(dem_path: str, suffix: str = '.img') -> bytes:
     # online
     if (dem_path[:7] == 'http://') or (dem_path[:8] == 'https://'):
-        resp = requests.get(dem_path)
+        resp = SESSION.get(dem_path)
+        resp.raise_for_status()
         data = io.BytesIO(resp.content)
     # local file
     else:

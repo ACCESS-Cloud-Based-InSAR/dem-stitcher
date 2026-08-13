@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: ["py310", "py311", "py312", "py313"]
+        environment: ["py310", "py311", "py312", "py313", "default"]  # `default` is python 3.14
       fail-fast: false
 
     steps:
