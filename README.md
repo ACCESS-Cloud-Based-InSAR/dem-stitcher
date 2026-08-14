@@ -10,7 +10,7 @@ This tool provides a raster of a Digital Elevation Model (DEM) over an area of i
 
 + the conversion of the vertical datum from a reference geoid to the WGS84 ellipsoidal
 + in-memory merging of various tiles preserving the source rasters
-+ optional half-pixel georferencing (primarily for the legacy DEMs SRTM and NASADEM, see the sections [Transformations](#DEM-Transformations))
++ optional half-pixel georferencing (primarily for the legacy DEMs SRTM and NASADEM, see the section on [Transformations](#DEM-Transformations))
 
 We rely on the GIS formats from `rasterio`. The API can be summarized as
 
