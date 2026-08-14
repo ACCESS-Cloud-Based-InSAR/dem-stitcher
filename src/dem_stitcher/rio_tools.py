@@ -87,6 +87,7 @@ def reproject_arr_to_match_profile(
     nodata: float | int = None,
     num_threads: int = 1,
     resampling: str = 'bilinear',
+    preserve_rank: bool = False,
 ) -> tuple[np.ndarray, dict]:
     """
     Reproject an array to match a reference profile providing the reprojected array and the new profile.
@@ -101,28 +102,39 @@ def reproject_arr_to_match_profile(
         The source profile of the `src_array`
     ref_profile : dict
         The reference profile whose geo-metadata will be resampled into.
-    nodata : Union[int, float]
+    nodata : int or float, optional
         The nodata value to be used in output profile. If None, the nodata from
         src_profile is used in the output profile. Thus, update `src_profile['nodata']= None` to
         ensure None can be used.
-    num_threads: int
+    num_threads : int, optional
         gdal allows for multiple threads for resampling
-    resampling : str
+    resampling : str, optional
         The type of resampling to use. See all the options:
         https://github.com/rasterio/rasterio/blob/master/rasterio/enums.py#L48-L82
+    preserve_rank : bool, optional
+        If True, a 2D source array yields a 2D output array (and output profile with count 1).
+        Default False preserves the historical behavior of always returning a 3D array.
 
     Returns
     -------
-    Tuple[np.ndarray, dict]:
-        Reprojected Arr, Reprojected Profile
+    tuple[np.ndarray, dict]
+        Reprojected array, reprojected profile
+
+    Raises
+    ------
+    ValueError
+        If `src_array` is not 2 or 3 dimensional.
 
     Notes
     -----
     src_array needs to be in gdal (i.e. BIP) format that is (# of channels) x
     (vertical dim.) x (horizontal dim).  Also, works with arrays of the form
     (vertical dim.) x (horizontal dim), but output will be: 1 x (vertical dim.)
-    x (horizontal dim).
+    x (horizontal dim) unless `preserve_rank=True`.
     """
+    if src_array.ndim not in (2, 3):
+        raise ValueError(f'src_array must be 2 or 3 dimensional; got shape {src_array.shape}')
+
     dst_crs = ref_profile['crs']
     dst_transform = ref_profile['transform']
 
@@ -132,10 +144,16 @@ def reproject_arr_to_match_profile(
     src_dtype = src_profile['dtype']
     count = src_profile['count']
 
+    height, width = ref_profile['height'], ref_profile['width']
+    if preserve_rank and src_array.ndim == 2:
+        count = 1
+        dst_shape = (height, width)
+    else:
+        dst_shape = (count, height, width)
+
     reproject_profile.update({'dtype': src_dtype, 'nodata': nodata, 'count': count})
 
-    height, width = ref_profile['height'], ref_profile['width']
-    dst_array = np.zeros((count, height, width), dtype=src_dtype)
+    dst_array = np.zeros(dst_shape, dtype=src_dtype)
 
     reproject(
         src_array,
@@ -220,6 +238,7 @@ def reproject_arr_to_new_crs(
     dst_crs: str,
     resampling: str = 'bilinear',
     target_resolution: float = None,
+    preserve_rank: bool = False,
 ) -> tuple[np.ndarray, dict]:
     """
     Reproject an array into a new CRS.
@@ -232,24 +251,38 @@ def reproject_arr_to_new_crs(
         Source rasterio profile corresponding to `src_array`
     dst_crs : str
         The destination rasterio CRS to reproject into
-    resampling : str
+    resampling : str, optional
         See all the options:
         https://github.com/rasterio/rasterio/blob/master/rasterio/enums.py#L48-L82
-    target_resolution : float
+    target_resolution : float, optional
         Target resolution
+    preserve_rank : bool, optional
+        If True, a 2D source array yields a 2D output array (and output profile with count 1).
+        Default False preserves the historical behavior of always returning a 3D array
+        of shape (count) x (vertical dim.) x (horizontal dim.).
 
     Returns
     -------
-    Tuple[np.ndarray, dict]:
+    tuple[np.ndarray, dict]
         (reprojected_array, reprojected_profile) of data.
+
+    Raises
+    ------
+    ValueError
+        If `src_array` is not 2 or 3 dimensional.
     """
+    if src_array.ndim not in (2, 3):
+        raise ValueError(f'src_array must be 2 or 3 dimensional; got shape {src_array.shape}')
+
     tr = target_resolution
     reprojected_profile = reproject_profile_to_new_crs(src_profile, dst_crs, target_resolution=tr)
     resampling = Resampling[resampling]
-    dst_array = np.zeros(
-        (reprojected_profile['count'], reprojected_profile['height'], reprojected_profile['width']),
-        dtype=src_profile['dtype'],
-    )
+    if preserve_rank and src_array.ndim == 2:
+        reprojected_profile['count'] = 1
+        dst_shape = (reprojected_profile['height'], reprojected_profile['width'])
+    else:
+        dst_shape = (reprojected_profile['count'], reprojected_profile['height'], reprojected_profile['width'])
+    dst_array = np.zeros(dst_shape, dtype=src_profile['dtype'])
 
     reproject(
         # Source parameters

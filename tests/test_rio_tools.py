@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 import rasterio
 from numpy.testing import assert_almost_equal
 from rasterio.crs import CRS
@@ -60,6 +61,53 @@ def test_dataset_translation(test_data_dir: Path) -> None:
     ds_left_t.close()
     ds_right.close()
     mfile.close()
+
+
+def test_reproject_preserve_rank(test_data_dir: Path) -> None:
+    """preserve_rank=True returns 2D for 2D input; default and 3D behavior are unchanged."""
+    data_dir = test_data_dir / 'rio_tools' / 'update_resolution'
+    with rasterio.open(data_dir / 'res_one_deg.tif') as ds:
+        p_src = ds.profile
+        X_2d = ds.read(1)
+        X_3d = ds.read()
+
+    p_ref = update_profile_resolution(p_src, 0.25)
+
+    X_r_2d, p_r_2d = reproject_arr_to_match_profile(X_2d, p_src, p_ref, preserve_rank=True)
+    assert X_r_2d.shape == (p_ref['height'], p_ref['width'])
+    assert p_r_2d['count'] == 1
+
+    X_r_3d, _ = reproject_arr_to_match_profile(X_3d, p_src, p_ref, preserve_rank=True)
+    assert X_r_3d.shape == (1, p_ref['height'], p_ref['width'])
+
+    X_r_default, _ = reproject_arr_to_match_profile(X_2d, p_src, p_ref)
+    assert X_r_default.shape == (1, p_ref['height'], p_ref['width'])
+    assert_almost_equal(X_r_default[0, ...], X_r_2d, 7)
+
+    utm_crs = CRS.from_epsg(32632)
+    X_c_2d, p_c_2d = reproject_arr_to_new_crs(X_2d, p_src, utm_crs, preserve_rank=True)
+    assert X_c_2d.ndim == 2
+    assert p_c_2d['count'] == 1
+
+    X_c_3d, _ = reproject_arr_to_new_crs(X_3d, p_src, utm_crs, preserve_rank=True)
+    assert X_c_3d.ndim == 3
+
+    X_c_default, _ = reproject_arr_to_new_crs(X_2d, p_src, utm_crs)
+    assert X_c_default.ndim == 3
+    assert_almost_equal(X_c_default[0, ...], X_c_2d, 7)
+
+
+@pytest.mark.parametrize('bad_shape', [(10,), (1, 1, 10, 10)])
+def test_reproject_raises_on_bad_rank(test_data_dir: Path, bad_shape: tuple) -> None:
+    data_dir = test_data_dir / 'rio_tools' / 'update_resolution'
+    with rasterio.open(data_dir / 'res_one_deg.tif') as ds:
+        p_src = ds.profile
+
+    X_bad = np.zeros(bad_shape, dtype=np.float32)
+    with pytest.raises(ValueError, match='2 or 3 dimensional'):
+        reproject_arr_to_match_profile(X_bad, p_src, p_src)
+    with pytest.raises(ValueError, match='2 or 3 dimensional'):
+        reproject_arr_to_new_crs(X_bad, p_src, CRS.from_epsg(32632))
 
 
 def test_reproject_to_new_crs_preserves_dtype(test_data_dir: Path) -> None:

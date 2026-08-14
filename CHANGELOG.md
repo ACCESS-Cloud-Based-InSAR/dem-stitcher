@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-08-14
+
+### Added
+* `preserve_rank` keyword argument (default `False`) to `reproject_arr_to_match_profile` and `reproject_arr_to_new_crs`: when `True`, a 2D `M x N` source array returns a 2D reprojected array (and an output profile with `count = 1`) instead of the historical `1 x M x N`. 3D `B x M x N` inputs (including `B = 1`) are returned as 3D regardless of the flag, and the default behavior is unchanged - no `[0, ...]` compensation in existing code is affected. The comparison notebooks now use `preserve_rank=True` for their 2D workflows.
+* Both reprojection functions now raise a `ValueError` when the source array is not 2 or 3 dimensional (previously such inputs failed obscurely inside `rasterio.warp.reproject` or silently mis-shaped the output).
+
 ## [3.0.0] - 2026-08-05
 
 ### Added
