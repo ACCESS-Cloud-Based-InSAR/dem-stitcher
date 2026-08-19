@@ -20,6 +20,7 @@ from .exceptions import NoDEMCoverage
 from .geoid import get_default_geoid_path, remove_geoid, validate_geoid_path
 from .merge import merge_arrays_with_geometadata, merge_tile_datasets_within_extent
 from .rio_tools import (
+    gdal_read_env,
     reproject_arr_to_match_profile,
     reproject_arr_to_new_crs,
     reproject_profile_to_new_crs,
@@ -53,7 +54,7 @@ GDAL_EARTHDATA_DEMS = ['nisar_dem']
 
 
 def get_gdal_env(dem_name: str) -> rasterio.Env:
-    return earthdata_gdal_env() if dem_name in GDAL_EARTHDATA_DEMS else rasterio.Env()
+    return earthdata_gdal_env() if dem_name in GDAL_EARTHDATA_DEMS else gdal_read_env()
 
 
 def _download_and_write_one_tile_to_gtiff(url: str, dest_path: Path, reader: Callable, dem_name: str) -> dict:
@@ -215,7 +216,10 @@ def merge_and_transform_dem_tiles(
     merge_nodata_value: float = np.nan,
     n_threads_for_reading_tile_data: int = 5,
     geoid_path: str | Path | None = None,
+    geoid_correction_mode: str = 'native',
 ) -> tuple[np.ndarray, dict]:
+    if geoid_correction_mode not in ['native', 'aria-legacy']:
+        raise ValueError("geoid_correction_mode must be 'native' or 'aria-legacy'")
     dem_arr, dem_profile = merge_tile_datasets_within_extent(
         datasets, bounds, nodata=merge_nodata_value, dtype=np.float32, n_threads=n_threads_for_reading_tile_data
     )
@@ -236,18 +240,34 @@ def merge_and_transform_dem_tiles(
     if dem_profile['crs'] != EPSG_4326:
         raise ValueError('CRS must be epsg 4269 or 4326')
 
+    # 'aria-legacy' reproduces the pre-3.0.0 order: relabel first, then sample the geoid on the
+    # relabeled grid with the half-geoid-pixel translation of issue #151
+    if geoid_correction_mode == 'aria-legacy':
+        dem_profile = shift_profile_for_pixel_loc(dem_profile, src_area_or_point, dst_area_or_point)
+
     # Remove the geoid on the native grid so it is sampled where the DEM samples physically are;
     # the Area/Point relabeling below only shifts the transform, not the data
     if dst_ellipsoidal_height and (dem_name not in ELLIPSOIDAL_HEIGHT_DEMS):
         if geoid_path is None:
             geoid_path = get_default_geoid_path(dem_name)
-        dem_arr = remove_geoid(
-            dem_arr,
-            dem_profile,
-            geoid_path,
-        )
+        if geoid_correction_mode == 'aria-legacy':
+            dem_arr = remove_geoid(
+                dem_arr,
+                dem_profile,
+                geoid_path,
+                resampling='bilinear',
+                geoid_correction_mode='aria-legacy',
+                dem_area_or_point=dst_area_or_point,
+            )
+        else:
+            dem_arr = remove_geoid(
+                dem_arr,
+                dem_profile,
+                geoid_path,
+            )
 
-    dem_profile = shift_profile_for_pixel_loc(dem_profile, src_area_or_point, dst_area_or_point)
+    if geoid_correction_mode == 'native':
+        dem_profile = shift_profile_for_pixel_loc(dem_profile, src_area_or_point, dst_area_or_point)
     target_profile = _build_target_profile(dem_profile, dst_resolution)
 
     if dem_profile != target_profile:
@@ -316,6 +336,7 @@ def stitch_dem(
     geoid_path: str | Path | None = None,
     dst_tile_dir: Path | str | None = None,
     overwrite_existing_tiles: bool = False,
+    geoid_correction_mode: str = 'native',
 ) -> tuple[np.ndarray, dict]:
     """Specify extents (xmin, ymin, xmax, ymax) to obtain a continuous DEM raster.
 
@@ -356,6 +377,15 @@ def stitch_dem(
         If not None do not remove tiles already downloaded, and use them instead of downloading.
     overwrite_existing_tiles: bool, optional
         If True, overwrite existing tiles, by default False
+    geoid_correction_mode: str, optional
+        Either 'native' (default) or 'aria-legacy'. 'aria-legacy' reproduces the pre-3.0.0 geoid correction
+        bit-for-bit for DEMs delivered in epsg:4326 (`3dep` is excluded from this parity guarantee): the geoid
+        is sampled on the Area/Point-relabeled grid, translated by half a *geoid* pixel when
+        `dst_area_or_point='Point'` (the bias of issue #151, up to several centimeters), and interpolated with
+        bilinear rather than cubic resampling. Requires `dst_ellipsoidal_height=True` and emits a `UserWarning`
+        on every call. Use only for consistency with time series built on pre-3.0.0 products (e.g. ARIA).
+        Note pre-3.0.0 versions also defaulted `dst_area_or_point` to 'Area', so pass it explicitly
+        ('Point' for ARIA products) for full call-for-call parity.
 
     Returns
     -------
@@ -370,6 +400,20 @@ def stitch_dem(
 
     if dst_area_or_point not in ['Area', 'Point', None]:
         raise ValueError("dst_area_or_point must be 'Area', 'Point', or None")
+    if geoid_correction_mode not in ['native', 'aria-legacy']:
+        raise ValueError("geoid_correction_mode must be 'native' or 'aria-legacy'")
+    if geoid_correction_mode == 'aria-legacy':
+        if not dst_ellipsoidal_height:
+            raise ValueError("geoid_correction_mode='aria-legacy' requires dst_ellipsoidal_height=True")
+        if dem_name in ELLIPSOIDAL_HEIGHT_DEMS:
+            raise ValueError(f'{dem_name} is referenced to the ellipsoid; no geoid correction is applied')
+        warn(
+            "geoid_correction_mode='aria-legacy' reproduces the pre-3.0.0 geoid correction, including the "
+            'half-geoid-pixel translation of issue #151 that biases ellipsoidal heights by up to several '
+            'centimeters where the geoid has a gradient. Use only for consistency with existing '
+            'ARIA / pre-3.0.0 time series.',
+            category=UserWarning,
+        )
     # Make sure geoid kwargs are correct
     if geoid_path is not None:
         if not dst_ellipsoidal_height:
@@ -449,6 +493,7 @@ def stitch_dem(
             merge_nodata_value=merge_nodata_value,
             n_threads_for_reading_tile_data=n_threads_downloading,
             geoid_path=geoid_path,
+            geoid_correction_mode=geoid_correction_mode,
         )
 
         # Close datasets

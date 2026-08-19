@@ -263,9 +263,54 @@ def test_dst_area_or_point_none_inherits_source_registration(
     assert_array_equal(X_inherited, X_point)
 
 
+def test_legacy_mode_point_and_area_samples_differ(
+    get_los_angeles_tile_dataset: Callable[[str], rasterio.DatasetReader],
+) -> None:
+    """Check `geoid_correction_mode='aria-legacy'` reproduces the pre-3.0.0 Point/Area discrepancy.
+
+    Under the legacy correction the geoid grid is translated by half a *geoid* pixel for 'Point'
+    (issue #151), so unlike the native mode the Point and Area samples differ.
+    """
+    bounds = [-118.8, 34.6, -118.5, 34.8]
+    geoid_path = get_geoid_path('geoid_18')
+
+    results = {}
+    for tag in ['Point', 'Area']:
+        datasets = [get_los_angeles_tile_dataset('glo_30')]
+        results[tag] = merge_and_transform_dem_tiles(
+            datasets,
+            bounds,
+            dem_name='glo_30',
+            dst_ellipsoidal_height=True,
+            dst_area_or_point=tag,
+            geoid_path=geoid_path,
+            geoid_correction_mode='aria-legacy',
+        )
+        datasets[0].close()
+
+    X_point, p_point = results['Point']
+    X_area, p_area = results['Area']
+
+    assert not np.array_equal(X_point, X_area, equal_nan=True)
+    assert p_area['transform'] == translate_profile(p_point, 0.5, 0.5)['transform']
+
+
 def test_bad_dst_area_or_point() -> None:
     with pytest.raises(ValueError, match="dst_area_or_point must be 'Area', 'Point', or None"):
         stitch_dem([-118.8, 34.6, -118.5, 34.8], dem_name='glo_30', dst_area_or_point='foo')
+
+
+def test_bad_geoid_correction_mode() -> None:
+    with pytest.raises(ValueError, match="geoid_correction_mode must be 'native' or 'aria-legacy'"):
+        stitch_dem([-118.8, 34.6, -118.5, 34.8], dem_name='glo_30', geoid_correction_mode='foo')
+
+
+def test_aria_legacy_invalid_combinations() -> None:
+    bounds = [-118.8, 34.6, -118.5, 34.8]
+    with pytest.raises(ValueError, match='requires dst_ellipsoidal_height=True'):
+        stitch_dem(bounds, dem_name='glo_30', dst_ellipsoidal_height=False, geoid_correction_mode='aria-legacy')
+    with pytest.raises(ValueError, match='referenced to the ellipsoid; no geoid correction'):
+        stitch_dem(bounds, dem_name='nisar_dem', geoid_correction_mode='aria-legacy')
 
 
 @pytest.mark.integration
@@ -423,6 +468,54 @@ def test_against_golden_datasets(
     assert transform_golden == p['transform']
 
 
+@pytest.mark.parametrize('location', ['los_angeles', 'fairbanks'])
+def test_against_legacy_golden_datasets(
+    location: str,
+    get_tile_paths_for_comparison_with_golden_dataset: Callable[[str], list[str]],
+    get_golden_dataset_path: Callable[[str, str], str],
+    get_geoid_for_golden_dataset_test: Callable[[str], tuple[np.ndarray, dict]],
+    mocker: pytest.MonkeyPatch,
+) -> None:
+    """Check `geoid_correction_mode='aria-legacy'` against goldens generated with `dem-stitcher==2.5.13`.
+
+    The `*_dem_ellipsoid_legacy.tif` goldens were produced by running pip-installed 2.5.13 with the same
+    cached tile crops and geoid crop mocked in below (see generate-datasets.ipynb), so this pins parity with
+    the pre-3.0.0 geoid correction independent of live-tile drift. Verified bit-for-bit on the generating
+    machine; asserted at 0.1 mm here for the same cross-CI ULP reason as `test_against_golden_datasets`.
+    """
+    if location == 'los_angeles':
+        bounds = [-118.05, 33.95, -117.95, 34.05]
+        dst_resolution = None
+    if location == 'fairbanks':
+        bounds = [-147.75, 64.75, -147.65, 64.85]
+        dst_resolution = 0.0002777777
+
+    mocker.patch(
+        'dem_stitcher.stitcher.get_dem_tile_paths',
+        side_effect=[get_tile_paths_for_comparison_with_golden_dataset(location)],
+    )
+
+    mocker.patch('dem_stitcher.geoid.read_geoid', side_effect=[get_geoid_for_golden_dataset_test(location)])
+
+    path_golden = get_golden_dataset_path(location, 'ellipsoid_legacy')
+
+    with rasterio.open(path_golden) as ds:
+        X_golden = ds.read(1)
+        transform_golden = ds.transform
+
+    with pytest.warns(UserWarning, match='aria-legacy'):
+        X, p = stitch_dem(
+            bounds,
+            dem_name='glo_30',
+            dst_ellipsoidal_height=True,
+            dst_area_or_point='Point',
+            dst_resolution=dst_resolution,
+            geoid_correction_mode='aria-legacy',
+        )
+    assert_allclose(X_golden, X, rtol=1e-6, atol=1e-4)
+    assert transform_golden == p['transform']
+
+
 @pytest.mark.parametrize('dem_name, geoid_name', [('3dep', 'geoid_18'), ('glo_30', 'egm_08')])
 def test_stitcher_with_bring_your_own_geoid(dem_name: str, geoid_name: str) -> None:
     bounds = [-115.95, 33.85, -115.85, 33.95]
@@ -449,28 +542,57 @@ def test_stitcher_with_bring_your_own_geoid(dem_name: str, geoid_name: str) -> N
     assert p_default == p_explicit
 
 
+"""Copernicus coarsens the GLO-30 longitudinal posting to 1.5, 2, 3, 5 and 10 arcseconds at 50, 60, 70, 80 and 85
+degrees latitude while the latitudinal posting stays at 1 arcsecond. The geoid shift of issue #151 is half a DEM
+pixel, so it is anisotropic in these bands - sample a tile from each so a regression cannot hide above 50 degrees.
+"""
+GLO_30_POSTING_BANDS = [(0, 50), (50, 60), (60, 70), (70, 80), (80, 85)]
+
+
+def _sample_glo_30_tile_center(lat_min: float, lat_max: float) -> tuple[float, float]:
+    df_tiles = get_global_dem_tile_extents('glo_30')
+    tile_bounds = df_tiles.geometry.bounds
+    lat = tile_bounds[['miny', 'maxy']].abs().min(axis=1)
+    df_band = df_tiles[(lat >= lat_min) & (lat < lat_max)]
+    b = df_band.sample(1, random_state=151).geometry.bounds.iloc[0]
+    return (b.minx + b.maxx) / 2, (b.miny + b.maxy) / 2
+
+
 @pytest.mark.integration
-def test_glo_30_agrees_with_nisar_dem_over_random_tiles() -> None:
-    """Check stitched glo_30 with ellipsoidal heights against the NISAR DEM over randomly selected tiles.
+@pytest.mark.parametrize('lat_min, lat_max', GLO_30_POSTING_BANDS)
+def test_glo_30_agrees_with_nisar_dem_over_random_tiles(lat_min: float, lat_max: float) -> None:
+    """Check stitched glo_30 with ellipsoidal heights against the NISAR DEM over a randomly selected tile per band.
 
     The NISAR DEM is the Copernicus GLO-30 with EGM2008 removed at the source by JPL on the native tile grids,
-    so both stitches must share a transform and agree to within the geoid interpolation differences (~mm);
+    so both stitches must share a grid and agree to within the geoid interpolation differences (~mm);
     guards against the half-pixel geoid translation of issue #151, which produced cm-dm level discrepancies.
     """
-    df_tiles = get_global_dem_tile_extents('glo_30')
-    df_sample = df_tiles.sample(3, random_state=151)
+    x, y = _sample_glo_30_tile_center(lat_min, lat_max)
+    bounds = [x - 0.05, y - 0.05, x + 0.05, y + 0.05]
 
-    for geometry in df_sample.geometry:
-        centroid = geometry.centroid
-        bounds = [centroid.x - 0.05, centroid.y - 0.05, centroid.x + 0.05, centroid.y + 0.05]
+    X_nisar, p_nisar = stitch_dem(bounds, 'nisar_dem', dst_area_or_point='Point')
+    X_glo, p_glo = stitch_dem(bounds, 'glo_30', dst_ellipsoidal_height=True, dst_area_or_point='Point')
 
-        X_nisar, p_nisar = stitch_dem(bounds, 'nisar_dem', dst_area_or_point='Point')
-        X_glo, p_glo = stitch_dem(bounds, 'glo_30', dst_ellipsoidal_height=True, dst_area_or_point='Point')
+    # The 1.5 and 3 arcsecond postings round to floats that differ by a ULP between the NISAR and Copernicus headers
+    assert p_nisar['transform'].almost_equals(p_glo['transform'])
+    assert X_nisar.shape == X_glo.shape
+    mask = ~np.isnan(X_nisar) & ~np.isnan(X_glo)
+    assert mask.any()
+    assert np.max(np.abs(X_nisar[mask] - X_glo[mask])) < 0.01
 
-        assert p_nisar['transform'] == p_glo['transform']
-        mask = ~np.isnan(X_nisar) & ~np.isnan(X_glo)
-        assert mask.any()
-        assert np.max(np.abs(X_nisar[mask] - X_glo[mask])) < 0.01
+
+@pytest.mark.integration
+def test_glo_30_agrees_with_nisar_dem_over_anchorage() -> None:
+    """Anchorage sits in the 2 arcsecond longitudinal posting band; the notebook comparison uses these bounds."""
+    bounds = [-150.0, 61.15, -149.9, 61.25]
+
+    X_nisar, p_nisar = stitch_dem(bounds, 'nisar_dem', dst_area_or_point='Point')
+    X_glo, p_glo = stitch_dem(bounds, 'glo_30', dst_ellipsoidal_height=True, dst_area_or_point='Point')
+
+    assert p_glo['transform'].a == pytest.approx(2 / 3600)
+    assert -p_glo['transform'].e == pytest.approx(1 / 3600)
+    assert p_nisar['transform'].almost_equals(p_glo['transform'])
+    assert np.nanmax(np.abs(X_nisar - X_glo)) < 0.01
 
 
 def test_nisar_dem_is_ellipsoidal_only() -> None:

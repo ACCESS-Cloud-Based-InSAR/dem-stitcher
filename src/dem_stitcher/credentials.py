@@ -4,6 +4,8 @@ from pathlib import Path
 
 import rasterio
 
+from .rio_tools import gdal_read_env
+
 
 def ensure_earthdata_credentials(
     host: str = 'urs.earthdata.nasa.gov',
@@ -38,7 +40,7 @@ def earthdata_gdal_env(**kwargs: str) -> rasterio.Env:
                 arr = ds.read()
     """
     cookie_path = str(Path(tempfile.gettempdir()) / 'dem_stitcher_earthdata_cookies.txt')
-    return rasterio.Env(
+    return gdal_read_env(
         GDAL_HTTP_NETRC='YES',
         GDAL_HTTP_COOKIEFILE=cookie_path,
         GDAL_HTTP_COOKIEJAR=cookie_path,

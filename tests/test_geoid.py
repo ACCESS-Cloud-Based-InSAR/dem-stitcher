@@ -7,9 +7,10 @@ import pytest
 import rasterio
 from numpy.testing import assert_allclose, assert_array_equal
 from rasterio.crs import CRS
+from rasterio.transform import array_bounds
 
 from dem_stitcher.geoid import get_geoid_path, read_geoid, remove_geoid
-from dem_stitcher.rio_tools import reproject_arr_to_match_profile
+from dem_stitcher.rio_tools import reproject_arr_to_match_profile, translate_profile
 
 
 """We will test 'geoid_18' over US because we include that in package datasets, i.e. no internet reading is required"""
@@ -94,6 +95,61 @@ def test_remove_geoid_with_geoid_in_different_crs(
     X_relabeled = remove_geoid(Y, p_dem, str(geoid_path_4326))
 
     assert_allclose(X_native_crs, X_relabeled, atol=1e-4)
+
+
+def test_remove_geoid_aria_legacy_area_matches_native(
+    get_los_angeles_dummy_profile: Callable[[float], dict],
+) -> None:
+    """Under 'aria-legacy' with 'Area' registration there is no geoid translation, so it matches native bilinear."""
+    p_dem = get_los_angeles_dummy_profile(res=0.001)
+    geoid_path = get_geoid_path('geoid_18')
+    Y = np.zeros((10, 10), dtype=np.float32)
+
+    X_native = remove_geoid(Y, p_dem, geoid_path, resampling='bilinear')
+    X_legacy = remove_geoid(
+        Y, p_dem, geoid_path, resampling='bilinear', geoid_correction_mode='aria-legacy', dem_area_or_point='Area'
+    )
+
+    assert_array_equal(X_native, X_legacy)
+
+
+def test_remove_geoid_aria_legacy_point_shifts_geoid_grid(
+    get_los_angeles_dummy_profile: Callable[[float], dict],
+) -> None:
+    """Pin the pre-3.0.0 'Point' semantics: half a *geoid* pixel translation before bilinear interpolation.
+
+    See https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/151.
+    """
+    p_dem = get_los_angeles_dummy_profile(res=0.001)
+    geoid_path = get_geoid_path('geoid_18')
+    Y = np.zeros((10, 10), dtype=np.float32)
+
+    X_legacy = remove_geoid(
+        Y, p_dem, geoid_path, resampling='bilinear', geoid_correction_mode='aria-legacy', dem_area_or_point='Point'
+    )
+
+    extent = array_bounds(p_dem['height'], p_dem['width'], p_dem['transform'])
+    X_geoid, p_geoid = read_geoid(geoid_path, extent=list(extent), res_buffer=2, extent_crs=p_dem['crs'])
+    p_geoid_shifted = translate_profile(p_geoid, -0.5, -0.5)
+    X_expected, _ = reproject_arr_to_match_profile(X_geoid, p_geoid_shifted, p_dem, resampling='bilinear')
+
+    assert_array_equal(X_legacy, Y + X_expected)
+
+    X_native = remove_geoid(Y, p_dem, geoid_path, resampling='bilinear')
+    assert not np.array_equal(X_legacy, X_native)
+
+
+def test_remove_geoid_mode_validation(get_los_angeles_dummy_profile: Callable[[float], dict]) -> None:
+    p_dem = get_los_angeles_dummy_profile(res=0.001)
+    geoid_path = get_geoid_path('geoid_18')
+    Y = np.zeros((10, 10), dtype=np.float32)
+
+    with pytest.raises(ValueError, match="geoid_correction_mode must be 'native' or 'aria-legacy'"):
+        remove_geoid(Y, p_dem, geoid_path, geoid_correction_mode='foo')
+    with pytest.raises(ValueError, match="dem_area_or_point must be 'Area' or 'Point'"):
+        remove_geoid(Y, p_dem, geoid_path, geoid_correction_mode='aria-legacy')
+    with pytest.raises(ValueError, match="only used when geoid_correction_mode='aria-legacy'"):
+        remove_geoid(Y, p_dem, geoid_path, dem_area_or_point='Point')
 
 
 @pytest.mark.integration
