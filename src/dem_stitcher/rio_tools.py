@@ -1,4 +1,8 @@
+from collections.abc import Callable
+from functools import wraps
+
 import numpy as np
+import rasterio
 from affine import Affine
 from rasterio import DatasetReader
 from rasterio.crs import CRS
@@ -7,6 +11,26 @@ from rasterio.warp import Resampling, aligned_target, calculate_default_transfor
 
 
 GEOMETADATA_KEYS = ('driver', 'dtype', 'nodata', 'width', 'height', 'count', 'crs', 'transform')
+# Without this, GDAL probes for sidecars (*.aux.xml, *.ovr, ...) next to every raster it opens, which for
+# remote rasters (e.g. the ARIA geoids) are 403s that GDAL logs as warnings.
+# See: https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/issues/262
+GDAL_READ_OPTIONS = {'GDAL_DISABLE_READDIR_ON_OPEN': 'EMPTY_DIR'}
+
+
+def gdal_read_env(**kwargs: str) -> rasterio.Env:
+    """Get a rasterio environment with the GDAL options used for all raster reads in this library."""
+    return rasterio.Env(**{**GDAL_READ_OPTIONS, **kwargs})
+
+
+def with_gdal_read_env(func: Callable) -> Callable:
+    """Run a read function within `gdal_read_env()`; nests safely within an outer `rasterio.Env`."""
+
+    @wraps(func)
+    def wrapper(*args: object, **kwargs: object) -> object:
+        with gdal_read_env():
+            return func(*args, **kwargs)
+
+    return wrapper
 
 
 def in_memory_profile(profile: dict) -> dict:

@@ -11,6 +11,8 @@ from rasterio.transform import array_bounds, rowcol, xy
 from rasterio.windows import Window
 from shapely.geometry import box
 
+from .rio_tools import with_gdal_read_env
+
 
 def get_cropped_profile(profile: dict, slice_x: slice, slice_y: slice) -> dict:
     """Return a cropped profile from a reference profile and numpy slices.
@@ -168,6 +170,7 @@ def format_window_profile(src_profile: dict, window_arr: np.ndarray, window_tran
     return profile_window
 
 
+@with_gdal_read_env
 def read_raster_from_window(
     raster_path: str, window_extent: list, window_crs: CRS = CRS.from_epsg(4326), res_buffer: int = 0
 ) -> tuple:

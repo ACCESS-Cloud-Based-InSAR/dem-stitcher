@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1]
+
+### Added
+* `geoid_correction_mode` keyword argument (default `'native'`) to `stitch_dem`, `merge_and_transform_dem_tiles`, and `remove_geoid`. `'aria-legacy'` reproduces the pre-3.0.0 geoid correction for DEMs delivered in `epsg:4326` (`3dep` is excluded from the parity guarantee), for time-series consistency with products stitched by 2.5.x (e.g. existing ARIA products): the geoid is sampled on the `Area`/`Point`-relabeled grid rather than the native grid, translated by half a *geoid* pixel when the registration is `'Point'` (i.e. the #151 bias is reproduced intentionally), and interpolated with bilinear rather than cubic resampling. The mode requires `dst_ellipsoidal_height=True`, raises for DEMs already referenced to the ellipsoid (`nisar_dem`), and emits a `UserWarning` on every call. Cosmetic 2.5.x differences are not reproduced (the `res_buffer` warning text and the `epsg:4326` extent assumption in `read_geoid`, which is pixel-neutral on this code path), and the 2.5.x *default* of `dst_area_or_point='Area'` is not restored - pass it explicitly (`'Point'` for ARIA products) for call-for-call parity. Two golden datasets (`tests/data/golden_datasets/{los_angeles,fairbanks}_dem_ellipsoid_legacy.tif`) were generated with pip-installed `dem-stitcher==2.5.13` against the cached tile and geoid fixtures (see `generate-datasets.ipynb`) and the new mode matches them locally (asserted at 0.1 mm in CI).
+
+### Fixed
+* Reads of remote rasters (notably the ARIA geoids over https) logged a `CPLE_AppDefined ... 403` warning for every sidecar GDAL probed for (`*.aux.xml`, `*.aux`, `*.msk`, ...). All raster reads now run within a `rasterio.Env` setting `GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR'` - `dem_stitcher.rio_tools.gdal_read_env()` builds that environment and `with_gdal_read_env` decorates `read_dem`, `read_geoid`, and `read_raster_from_window`; `earthdata_gdal_env()` and the environment `stitch_dem` opens tiles in include it as well (see [DockerizedTopsApp#262](https://github.com/ACCESS-Cloud-Based-InSAR/DockerizedTopsApp/issues/262)).
+
+### Changed
+* The NISAR DEM comparison notebook (`notebooks/analysis_and_comparison/2_Comparison_with_NISAR_DEM.ipynb`) now compares Los Angeles *and* Anchorage, Alaska, so the 2 arcsecond longitudinal GLO-30 posting above 60 degrees latitude is exercised alongside the 1 arcsecond posting.
+* `test_glo_30_agrees_with_nisar_dem_over_random_tiles` samples one tile from each GLO-30 posting band (0-50, 50-60, 60-70, 70-80, 80-85 degrees) rather than three tiles from the global pool, and a companion test pins the Anchorage bounds used by the notebook. The transform comparison uses `Affine.almost_equals` because the 1.5 and 3 arcsecond postings round to floats that differ by a ULP between the NISAR and Copernicus tile headers.
+* The CI test matrix names each job by its python version (`3.10` - `3.14`) and asserts the pixi environment resolved to it, instead of relying on a comment to record that `default` is python 3.14.
+
 ## [3.1.0] - 2026-08-14
 
 ### Added

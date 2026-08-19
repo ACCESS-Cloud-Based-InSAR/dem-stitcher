@@ -8,6 +8,8 @@ from rasterio.io import MemoryFile
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from .rio_tools import with_gdal_read_env
+
 
 def _get_retrying_session() -> requests.Session:
     session = requests.Session()
@@ -20,6 +22,7 @@ def _get_retrying_session() -> requests.Session:
 SESSION = _get_retrying_session()
 
 
+@with_gdal_read_env
 def read_dem(dem_path: str) -> rasterio.DatasetReader:
     with rasterio.open(dem_path) as ds:
         dem_arr = ds.read()

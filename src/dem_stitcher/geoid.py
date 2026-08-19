@@ -9,7 +9,7 @@ from rasterio.transform import array_bounds
 from .datasets import DATA_PATH
 from .dateline import get_dateline_crossing, split_extent_across_dateline
 from .merge import merge_arrays_with_geometadata
-from .rio_tools import reproject_arr_to_match_profile, translate_profile
+from .rio_tools import reproject_arr_to_match_profile, translate_profile, with_gdal_read_env
 from .rio_window import read_raster_from_window
 
 
@@ -65,6 +65,7 @@ def validate_geoid_path(geoid_path: str | Path) -> None:
     raise TypeError(f'Geoid path {geoid_path} is not of type str or Path.')
 
 
+@with_gdal_read_env
 def read_geoid(
     geoid_path: str | Path,
     extent: list | None = None,
@@ -118,13 +119,27 @@ def remove_geoid(
     geoid_path: str | Path,
     res_buffer: int = 2,
     resampling: str = 'cubic',
+    geoid_correction_mode: str = 'native',
+    dem_area_or_point: str | None = None,
 ) -> np.ndarray:
     """Interpolate the geoid at the sample locations implied by `dem_profile['transform']` and add it to the DEM.
 
     Must be applied on the native DEM grid *before* any Area/Point pixel-registration relabeling so the geoid
     is sampled where the DEM samples physically are.
     See: https://github.com/ACCESS-Cloud-Based-InSAR/dem-stitcher/issues/151
+
+    `geoid_correction_mode='aria-legacy'` intentionally reproduces the pre-3.0.0 behavior of issue #151:
+    when `dem_area_or_point='Point'`, the geoid grid is translated by half a *geoid* pixel before
+    interpolation. Full parity with 2.5.x additionally requires `resampling='bilinear'` and a `dem_profile`
+    that has already been relabeled via `shift_profile_for_pixel_loc`.
     """
+    if geoid_correction_mode not in ['native', 'aria-legacy']:
+        raise ValueError("geoid_correction_mode must be 'native' or 'aria-legacy'")
+    if geoid_correction_mode == 'aria-legacy' and dem_area_or_point not in ['Area', 'Point']:
+        raise ValueError("dem_area_or_point must be 'Area' or 'Point' when geoid_correction_mode='aria-legacy'")
+    if geoid_correction_mode == 'native' and dem_area_or_point is not None:
+        raise ValueError("dem_area_or_point is only used when geoid_correction_mode='aria-legacy'")
+
     extent = array_bounds(dem_profile['height'], dem_profile['width'], dem_profile['transform'])
 
     validate_geoid_path(geoid_path)
@@ -146,6 +161,9 @@ def remove_geoid(
             f'Select a `res_buffer = {buffer_recommendation}`'
         )
         warnings.warn(warning, category=UserWarning)
+
+    if geoid_correction_mode == 'aria-legacy' and dem_area_or_point == 'Point':
+        geoid_profile = translate_profile(geoid_profile, -0.5, -0.5)
 
     geoid_offset, _ = reproject_arr_to_match_profile(geoid_arr, geoid_profile, dem_profile, resampling=resampling)
 
