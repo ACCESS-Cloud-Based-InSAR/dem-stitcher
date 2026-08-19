@@ -6,12 +6,17 @@ import rasterio
 from numpy.testing import assert_almost_equal
 from rasterio.crs import CRS
 
+from dem_stitcher.credentials import earthdata_gdal_env
+from dem_stitcher.dem_readers import read_dem
 from dem_stitcher.rio_tools import (
+    gdal_read_env,
     reproject_arr_to_match_profile,
     reproject_arr_to_new_crs,
     translate_dataset,
     update_profile_resolution,
+    with_gdal_read_env,
 )
+from dem_stitcher.rio_window import get_array_bounds, read_raster_from_window
 
 
 def test_update_resolution(test_data_dir: Path) -> None:
@@ -122,3 +127,29 @@ def test_reproject_to_new_crs_preserves_dtype(test_data_dir: Path) -> None:
     # UTM zone 32N covers the test tile's location (lon 10-12, lat -2 to 0)
     result_arr, _ = reproject_arr_to_new_crs(src_arr, src_profile, CRS.from_epsg(32632), resampling='bilinear')
     assert result_arr.dtype == np.float32
+
+
+def test_gdal_read_env_disables_sidecar_probing() -> None:
+    """Sidecar probes on remote rasters are 403s that GDAL logs as warnings; see issue DockerizedTopsApp#262."""
+
+    @with_gdal_read_env
+    def get_option() -> str:
+        return rasterio.env.getenv()['GDAL_DISABLE_READDIR_ON_OPEN']
+
+    assert get_option() == 'EMPTY_DIR'
+    for env in [gdal_read_env(), earthdata_gdal_env()]:
+        assert env.options['GDAL_DISABLE_READDIR_ON_OPEN'] == 'EMPTY_DIR'
+    # An outer environment (e.g. the Earthdata options) is preserved by the nested read environment
+    with earthdata_gdal_env():
+        assert get_option() == 'EMPTY_DIR'
+        assert rasterio.env.getenv()['GDAL_HTTP_NETRC'] == 'YES'
+
+
+def test_read_functions_run_within_gdal_read_env(test_data_dir: Path) -> None:
+    tile_path = test_data_dir / 'rio_tools' / 'update_resolution' / 'res_one_deg.tif'
+    _, profile = read_dem(str(tile_path))
+    assert profile['width'] > 0
+
+    extent = list(get_array_bounds(profile))
+    arr_window, _ = read_raster_from_window(str(tile_path), extent)
+    assert arr_window.shape[-2:] == (profile['height'], profile['width'])

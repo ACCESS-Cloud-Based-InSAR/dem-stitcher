@@ -13,10 +13,22 @@ on:
 
 jobs:
   pytest:
+    name: pytest (python ${{ matrix.python }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        environment: ["py310", "py311", "py312", "py313", "default"]  # `default` is python 3.14
+        include:
+          - environment: py310
+            python: "3.10"
+          - environment: py311
+            python: "3.11"
+          - environment: py312
+            python: "3.12"
+          - environment: py313
+            python: "3.13"
+          # `default` is the newest supported python; see `[tool.pixi.environments]` in pyproject.toml
+          - environment: default
+            python: "3.14"
       fail-fast: false
 
     steps:
@@ -34,6 +46,9 @@ jobs:
         with:
           pixi-version: latest
           environments: ${{ matrix.environment }}
+
+      - name: Check python version
+        run: pixi run -e ${{ matrix.environment }} python -c "import sys; assert sys.version.startswith('${{ matrix.python }}.'), sys.version"
 
       - name: Pytest in pixi environment
         run: pixi run -e ${{ matrix.environment }} pytest . -m 'not notebook'
