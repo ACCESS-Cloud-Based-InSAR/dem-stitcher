@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [PEP 440](https://www.python.org/dev/peps/pep-0440/)
 and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.2]
+
+### Fixed
+* `reproject_arr_to_match_profile` and `reproject_arr_to_new_crs` never declared the source nodata to `rasterio.warp.reproject`, so gdal treated *every* source pixel as valid data; they now mask `src_profile['nodata']` by default. Undeclared, a source value that collides with the output nodata is remapped rather than left to read back as nodata - a `uint8` categorical raster with `nodata=255` comes back with its nodata pixels as 254 (gdal logs `CPLE_AppDefined ... Value 255 in the source dataset has been changed to 254 in the destination dataset to avoid being treated as NoData`). Those pixels are then data to every downstream step: a nodata mask built from the profile misses them, and `merge_arrays_with_geometadata` interpolates them against the real class labels. The collision remap applies only when the warp destination is an integer type, so 3.0.0 - which allocated the destination buffer in the source dtype rather than `float64` cast after the warp - is where integer rasters became susceptible. The `dem_stitcher` DEM and geoid paths are float and unaffected: the golden datasets, including the ellipsoidal ones asserted at 0.1 mm, are unchanged.
+
+### Added
+* `src_nodata` keyword argument to `reproject_arr_to_match_profile` and `reproject_arr_to_new_crs` for the cases where the source array's nodata is not the profile's. It defaults to `None`, meaning "take it from `src_profile`"; passing a value overrides the profile and emits a `UserWarning`.
+
 ## [3.1.1]
 
 ### Added
