@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Callable
 from functools import wraps
 
@@ -104,6 +105,23 @@ def translate_dataset(dataset: DatasetReader, x_shift: float, y_shift: float) ->
     return memfile, dataset_new
 
 
+def _resolve_src_nodata(src_nodata: float | int | None, src_profile: dict) -> float | int | None:
+    """Take the source nodata from the profile; an explicit argument overrides it and warns.
+
+    `None` cannot mean "declare nothing" here because that is exactly the silent corruption this resolves;
+    set `src_profile['nodata'] = None` to reproject a source whose nodata should not be masked.
+    """
+    if src_nodata is None:
+        return src_profile['nodata']
+    profile_nodata = src_profile['nodata']
+    warnings.warn(
+        f'`src_nodata={src_nodata}` overrides the source profile nodata ({profile_nodata}); '
+        'omit `src_nodata` to mask the profile value.',
+        category=UserWarning,
+    )
+    return src_nodata
+
+
 def reproject_arr_to_match_profile(
     src_array: np.ndarray,
     src_profile: dict,
@@ -112,6 +130,7 @@ def reproject_arr_to_match_profile(
     num_threads: int = 1,
     resampling: str = 'bilinear',
     preserve_rank: bool = False,
+    src_nodata: float | int = None,
 ) -> tuple[np.ndarray, dict]:
     """
     Reproject an array to match a reference profile providing the reprojected array and the new profile.
@@ -138,6 +157,12 @@ def reproject_arr_to_match_profile(
     preserve_rank : bool, optional
         If True, a 2D source array yields a 2D output array (and output profile with count 1).
         Default False preserves the historical behavior of always returning a 3D array.
+    src_nodata : int or float, optional
+        The nodata value of `src_array`, excluded from resampling. If None (default), `src_profile['nodata']`
+        is used; passing a value overrides the profile and warns. Set `src_profile['nodata'] = None` to leave
+        the source nodata undeclared, which treats every source pixel as valid data - with an integer
+        destination gdal then remaps source values that collide with the output nodata (e.g. 255 -> 254 for
+        `uint8`) so they are not read back as nodata, silently turning nodata into data.
 
     Returns
     -------
@@ -165,6 +190,7 @@ def reproject_arr_to_match_profile(
     reproject_profile = ref_profile.copy()
 
     nodata = nodata or src_profile['nodata']
+    src_nodata = _resolve_src_nodata(src_nodata, src_profile)
     src_dtype = src_profile['dtype']
     count = src_profile['count']
 
@@ -184,6 +210,7 @@ def reproject_arr_to_match_profile(
         dst_array,
         src_transform=src_profile['transform'],
         src_crs=src_profile['crs'],
+        src_nodata=src_nodata,
         dst_transform=dst_transform,
         dst_crs=dst_crs,
         dst_nodata=nodata,
@@ -263,6 +290,7 @@ def reproject_arr_to_new_crs(
     resampling: str = 'bilinear',
     target_resolution: float = None,
     preserve_rank: bool = False,
+    src_nodata: float | int = None,
 ) -> tuple[np.ndarray, dict]:
     """
     Reproject an array into a new CRS.
@@ -284,6 +312,9 @@ def reproject_arr_to_new_crs(
         If True, a 2D source array yields a 2D output array (and output profile with count 1).
         Default False preserves the historical behavior of always returning a 3D array
         of shape (count) x (vertical dim.) x (horizontal dim.).
+    src_nodata : int or float, optional
+        The nodata value of `src_array`, excluded from resampling. If None (default), `src_profile['nodata']`
+        is used; passing a value overrides the profile and warns. See `reproject_arr_to_match_profile`.
 
     Returns
     -------
@@ -299,6 +330,7 @@ def reproject_arr_to_new_crs(
         raise ValueError(f'src_array must be 2 or 3 dimensional; got shape {src_array.shape}')
 
     tr = target_resolution
+    src_nodata = _resolve_src_nodata(src_nodata, src_profile)
     reprojected_profile = reproject_profile_to_new_crs(src_profile, dst_crs, target_resolution=tr)
     resampling = Resampling[resampling]
     if preserve_rank and src_array.ndim == 2:
@@ -313,6 +345,7 @@ def reproject_arr_to_new_crs(
         source=src_array,
         src_crs=src_profile['crs'],
         src_transform=src_profile['transform'],
+        src_nodata=src_nodata,
         # Destination paramaters
         destination=dst_array,
         dst_transform=reprojected_profile['transform'],
