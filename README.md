@@ -73,7 +73,7 @@ pixi run jupyter lab
 ```
 
 The default environment is the only one installed locally and uses python 3.14. Environments
-named `py310` through `py313` are declared for the CI matrix and are built on demand with
+named `py311` through `py313` are declared for the CI matrix and are built on demand with
 `pixi run -e py312 ...`; remove one again with `pixi clean -e py312`.
 
 ## Other installation methods
@@ -90,7 +90,7 @@ or into a virtual environment with
 python -m pip install dem_stitcher
 ```
 
-Currently, python 3.10+ is supported.
+Currently, python 3.11+ is supported.
 
 ## With ISCE2 or gdal
 

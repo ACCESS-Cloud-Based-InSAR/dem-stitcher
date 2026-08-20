@@ -3,8 +3,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 import rasterio
+from affine import Affine
 from numpy.testing import assert_almost_equal
 from rasterio.crs import CRS
+from rasterio.warp import Resampling, reproject
 
 from dem_stitcher.credentials import earthdata_gdal_env
 from dem_stitcher.dem_readers import read_dem
@@ -12,6 +14,7 @@ from dem_stitcher.rio_tools import (
     gdal_read_env,
     reproject_arr_to_match_profile,
     reproject_arr_to_new_crs,
+    reproject_profile_to_new_crs,
     translate_dataset,
     update_profile_resolution,
     with_gdal_read_env,
@@ -153,3 +156,80 @@ def test_read_functions_run_within_gdal_read_env(test_data_dir: Path) -> None:
     extent = list(get_array_bounds(profile))
     arr_window, _ = read_raster_from_window(str(tile_path), extent)
     assert arr_window.shape[-2:] == (profile['height'], profile['width'])
+
+
+def _categorical_profile() -> dict:
+    return {
+        'driver': 'GTiff',
+        'dtype': 'uint8',
+        'nodata': 255,
+        'width': 64,
+        'height': 64,
+        'count': 1,
+        'crs': CRS.from_epsg(32617),
+        'transform': Affine(30.0, 0.0, 500_000.0, 0.0, -30.0, 3_600_000.0),
+    }
+
+
+def _categorical_array(profile: dict) -> np.ndarray:
+    X = np.full((profile['height'], profile['width']), profile['nodata'], dtype=np.uint8)
+    X[16:48, 16:48] = 1
+    return X
+
+
+def test_reproject_masks_profile_nodata() -> None:
+    """A source nodata left undeclared is remapped by gdal (255 -> 254) when it collides with output nodata."""
+    p_src = _categorical_profile()
+    X = _categorical_array(p_src)
+    p_ref = reproject_profile_to_new_crs(p_src, CRS.from_epsg(32616))
+
+    X_undeclared = np.zeros((p_ref['height'], p_ref['width']), dtype=np.uint8)
+    reproject(
+        X,
+        X_undeclared,
+        src_transform=p_src['transform'],
+        src_crs=p_src['crs'],
+        dst_transform=p_ref['transform'],
+        dst_crs=p_ref['crs'],
+        dst_nodata=p_src['nodata'],
+        resampling=Resampling['nearest'],
+    )
+    assert 254 in X_undeclared
+
+    X_r, p_r = reproject_arr_to_match_profile(X, p_src, p_ref, resampling='nearest')
+    assert set(np.unique(X_r).tolist()) == {1, 255}
+    assert (X_r == 1).sum() == (X_undeclared == 1).sum()
+    assert p_r['nodata'] == p_src['nodata']
+
+    X_c, _ = reproject_arr_to_new_crs(X, p_src, CRS.from_epsg(32616), resampling='nearest')
+    assert set(np.unique(X_c).tolist()) == {1, 255}
+
+
+def test_reproject_src_nodata_overrides_profile_with_warning() -> None:
+    """An explicit `src_nodata` wins over the profile and says so; 0 is a value, not an omission."""
+    p_src = _categorical_profile()
+    X = _categorical_array(p_src)
+    X[0, 0] = 0
+    p_ref = reproject_profile_to_new_crs(p_src, CRS.from_epsg(32616))
+
+    with pytest.warns(UserWarning, match='overrides the source profile nodata'):
+        X_r, _ = reproject_arr_to_match_profile(X, p_src, p_ref, resampling='nearest', src_nodata=0)
+    # 255 is no longer masked, so gdal remaps it away from the output nodata; 0 is masked instead
+    assert 254 in X_r
+    assert 0 not in X_r
+
+    with pytest.warns(UserWarning, match='overrides the source profile nodata'):
+        X_c, _ = reproject_arr_to_new_crs(X, p_src, CRS.from_epsg(32616), resampling='nearest', src_nodata=0)
+    assert 0 not in X_c
+
+
+def test_reproject_undeclared_nodata_via_profile() -> None:
+    """Setting the profile nodata to None is the documented way to leave the source nodata undeclared."""
+    p_src = _categorical_profile()
+    X = _categorical_array(p_src)
+    p_ref = reproject_profile_to_new_crs(p_src, CRS.from_epsg(32616))
+    p_src_no_nodata = {**p_src, 'nodata': None}
+
+    X_r, p_r = reproject_arr_to_match_profile(X, p_src_no_nodata, p_ref, resampling='nearest')
+    assert p_r['nodata'] is None
+    assert set(np.unique(X_r).tolist()) == {0, 1, 255}

@@ -121,6 +121,7 @@ tests/notebooks/
 !notebooks/Filling_in_missing_glo-30_tiles_with_glo-90_tiles.ipynb
 !notebooks/Merging_DEM_Tiles_into_a_VRT.ipynb
 !notebooks/analysis_and_comparison/2_Comparison_with_NISAR_DEM.ipynb
+!notebooks/analysis_and_comparison/3_Nodata_Remapping_in_Reprojection.ipynb
 
 notebooks/analysis_and_comparison/la_test/
 # pixi environments
