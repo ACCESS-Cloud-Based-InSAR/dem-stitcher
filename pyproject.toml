@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = 'dem_stitcher'
-requires-python = '>=3.10'
+requires-python = '>=3.11'
 authors = [
     {name ='Charlie Marshak, David Bekaert, Michael Denbina, Marc Simard, Joseph H. Kennedy, Simran Sangha, Grace Bato', email ='access_cloud_based_insar@jpl.nasa.gov'}
 ]
@@ -15,7 +15,6 @@ classifiers = [
     'Natural Language :: English',
     'Operating System :: OS Independent',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
@@ -134,12 +133,15 @@ format-check = "ruff format --diff src tests"
 test = "pytest . -m 'not notebook'"
 
 [tool.pixi.dependencies]
-python = ">=3.10,<4"
+python = ">=3.11,<4"
 affine = ">=2.4.0,<3"
 boto3 = ">=1.43.64,<2"
 dateparser = ">=1.4.2,<2"
 fiona = ">=1.10.1,<2"
-gdal = ">=3.10.3,<4"
+gdal = ">=3.11,<4"
+# The AvoidNoData collision handling the rio_tools tests pin down is uniform only from gdal 3.11
+# (https://github.com/OSGeo/gdal/pull/11713); libgdal-core is otherwise free-floating via rasterio.
+libgdal-core = ">=3.11,<4"
 geopandas = ">=1.1.4,<2"
 jinja2 = ">=3.1.6,<4"
 joblib = ">=1.5.3,<2"
@@ -163,9 +165,6 @@ jupyter-collaboration = ">=5.0.0,<6"
 pip = ">=26.2.1,<27"
 papermill = ">=2.7.0,<3"
 
-[tool.pixi.feature.py310.dependencies]
-python = "3.10.*"
-
 [tool.pixi.feature.py311.dependencies]
 python = "3.11.*"
 
@@ -179,10 +178,9 @@ python = "3.13.*"
 python = "3.14.*"
 
 # `default` is the newest supported python and the only environment installed locally.
-# The pyXYZ environments exist for the CI matrix; `pixi run -e py310 ...` builds one on demand.
+# The pyXYZ environments exist for the CI matrix; `pixi run -e py311 ...` builds one on demand.
 [tool.pixi.environments]
 default = { features = ["py314"], solve-group = "py314" }
-py310 = { features = ["py310"], solve-group = "py310" }
 py311 = { features = ["py311"], solve-group = "py311" }
 py312 = { features = ["py312"], solve-group = "py312" }
 py313 = { features = ["py313"], solve-group = "py313" }
